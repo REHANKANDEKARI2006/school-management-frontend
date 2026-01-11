@@ -1,0 +1,52 @@
+{
+  "placeholderImages": [
+    {
+      "id": "login-background",
+      "description": "A vibrant and modern school campus",
+      "imageUrl": "https://picsum.photos/seed/campus/1200/1800",
+      "imageHint": "modern campus"
+    },
+    {
+      "id": "student-avatar-1",
+      "description": "Avatar for a male student",
+      "imageUrl": "https://picsum.photos/seed/student1/100/100",
+      "imageHint": "student portrait"
+    },
+    {
+      "id": "student-avatar-2",
+      "description": "Avatar for a female student",
+      "imageUrl": "https://picsum.photos/seed/student2/100/100",
+      "imageHint": "student portrait"
+    },
+    {
+      "id": "faculty-avatar-1",
+      "description": "Avatar for a male faculty member",
+      "imageUrl": "https://picsum.photos/seed/faculty1/100/100",
+      "imageHint": "teacher portrait"
+    },
+    {
+      "id": "faculty-avatar-2",
+      "description": "Avatar for a female faculty member",
+      "imageUrl": "https://picsum.photos/seed/faculty2/100/100",
+      "imageHint": "teacher portrait"
+    },
+    {
+      "id": "event-science-fair",
+      "description": "Thumbnail for a science fair event",
+      "imageUrl": "https://picsum.photos/seed/sciencefair/400/250",
+      "imageHint": "science experiment"
+    },
+    {
+      "id": "event-sports-day",
+      "description": "Thumbnail for a sports day event",
+      "imageUrl": "https://picsum.photos/seed/sportsday/400/250",
+      "imageHint": "running track"
+    },
+    {
+      "id": "event-art-exhibition",
+      "description": "Thumbnail for an art exhibition",
+      "imageUrl": "https://picsum.photos/seed/artexhibit/400/250",
+      "imageHint": "art gallery"
+    }
+  ]
+}

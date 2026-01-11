@@ -1,0 +1,28 @@
+
+{
+    "feeStructures": [
+        { "id": "fs1", "classId": "1", "feeCategoryId": "1", "amount": 5000 },
+        { "id": "fs2", "classId": "2", "feeCategoryId": "1", "amount": 5000 },
+        { "id": "fs3", "classId": "3", "feeCategoryId": "1", "amount": 6000 },
+        { "id": "fs4", "classId": "4", "feeCategoryId": "1", "amount": 4500 },
+        { "id": "fs5", "classId": "5", "feeCategoryId": "1", "amount": 7000 },
+        
+        { "id": "fs6", "classId": "1", "feeCategoryId": "2", "amount": 10000 },
+        { "id": "fs7", "classId": "2", "feeCategoryId": "2", "amount": 10000 },
+        { "id": "fs8", "classId": "3", "feeCategoryId": "2", "amount": 12000 },
+        { "id": "fs9", "classId": "4", "feeCategoryId": "2", "amount": 8000 },
+        { "id": "fs10", "classId": "5", "feeCategoryId": "2", "amount": 15000 },
+
+        { "id": "fs11", "classId": "1", "feeCategoryId": "3", "amount": 1000 },
+        { "id": "fs12", "classId": "2", "feeCategoryId": "3", "amount": 1000 },
+        { "id": "fs13", "classId": "3", "feeCategoryId": "3", "amount": 1200 },
+        { "id": "fs14", "classId": "4", "feeCategoryId": "3", "amount": 800 },
+        { "id": "fs15", "classId": "5", "feeCategoryId": "3", "amount": 1500 },
+
+        { "id": "fs16", "classId": "1", "feeCategoryId": "4", "amount": 500 },
+        { "id": "fs17", "classId": "2", "feeCategoryId": "4", "amount": 500 },
+        { "id": "fs18", "classId": "3", "feeCategoryId": "4", "amount": 600 },
+        { "id": "fs19", "classId": "4", "feeCategoryId": "4", "amount": 400 },
+        { "id": "fs20", "classId": "5", "feeCategoryId": "4", "amount": 700 }
+    ]
+}

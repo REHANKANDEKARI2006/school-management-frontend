@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import axios from "@/lib/axios"; // ✅ use central axios
+import axios from "@/lib/axios";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,13 +42,32 @@ export default function LoginPage() {
         return;
       }
 
-      // ✅ Save tokens correctly
+      /* =========================
+         🔐 AUTH STABILITY (DONE)
+      ========================= */
+      localStorage.setItem("isAuthenticated", "true");
+      sessionStorage.setItem("isAuthenticated", "true");
+
+      /* =========================
+         🔑 TOKENS
+      ========================= */
       localStorage.setItem("accessToken", res.data.accessToken);
       localStorage.setItem("refreshToken", res.data.refreshToken);
-      localStorage.setItem("role_id", String(res.data.role_id));
 
-      // ✅ redirect only AFTER success
-      router.push("/main/dashboard");
+      /* =========================
+         👤 USER DATA (NEW – FOR UserNav)
+      ========================= */
+      localStorage.setItem("role_id", String(res.data.role_id));
+      localStorage.setItem("user_email", res.data.email || email);
+      localStorage.setItem(
+        "user_name",
+        res.data.name || res.data.full_name || "User"
+      );
+
+      /* =========================
+         ✅ SAFE REDIRECT
+      ========================= */
+      router.replace("/main/dashboard");
     } catch (error: any) {
       alert(
         error?.response?.data?.message ||
@@ -74,7 +93,6 @@ export default function LoginPage() {
           </div>
 
           <div className="grid gap-4">
-            {/* Email */}
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -86,7 +104,6 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Password */}
             <div className="grid gap-2">
               <div className="flex items-center">
                 <Label htmlFor="password">Password</Label>
@@ -105,7 +122,6 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Login Button */}
             <Button
               type="button"
               className="w-full"

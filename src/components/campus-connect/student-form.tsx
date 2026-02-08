@@ -1,4 +1,3 @@
-
 "use client";
 
 import { z } from "zod";
@@ -25,13 +24,20 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import type { Student as StudentType } from "@/types";
 
+import * as React from "react";
+import axios from "@/lib/axios";
+
+/* =========================
+   VALIDATION SCHEMA
+========================= */
 const studentSchema = z.object({
   id: z.string().optional(),
   rollNumber: z.string().optional(),
-  classId: z.string().optional(),
+
+  class_id: z.string().min(1, "Class is required"),
+
   name: z.string().min(1, "Student name is required"),
   email: z.string().email("Invalid email address"),
-  class: z.string().min(1, "Class is required"),
   status: z.enum(["Active", "Suspended", "Withdrawn"]),
   address: z.string().min(1, "Address is required"),
   bloodGroup: z.string().min(1, "Blood group is required"),
@@ -40,11 +46,7 @@ const studentSchema = z.object({
   primaryContact: z.string().min(1, "Primary contact is required"),
   dob: z.string().min(1, "Date of birth is required"),
   secondaryContact: z.string().optional(),
-  parentEmail: z.string().email("Invalid email address").optional().or(z.literal('')),
-  // Not part of the form, but needed for the type
-  avatar: z.string().optional(),
-  fallback: z.string().optional(),
-  date: z.string().optional(),
+  parentEmail: z.string().email().optional().or(z.literal("")),
 });
 
 export type Student = z.infer<typeof studentSchema>;
@@ -60,7 +62,7 @@ export function StudentForm({ onSubmit, student }: StudentFormProps) {
     defaultValues: student || {
       name: "",
       email: "",
-      class: "",
+      class_id: "",
       status: "Active",
       address: "",
       bloodGroup: "",
@@ -69,18 +71,60 @@ export function StudentForm({ onSubmit, student }: StudentFormProps) {
       primaryContact: "",
       secondaryContact: "",
       parentEmail: "",
-      dob: ""
+      dob: "",
     },
   });
+
+  /* =========================
+     DROPDOWN DATA
+  ========================= */
+  const [classOptions, setClassOptions] = React.useState<any[]>([]);
+  const [bloodGroups, setBloodGroups] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    axios
+      .get("/api/classes/class-enrollments/list")
+      .then((res) => setClassOptions(res.data.data));
+
+    axios
+      .get("/api/blood-groups")
+      .then((res) => setBloodGroups(res.data.data));
+  }, []);
 
   const handleSubmit = (values: Student) => {
     onSubmit(values);
   };
 
+  /* =========================
+     PREFILL (EDIT MODE)
+  ========================= */
+  React.useEffect(() => {
+    if (student) {
+      form.reset({
+        ...student,
+        class_id: student.class_id ? String(student.class_id) : "",
+        dob: student.dob
+          ? new Date(student.dob).toISOString().split("T")[0]
+          : "",
+        bloodGroup: student.bloodGroup ?? "",
+        status: student.status ?? "Active",
+      });
+    }
+  }, [student, form]);
+
+  React.useEffect(() => {
+    if (student?.class_id && classOptions.length > 0) {
+      form.setValue("class_id", String(student.class_id), {
+        shouldValidate: true,
+      });
+    }
+  }, [student?.class_id, classOptions, form]);
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <h3 className="text-lg font-medium">Student Information</h3>
+
         <FormField
           control={form.control}
           name="name"
@@ -88,12 +132,13 @@ export function StudentForm({ onSubmit, student }: StudentFormProps) {
             <FormItem>
               <FormLabel>Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. John Doe" {...field} />
+                <Input {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
           name="email"
@@ -101,25 +146,43 @@ export function StudentForm({ onSubmit, student }: StudentFormProps) {
             <FormItem>
               <FormLabel>Email Address</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="e.g. john.doe@example.com" {...field} />
+                <Input type="email" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+
+        {/* ✅ FIXED CLASS SELECT */}
         <FormField
           control={form.control}
-          name="class"
+          name="class_id"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Class</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g. 10-A" {...field} />
-              </FormControl>
+              <Select
+                value={field.value || ""}
+                onValueChange={(val) => {
+                  field.onChange(val);
+                  form.setValue("class_id", val, { shouldValidate: true });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classOptions.map((c) => (
+                    <SelectItem key={c.class_id} value={String(c.class_id)}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
           name="dob"
@@ -127,50 +190,62 @@ export function StudentForm({ onSubmit, student }: StudentFormProps) {
             <FormItem>
               <FormLabel>Date of Birth</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. 2013-05-12" type="date" {...field} />
+                <Input type="date" {...field} />
               </FormControl>
-              <FormMessage />
             </FormItem>
           )}
         />
-         <FormField
+
+        <FormField
           control={form.control}
           name="address"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Address</FormLabel>
               <FormControl>
-                <Textarea placeholder="123 Main Street, Anytown, USA" {...field} />
+                <Textarea {...field} />
               </FormControl>
-              <FormMessage />
             </FormItem>
           )}
         />
+
+        {/* ✅ FIXED BLOOD GROUP */}
         <FormField
           control={form.control}
           name="bloodGroup"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Blood Group</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g. A+" {...field} />
-              </FormControl>
+              <Select
+                value={field.value || ""}
+                onValueChange={field.onChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select blood group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bloodGroups.map((bg) => (
+                    <SelectItem key={bg.bg_id} value={bg.blood_group}>
+                      {bg.blood_group}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
           name="status"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select student status" />
-                  </SelectTrigger>
-                </FormControl>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Active">Active</SelectItem>
                   <SelectItem value="Suspended">Suspended</SelectItem>
@@ -181,21 +256,25 @@ export function StudentForm({ onSubmit, student }: StudentFormProps) {
             </FormItem>
           )}
         />
+
         <Separator />
+
         <h3 className="text-lg font-medium">Guardian Information</h3>
-         <FormField
+
+        <FormField
           control={form.control}
           name="fatherName"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Father's Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Robert Doe" {...field} />
+                <Input {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
           name="motherName"
@@ -203,55 +282,57 @@ export function StudentForm({ onSubmit, student }: StudentFormProps) {
             <FormItem>
               <FormLabel>Mother's Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Jane Doe" {...field} />
+                <Input {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
           name="primaryContact"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Primary Contact Number</FormLabel>
+              <FormLabel>Primary Contact</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. +1 123 456 7890" {...field} />
+                <Input {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-         <FormField
+
+        <FormField
           control={form.control}
           name="secondaryContact"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Secondary Contact Number (Optional)</FormLabel>
+              <FormLabel>Secondary Contact (Optional)</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. +1 098 765 4321" {...field} />
+                <Input {...field} />
               </FormControl>
-              <FormMessage />
             </FormItem>
           )}
         />
-         <FormField
+
+        <FormField
           control={form.control}
           name="parentEmail"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Guardian's Email (Optional)</FormLabel>
+              <FormLabel>Guardian Email (Optional)</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="e.g. parent@example.com" {...field} />
+                <Input type="email" {...field} />
               </FormControl>
-              <FormMessage />
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full">{student ? "Update Student" : "Add Student"}</Button>
+
+        <Button type="submit" className="w-full">
+          {student ? "Update Student" : "Add Student"}
+        </Button>
       </form>
     </Form>
   );
 }
-
-    

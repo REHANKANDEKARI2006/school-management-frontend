@@ -4,7 +4,8 @@ export type Student = {
   name: string;
   rollNumber: string;
   class: string;
-  classId: string;
+  // classId: string;
+  class_id?: string;
   classNameShort?: string; // e.g., "10-A"
   avatar: string;
   fallback: string;

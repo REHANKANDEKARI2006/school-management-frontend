@@ -1,12 +1,15 @@
-
 "use client";
 
 import type { PropsWithChildren } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
 import { SearchProvider } from "@/components/campus-connect/search-provider";
 import { SearchInput } from "@/components/campus-connect/search-input";
 import { HeaderLogo } from "@/components/campus-connect/logo";
 import { MainNav } from "@/components/campus-connect/main-nav";
 import { UserNav } from "@/components/campus-connect/user-nav";
+
 import {
   SidebarProvider,
   Sidebar,
@@ -15,30 +18,76 @@ import {
   SidebarFooter,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+
 import { IdCardSettingsProvider } from "@/components/campus-connect/id-card-settings-provider";
 
+// 🔐 SESSION IMPORTS
+import { useSessionManager } from "@/hooks/useSessionManager";
+import SessionPopup from "@/components/session/SessionPopup";
+
 export default function DashboardLayout({ children }: PropsWithChildren) {
+  const router = useRouter();
+  const [checkedAuth, setCheckedAuth] = useState(false);
+
+  // 🔐 Session control
+  const { showPopup, continueSession, logout } = useSessionManager();
+
+  // 🔒 HARD AUTH GUARD (client-side)
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+
+    // auth checked → allow render
+    setCheckedAuth(true);
+  }, [router]);
+
+  // ⛔ Prevent render before auth check
+  if (!checkedAuth) {
+    return null; // or loader if you want
+  }
+
   return (
     <SearchProvider>
       <IdCardSettingsProvider>
         <SidebarProvider>
+
+          {/* 🔔 SESSION EXPIRY POPUP */}
+          {showPopup && (
+            <SessionPopup
+              onContinue={continueSession}
+              onLogout={logout}
+            />
+          )}
+
           <div className="min-h-screen w-full flex overflow-hidden">
+            {/* SIDEBAR */}
             <Sidebar collapsible="icon">
               <SidebarHeader className="p-0">
                 <HeaderLogo />
               </SidebarHeader>
+
               <SidebarContent>
                 <MainNav />
               </SidebarContent>
-              <SidebarFooter>{/* Future footer content can go here */}</SidebarFooter>
+
+              <SidebarFooter />
             </Sidebar>
+
+            {/* MAIN CONTENT */}
             <div className="flex-1 flex flex-col overflow-hidden">
               <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-6">
                 <SidebarTrigger className="md:hidden" />
                 <SearchInput />
                 <UserNav />
               </header>
-              <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
+
+              <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+                {children}
+              </main>
             </div>
           </div>
         </SidebarProvider>

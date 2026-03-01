@@ -7,140 +7,173 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getStudentsForSubjectInClass, getStudentsByClass as getAllStudentsInClass, getClassById, getSubjectById } from '@/lib/mock-data';
-import type { Student, AttendanceRecord, ClassItem, Subject, AttendanceStatus } from '@/types';
 import { Check, X, Users, Library, CalendarDays, AlertTriangle } from 'lucide-react';
 import { format } from "date-fns";
 import { useRouter } from 'next/navigation';
+import axios from "@/lib/axios";
 
 interface AttendanceSummaryDialogProps {
   classId: string;
   subjectId: string;
   date: Date;
+  sessionId?: string;
 }
 
-export function AttendanceSummaryDialog({ classId, subjectId, date }: AttendanceSummaryDialogProps) {
+export function AttendanceSummaryDialog({ classId, subjectId, date, sessionId }: AttendanceSummaryDialogProps) {
   const router = useRouter();
-  const [currentClass, setCurrentClass] = useState<ClassItem | null>(null);
-  const [currentSubject, setCurrentSubject] = useState<Subject | null>(null);
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
-  const [allStudentsInClassForLookup, setAllStudentsInClassForLookup] = useState<Student[]>([]);
+  const [currentClass, setCurrentClass] = useState<any>(null);
+  const [currentSubject, setCurrentSubject] = useState<any>(null);
+  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const classData = getClassById(classId);
-    const subjectData = getSubjectById(subjectId);
-    const allStudents = getAllStudentsInClass(classId);
-    setAllStudentsInClassForLookup(allStudents);
+  const fetchSummary = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Fetch class and subject details too
+      const [classRes, subjectRes] = await Promise.all([
+        axios.get(`/api/classes/${classId}`),
+        axios.get(`/api/subjects/${subjectId}`)
+      ]);
 
-    if(classData) setCurrentClass(classData);
-    if(subjectData) setCurrentSubject(subjectData);
+      if (classRes.data.success) setCurrentClass(classRes.data.data);
+      if (subjectRes.data.success) setCurrentSubject(subjectRes.data.data);
 
-    const dateString = format(date, "yyyy-MM-dd");
-    const key = `attendance-${classId}-${subjectId}-${dateString}`;
-    const storedRecordsRaw = localStorage.getItem(key);
+      let sid = sessionId;
 
-    if (storedRecordsRaw) {
-      try {
-        const records: AttendanceRecord[] = JSON.parse(storedRecordsRaw);
-        setAttendanceRecords(records.filter(r => r.status !== 'pending'));
-      } catch (e) {
-        console.error("Failed to parse attendance records for dialog", e);
+      // If sessionId not provided but date is today, check if session exists
+      if (!sid) {
+        const dateString = format(date, "yyyy-MM-dd");
+        const checkRes = await axios.get(`/api/attendance/session/check?class_id=${classId}&subject_id=${subjectId}&attendance_date=${dateString}`);
+        if (checkRes.data.success && checkRes.data.data) {
+          sid = checkRes.data.data.session_id;
+        }
+      }
+
+      if (sid) {
+        const res = await axios.get(`/api/attendance/summary?sessionId=${sid}`);
+        if (res.data.success) {
+          setAttendanceRecords(res.data.data);
+        }
+      } else {
         setAttendanceRecords([]);
       }
-    } else {
-        setAttendanceRecords([]);
+    } catch (err) {
+      console.error("Failed to fetch summary", err);
+      setError("Failed to load attendance summary.");
+    } finally {
+      setIsLoading(false);
     }
+  }, [classId, subjectId, date, sessionId]);
 
-    setIsLoading(false);
-  }, [classId, subjectId, date]);
-  
-  const getStudentDetails = useCallback((studentId: string): { name: string; rollNumber: string } => {
-    const student = allStudentsInClassForLookup.find(s => s.id === studentId);
-    return {
-        name: student?.name || 'Unknown Student',
-        rollNumber: student?.rollNumber || 'N/A'
-    };
-  }, [allStudentsInClassForLookup]);
+  useEffect(() => {
+    fetchSummary();
+  }, [fetchSummary]);
 
   const presentCount = attendanceRecords.filter(r => r.status === 'present').length;
   const absentCount = attendanceRecords.filter(r => r.status === 'absent').length;
 
   return (
-    <DialogContent className="sm:max-w-xl">
-      <DialogHeader>
-        <DialogTitle className="text-xl">Attendance Summary</DialogTitle>
+    <DialogContent className="sm:max-w-xl p-0 overflow-hidden border-none shadow-2xl">
+      <DialogHeader className="p-6 pb-0">
+        <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+          <Library className="h-6 w-6 text-indigo-600" />
+          Attendance Summary
+        </DialogTitle>
         <DialogDescription>
-          Read-only summary for {currentSubject?.name} on {format(date, "PPP")}.
+          Records for {currentSubject?.subject_name} on {format(date, "PPP")}.
         </DialogDescription>
       </DialogHeader>
-      <div className="max-h-[70vh] overflow-y-auto pr-2">
-        <Card className="shadow-none border-0">
-          <CardContent className="p-0">
-             {isLoading ? (
-                <div className="flex justify-center items-center h-40">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-            ) : !currentClass || !currentSubject ? (
-                <div className="text-center py-4">
-                    <AlertTriangle className="mx-auto h-8 w-8 text-destructive mb-2" />
-                    <p>Could not load class or subject data.</p>
-                </div>
-            ) : attendanceRecords.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">No attendance data found for this day.</p>
-            ) : (
-            <>
-            <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground pb-4">
-                <div className="flex items-center"><Users className="mr-2 h-4 w-4 text-primary" /> Class: <span className="font-semibold text-foreground ml-1">{currentClass.name}</span></div>
-                <div className="flex items-center"><Library className="mr-2 h-4 w-4 text-primary" /> Subject: <span className="font-semibold text-foreground ml-1">{currentSubject.name}</span></div>
-            </div>
-            <div className="flex gap-4 pb-4">
-                <span className="font-semibold text-green-600">Present: {presentCount}</span>
-                <span className="font-semibold text-destructive">Absent: {absentCount}</span>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Roll No.</TableHead>
-                  <TableHead>Student Name</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {attendanceRecords.map((record) => {
-                  const studentInfo = getStudentDetails(record.studentId);
-                  if (studentInfo.name === 'Unknown Student') return null;
 
-                  return (
-                    <TableRow key={record.studentId}>
-                      <TableCell>{studentInfo.rollNumber}</TableCell>
-                      <TableCell>{studentInfo.name}</TableCell>
-                      <TableCell className="text-center">
-                        {record.status === 'present' ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            <Check className="mr-1 h-3 w-3" /> Present
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            <X className="mr-1 h-3 w-3" /> Absent
-                          </span>
-                        )}
-                      </TableCell>
+      <div className="p-6">
+        {isLoading ? (
+          <div className="flex flex-col justify-center items-center h-48 space-y-4">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+            <p className="text-muted-foreground text-sm font-medium">Loading records...</p>
+          </div>
+        ) : !currentClass || !currentSubject ? (
+          <div className="p-8 text-center border rounded-xl bg-slate-50">
+            <AlertTriangle className="mx-auto h-10 w-10 text-rose-500 mb-2" />
+            <p className="font-bold">Sync Failed</p>
+            <p className="text-sm text-muted-foreground">Class or subject details not found.</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 border rounded-xl bg-slate-50/50">
+                <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Class</p>
+                <p className="font-bold text-slate-800">{currentClass.class_name}</p>
+              </div>
+              <div className="p-3 border rounded-xl bg-slate-50/50">
+                <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Subject</p>
+                <p className="font-bold text-slate-800">{currentSubject.subject_name}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <div className="flex-1 p-3 border rounded-xl bg-green-50/50 flex flex-col items-center">
+                <span className="text-[10px] font-bold text-green-600 uppercase mb-1">Present</span>
+                <span className="text-2xl font-black text-green-600">{presentCount}</span>
+              </div>
+              <div className="flex-1 p-3 border rounded-xl bg-rose-50/50 flex flex-col items-center">
+                <span className="text-[10px] font-bold text-rose-600 uppercase mb-1">Absent</span>
+                <span className="text-2xl font-black text-rose-600">{absentCount}</span>
+              </div>
+            </div>
+
+            <div className="border rounded-xl overflow-hidden shadow-sm">
+              <div className="max-h-[40vh] overflow-y-auto">
+                <Table>
+                  <TableHeader className="bg-slate-50 sticky top-0 z-10">
+                    <TableRow>
+                      <TableHead className="w-[80px]">Roll</TableHead>
+                      <TableHead>Student</TableHead>
+                      <TableHead className="text-center w-[100px]">Status</TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-            <Button 
-                variant="secondary" 
-                className="w-full mt-6"
-                onClick={() => router.push(`/dashboard/attendance/${classId}/${subjectId}/summary?date=${format(date, "yyyy-MM-dd")}`)}
+                  </TableHeader>
+                  <TableBody>
+                    {attendanceRecords.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center py-8 text-muted-foreground italic">
+                          No attendance marked yet.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      attendanceRecords.map((record) => {
+                        const isPresent = record.status?.toLowerCase() === 'present';
+                        return (
+                          <TableRow key={record.student_id}>
+                            <TableCell className="font-mono text-xs">{record.roll_number}</TableCell>
+                            <TableCell className="font-bold">{record.name}</TableCell>
+                            <TableCell className="text-center">
+                              {isPresent ? (
+                                <span className="inline-flex items-center text-green-600 font-bold text-[11px] uppercase">
+                                  <Check className="mr-1 h-3.5 w-3.5" /> Present
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center text-rose-600 font-bold text-[11px] uppercase">
+                                  <X className="mr-1 h-3.5 w-3.5" /> Absent
+                                </span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => router.push(`/main/attendance/${classId}/${subjectId}/summary?date=${format(date, "yyyy-MM-dd")}`)}
+              className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200"
             >
-                View Full Interactive Summary
+              View Full Analytics
             </Button>
-            </>
-            )}
-          </CardContent>
-        </Card>
+          </div>
+        )}
       </div>
     </DialogContent>
   );

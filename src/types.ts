@@ -1,14 +1,16 @@
 
 export type Student = {
   id: string;
+  student_id?: string;
   name: string;
-  rollNumber: string;
+  rollNumber?: string;
+  roll_number?: string;
   class: string;
   // classId: string;
   class_id?: string;
   classNameShort?: string; // e.g., "10-A"
-  avatar: string;
-  fallback: string;
+  avatar?: string;
+  fallback?: string;
   subjectIds?: string[]; // Added to track student's subjects
   // Fields for student details form
   email?: string;
@@ -25,14 +27,16 @@ export type Student = {
 };
 
 export type ClassItem = {
-    id: string;
-    name: string;
-    subjectIds: string[];
+  id: string;
+  name: string;
+  subjectIds: string[];
 }
 
 export type Subject = {
-    id: string;
-    name: string;
+  id: string;
+  subject_id?: string;
+  name: string;
+  subject_name?: string;
 }
 
 export type AttendanceStatus = 'present' | 'absent' | 'pending';

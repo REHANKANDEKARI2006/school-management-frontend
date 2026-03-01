@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 
 const feeCategorySchema = z.object({
-  id: z.string().optional(),
+  id: z.union([z.string(), z.number()]).optional(),
   name: z.string().min(1, "Category name is required"),
   description: z.string().min(1, "Description is required"),
   allowInstallments: z.boolean().default(false),

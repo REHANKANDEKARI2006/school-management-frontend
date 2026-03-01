@@ -102,32 +102,6 @@ export function FacultyForm({
   });
 
 
-  /* =========================
-     PREFILL (EDIT MODE)
-  ========================= */
-  // React.useEffect(() => {
-  //   if (initialData) {
-  //     form.reset({
-  //       name: `${initialData.staff_first_name} ${initialData.staff_last_name}`,
-  //       email: initialData.email || "",
-  //       contact: initialData.contact || "",
-  //       qualification: initialData.qualification || "",
-  //       dept_id: initialData.dept_id ? String(initialData.dept_id) : "",
-  //       subject_id: initialData.subject_id
-  //         ? String(initialData.subject_id)
-  //         : "",
-  //       bg_id: initialData.bg_id ? String(initialData.bg_id) : "",
-  //       gender_id: initialData.gender_id
-  //         ? String(initialData.gender_id)
-  //         : "",
-  //       user_status_id: String(initialData.user_status_id || "1"),
-  //       joining_date: initialData.joining_date
-  //         ? initialData.joining_date.split("T")[0]
-  //         : "",
-  //     });
-  //   }
-  // }, [initialData, form]);
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

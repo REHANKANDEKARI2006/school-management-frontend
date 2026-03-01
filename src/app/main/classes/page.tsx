@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import axios from "@/lib/axios";
 import RouteGuard from "@/components/auth/RouteGuard";
 
 import { MoreHorizontal, PlusCircle } from "lucide-react";
@@ -15,7 +16,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -37,49 +37,38 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ClassForm, type Class } from "@/components/campus-connect/class-form";
 import { useSearch } from "@/components/campus-connect/search-provider";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-const initialClasses: Class[] = [
-  {
-    id: "1",
-    name: "Class 10",
-    section: "A",
-    classTeacher: "Dr. Evelyn Reed",
-    roomNumber: "301",
-    studentCount: 35,
-  },
-  {
-    id: "2",
-    name: "Class 12",
-    section: "B",
-    classTeacher: "Mr. Benjamin Carter",
-    roomNumber: "402",
-    studentCount: 32,
-  },
-  {
-    id: "3",
-    name: "Class 9",
-    section: "C",
-    classTeacher: "Ms. Sophia Loren",
-    roomNumber: "205",
-    studentCount: 38,
-  },
-  {
-    id: "4",
-    name: "Class 11",
-    section: "A",
-    classTeacher: "Mr. David Chen",
-    roomNumber: "401",
-    studentCount: 30,
-  },
-];
 
 export default function ClassesPage() {
   const { toast } = useToast();
   const { searchQuery } = useSearch();
-  const [classes, setClasses] = React.useState(initialClasses);
+
+  const [classes, setClasses] = React.useState<Class[]>([]);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [selectedClass, setSelectedClass] = React.useState<Class | undefined>();
+
+  /* =========================
+     FETCH CLASSES (ADMIN)
+  ========================= */
+  const fetchClasses = async () => {
+    const res = await axios.get("/api/classes/admin/list");
+
+    const mapped: Class[] = res.data.data.map((c: any) => ({
+      id: String(c.class_id),
+      name: c.class_name,
+      section: c.section_name || "-",
+      classTeacher: c.staff_first_name
+        ? `${c.staff_first_name} ${c.staff_last_name || ""}`.trim()
+        : "-",
+      roomNumber: c.room_number || "-",
+      studentCount: Number(c.students_count || 0),
+    }));
+
+    setClasses(mapped);
+  };
+
+  React.useEffect(() => {
+    fetchClasses();
+  }, []);
 
   const filteredClasses = React.useMemo(() => {
     if (!searchQuery) return classes;
@@ -91,16 +80,11 @@ export default function ClassesPage() {
     );
   }, [searchQuery, classes]);
 
-  const handleFormSubmit = (classData: Class) => {
-    if (selectedClass) {
-      setClasses(classes.map(c => c.id === classData.id ? { ...c, ...classData } : c));
-      toast({ title: "Class Updated" });
-    } else {
-      setClasses([...classes, { ...classData, id: (classes.length + 1).toString() }]);
-      toast({ title: "Class Created" });
-    }
+  const handleFormSubmit = async () => {
     setIsFormOpen(false);
     setSelectedClass(undefined);
+    await fetchClasses();
+    toast({ title: "Class saved successfully" });
   };
 
   return (
@@ -113,7 +97,12 @@ export default function ClassesPage() {
                 <CardTitle>Classes</CardTitle>
                 <CardDescription>Manage classes</CardDescription>
               </div>
-              <Button onClick={() => setIsFormOpen(true)}>
+              <Button
+                onClick={() => {
+                  setSelectedClass(undefined);
+                  setIsFormOpen(true);
+                }}
+              >
                 <PlusCircle className="mr-2 h-4 w-4" /> Create Class
               </Button>
             </div>
@@ -134,7 +123,9 @@ export default function ClassesPage() {
               <TableBody>
                 {filteredClasses.map(cls => (
                   <TableRow key={cls.id}>
-                    <TableCell>{cls.name} - {cls.section}</TableCell>
+                    <TableCell>
+                      {cls.name} - {cls.section}
+                    </TableCell>
                     <TableCell>{cls.classTeacher}</TableCell>
                     <TableCell>{cls.roomNumber}</TableCell>
                     <TableCell>{cls.studentCount}</TableCell>
@@ -145,11 +136,26 @@ export default function ClassesPage() {
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => { setSelectedClass(cls); setIsFormOpen(true); }}>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedClass(cls);
+                              setIsFormOpen(true);
+                            }}
+                          >
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setClasses(classes.filter(c => c.id !== cls.id))}>
+
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={async () => {
+                              if (!confirm("Delete this class?")) return;
+                              await axios.delete(`/api/classes/${cls.id}`);
+                              fetchClasses();
+                            }}
+                          >
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -165,9 +171,15 @@ export default function ClassesPage() {
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{selectedClass ? "Edit Class" : "Create Class"}</DialogTitle>
+              <DialogTitle>
+                {selectedClass ? "Edit Class" : "Create Class"}
+              </DialogTitle>
             </DialogHeader>
-            <ClassForm onSubmit={handleFormSubmit} classData={selectedClass} />
+
+            <ClassForm
+              classData={selectedClass}
+              onSubmit={handleFormSubmit}
+            />
           </DialogContent>
         </Dialog>
       </>

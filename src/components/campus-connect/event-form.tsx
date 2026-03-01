@@ -1,6 +1,4 @@
-
-"use client";
-
+import * as React from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,54 +22,81 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { getEventStatuses } from "@/lib/api/events";
+import { useToast } from "@/hooks/use-toast";
 
 const eventSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().min(1, "Event name is required"),
+  event_id: z.number().optional(),
+  event_name: z.string().min(1, "Event name is required"),
   description: z.string().min(1, "Description is required"),
-  date: z.date({ required_error: "A date is required." }),
-  status: z.enum(["Upcoming", "Completed", "Cancelled"]),
+  event_date: z.date({ required_error: "A date is required." }),
+  venue: z.string().min(1, "Venue is required"),
+  event_status_id: z.string().min(1, "Status is required"),
 });
 
 export type Event = z.infer<typeof eventSchema>;
 
 interface EventFormProps {
   onSubmit: (data: Event) => void;
-  event?: Event;
+  event?: any;
+  loading?: boolean;
 }
 
-export function EventForm({ onSubmit, event }: EventFormProps) {
+export function EventForm({ onSubmit, event, loading }: EventFormProps) {
+  const { toast } = useToast();
+  const [statuses, setStatuses] = React.useState<any[]>([]);
+  const [dropdownLoading, setDropdownLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchStatuses = async () => {
+      try {
+        const data = await getEventStatuses();
+        setStatuses(data || []);
+      } catch {
+        toast({ title: "Error", description: "Failed to load event statuses", variant: "destructive" });
+      } finally {
+        setDropdownLoading(false);
+      }
+    };
+    fetchStatuses();
+  }, [toast]);
+
   const form = useForm<Event>({
     resolver: zodResolver(eventSchema),
     defaultValues: event ? {
       ...event,
-      date: new Date(event.date)
+      event_date: new Date(event.event_date),
+      event_status_id: String(event.event_status_id)
     } : {
-      name: "",
+      event_name: "",
       description: "",
-      date: new Date(),
-      status: "Upcoming",
+      event_date: new Date(),
+      venue: "",
+      event_status_id: "",
     },
   });
 
   const handleSubmit = (values: Event) => {
-    const dataToSend = {
-      ...values,
-      date: format(values.date, 'yyyy-MM-dd'),
-      id: event?.id
-    };
-    onSubmit(dataToSend as any);
+    onSubmit(values);
   };
+
+  if (dropdownLoading) {
+    return (
+      <div className="flex justify-center items-center py-10">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          name="name"
+          name="event_name"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Event Name</FormLabel>
@@ -97,7 +122,20 @@ export function EventForm({ onSubmit, event }: EventFormProps) {
         />
         <FormField
           control={form.control}
-          name="date"
+          name="venue"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Venue</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g. School Auditorium" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="event_date"
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Date</FormLabel>
@@ -135,7 +173,7 @@ export function EventForm({ onSubmit, event }: EventFormProps) {
         />
         <FormField
           control={form.control}
-          name="status"
+          name="event_status_id"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Status</FormLabel>
@@ -146,16 +184,21 @@ export function EventForm({ onSubmit, event }: EventFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="Upcoming">Upcoming</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  {statuses.map((status) => (
+                    <SelectItem key={status.event_status_id} value={String(status.event_status_id)}>
+                      {status.event_status_name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormMessage />
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full">{event ? "Update Event" : "Create Event"}</Button>
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {event ? "Update Event" : "Create Event"}
+        </Button>
       </form>
     </Form>
   );

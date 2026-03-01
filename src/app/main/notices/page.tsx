@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { MoreHorizontal, PlusCircle } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Loader2, Calendar as CalendarIcon, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -33,76 +33,103 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { NoticeForm, type Notice } from "@/components/campus-connect/notice-form";
+import { NoticeForm } from "@/components/campus-connect/notice-form";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useSearch } from "@/components/campus-connect/search-provider";
-
-const initialNotices: Notice[] = [
-  {
-    id: "1",
-    title: "Mid-term Exam Schedule",
-    content: "The schedule for the upcoming mid-term exams is now available on the portal.",
-    author: "Principal",
-    date: "2024-07-28",
-  },
-  {
-    id: "2",
-    title: "Annual Sports Day Registration",
-    content: "Registrations for Sports Day events are now open. Please sign up before the deadline.",
-    author: "Sports Dept.",
-    date: "2024-07-25",
-  },
-  {
-    id: "3",
-    title: "Library Hour Changes",
-    content: "Please note the new library timings for the summer break, effective from August 1st.",
-    author: "Librarian",
-    date: "2024-07-20",
-  },
-    {
-    id: "4",
-    title: "Science Fair Volunteers Needed",
-    content: "We are looking for student volunteers for the Annual Science Fair. Please contact the science department.",
-    author: "Science Dept.",
-    date: "2024-07-18",
-  },
-];
+import { getNotices, createNotice, updateNotice, deleteNotice } from "@/lib/api/notices";
+import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 export default function NoticesPage() {
   const { toast } = useToast();
   const { searchQuery } = useSearch();
-  const [notices, setNotices] = React.useState(initialNotices);
+  const [notices, setNotices] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [formLoading, setFormLoading] = React.useState(false);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
-  const [selectedNotice, setSelectedNotice] = React.useState<Notice | undefined>(undefined);
+  const [selectedNotice, setSelectedNotice] = React.useState<any>(undefined);
+  const [deleteTarget, setDeleteTarget] = React.useState<any>(null);
+
+  const fetchNoticesData = React.useCallback(async () => {
+    try {
+      const data = await getNotices();
+      setNotices(data || []);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to load notices", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  React.useEffect(() => {
+    fetchNoticesData();
+  }, [fetchNoticesData]);
 
   const filteredNotices = React.useMemo(() => {
     if (!searchQuery) {
       return notices;
     }
+    const q = searchQuery.toLowerCase();
     return notices.filter(notice =>
-      notice.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      notice.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      notice.author.toLowerCase().includes(searchQuery.toLowerCase())
+      notice.title?.toLowerCase().includes(q) ||
+      notice.content?.toLowerCase().includes(q) ||
+      notice.author_name?.toLowerCase().includes(q) ||
+      notice.audience_name?.toLowerCase().includes(q)
     );
   }, [searchQuery, notices]);
 
-  const handleFormSubmit = (noticeData: Notice) => {
-    if (selectedNotice) {
-      // Update existing notice
-      setNotices(notices.map(n => n.id === noticeData.id ? noticeData : n));
-      toast({ title: "Notice Updated", description: `"${noticeData.title}" has been updated.` });
-    } else {
-      // Add new notice
-      const newNotice = { ...noticeData, id: (notices.length + 1).toString() };
-      setNotices([newNotice, ...notices]);
-      toast({ title: "Notice Posted", description: `"${noticeData.title}" has been published.` });
+  const handleFormSubmit = async (noticeData: any) => {
+    setFormLoading(true);
+    try {
+      if (selectedNotice) {
+        await updateNotice(selectedNotice.notice_id, noticeData);
+        toast({ title: "Notice Updated", description: `"${noticeData.title}" has been updated.` });
+      } else {
+        await createNotice(noticeData);
+        toast({ title: "Notice Posted", description: `"${noticeData.title}" has been published.` });
+      }
+      setIsFormOpen(false);
+      setSelectedNotice(undefined);
+      fetchNoticesData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Operation failed",
+        variant: "destructive"
+      });
+    } finally {
+      setFormLoading(false);
     }
-    setIsFormOpen(false);
-    setSelectedNotice(undefined);
   };
 
-  const openEditDialog = (notice: Notice) => {
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteNotice(deleteTarget.notice_id);
+      toast({ title: "Notice Deleted", description: `"${deleteTarget.title}" has been removed.` });
+      setDeleteTarget(null);
+      fetchNoticesData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Deletion failed",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const openEditDialog = (notice: any) => {
     setSelectedNotice(notice);
     setIsFormOpen(true);
   }
@@ -114,7 +141,7 @@ export default function NoticesPage() {
 
   const getFallback = (author?: string) => {
     if (!author) return "??";
-    return author.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
+    return author.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   }
 
   return (
@@ -122,84 +149,135 @@ export default function NoticesPage() {
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                  <CardTitle className="font-headline">E-Notice Board</CardTitle>
-                  <CardDescription>Post and manage digital notices for all users.</CardDescription>
-              </div>
-              <Button size="sm" className="gap-1 w-full sm:w-auto" onClick={openNewDialog}>
-                  <PlusCircle className="h-3.5 w-3.5" />
-                  <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                  Post Notice
-                  </span>
-              </Button>
+            <div>
+              <CardTitle className="font-headline text-2xl">E-Notice Board</CardTitle>
+              <CardDescription>Post and manage digital notices for all users.</CardDescription>
+            </div>
+            <Button size="sm" className="gap-1 w-full sm:w-auto" onClick={openNewDialog}>
+              <PlusCircle className="h-4 w-4" />
+              <span>Post Notice</span>
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead className="hidden md:table-cell">Author</TableHead>
-                <TableHead className="hidden sm:table-cell">Date</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredNotices.map((notice) => (
-                <TableRow key={notice.id}>
-                  <TableCell className="font-medium">
-                     <div className="font-medium">{notice.title}</div>
-                    <div className="text-sm text-muted-foreground md:max-w-md truncate">
-                        {notice.content}
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    <div className="flex items-center gap-2">
-                        <Avatar className="h-8 w-8">
-                            <AvatarImage src={`https://picsum.photos/seed/${notice.author}/100/100`} alt={notice.author} />
-                            <AvatarFallback>{getFallback(notice.author)}</AvatarFallback>
-                        </Avatar>
-                        <span>{notice.author}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">{notice.date}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => openEditDialog(notice)}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => {
-                          setNotices(notices.filter(n => n.id !== notice.id));
-                          toast({ title: "Notice Deleted", description: `"${notice.title}" has been removed.` });
-                        }}>Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Notice Details</TableHead>
+                  <TableHead className="hidden md:table-cell">Audience</TableHead>
+                  <TableHead className="hidden md:table-cell">Author</TableHead>
+                  <TableHead className="hidden sm:table-cell">Date</TableHead>
+                  <TableHead className="w-12 text-right pr-6">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-32 text-center">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                      <p className="text-xs mt-2 text-muted-foreground">Loading notices...</p>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredNotices.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
+                      No notices found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredNotices.map((notice) => (
+                    <TableRow key={notice.notice_id}>
+                      <TableCell className="font-medium">
+                        <div className="font-medium text-base">{notice.title}</div>
+                        <div className="text-sm text-muted-foreground md:max-w-md truncate">
+                          {notice.content}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <Badge variant="outline">{notice.audience_name || "General"}</Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={`https://picsum.photos/seed/${notice.author_name}/100/100`} alt={notice.author_name} />
+                            <AvatarFallback>{getFallback(notice.author_name)}</AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm">{notice.author_name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <CalendarIcon className="h-3.5 w-3.5" />
+                          {notice.post_date ? format(new Date(notice.post_date), "PPP") : "No date"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right pr-6">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => openEditDialog(notice)}>
+                              Edit Notice
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setDeleteTarget(notice)}
+                            >
+                              Delete Notice
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
+
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
             <DialogTitle>{selectedNotice ? "Edit Notice" : "Post New Notice"}</DialogTitle>
             <DialogDescription>
               {selectedNotice ? "Update the details of the notice." : "Fill in the details to post a new notice."}
             </DialogDescription>
           </DialogHeader>
-          <NoticeForm onSubmit={handleFormSubmit} notice={selectedNotice} />
+          <NoticeForm
+            onSubmit={handleFormSubmit}
+            notice={selectedNotice}
+            loading={formLoading}
+          />
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the notice
+              <strong> "{deleteTarget?.title}"</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

@@ -1,8 +1,6 @@
-
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,12 +25,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { getFeeCategories, getClasses, getStudentsByClass, getFeeStructureByClassAndCategory } from "@/lib/mock-data";
-import type { FeeCategory } from "@/components/campus-connect/fee-category-form";
-import type { ClassItem, Student, FeeStructure } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,227 +39,262 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type FeeStatus = "Paid" | "Pending" | "Partial" | "Unpaid";
+/* ✅ REAL APIs */
+import { getFeeCategories, getFeeStructures, collectFee, getStudentFeeCollection } from "@/lib/api/fees";
+import { getClasses } from "@/lib/api/classes";
+import { getStudentsByClass } from "@/lib/api/students";
 
-interface StudentWithFeeStatus extends Student {
-    feeStatus: FeeStatus;
-    amountPaid: number;
-}
+// import { getFeeCategories } from "@/lib/api/fees";
+// import { getClasses } from "@/lib/api/classes";
+// import { getStudentsByClass } from "@/lib/api/students";
+// import { getFeeStructures } from "@/lib/api/fees";
+
+
+type FeeStatus = "Paid" | "Partial" | "Unpaid";
 
 export default function FeeCollectionPage() {
-  const router = useRouter();
   const { toast } = useToast();
-  
-  const [feeCategories] = React.useState<FeeCategory[]>(getFeeCategories());
-  const [classes] = React.useState<ClassItem[]>(getClasses());
 
-  const [selectedCategoryId, setSelectedCategoryId] = React.useState<string | null>(null);
-  const [selectedClassId, setSelectedClassId] = React.useState<string | null>(null);
-  const [students, setStudents] = React.useState<StudentWithFeeStatus[]>([]);
-  const [feeStructure, setFeeStructure] = React.useState<FeeStructure | null>(null);
-  
-  const [isCollectDialogOpen, setIsCollectDialogOpen] = React.useState(false);
-  const [selectedStudent, setSelectedStudent] = React.useState<StudentWithFeeStatus | null>(null);
+  const [feeCategories, setFeeCategories] = React.useState<any[]>([]);
+  const [classes, setClasses] = React.useState<any[]>([]);
+  const [students, setStudents] = React.useState<any[]>([]);
+  const [feeStructures, setFeeStructures] = React.useState<any[]>([]);
+
+  const [selectedCategoryId, setSelectedCategoryId] = React.useState<string>();
+  const [selectedClassId, setSelectedClassId] = React.useState<string>();
+  const [selectedStructure, setSelectedStructure] = React.useState<any>();
+
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [selectedStudent, setSelectedStudent] = React.useState<any>();
   const [amount, setAmount] = React.useState("");
 
-  const storageKey = React.useMemo(() => {
-    if (!selectedCategoryId || !selectedClassId) return null;
-    return `fee-${selectedCategoryId}-${selectedClassId}`;
-  }, [selectedCategoryId, selectedClassId]);
-
+  /* =========================
+     INITIAL LOAD
+  ========================= */
   React.useEffect(() => {
-    if (selectedClassId && selectedCategoryId) {
-      const structure = getFeeStructureByClassAndCategory(selectedClassId, selectedCategoryId);
-      setFeeStructure(structure || null);
+    Promise.all([
+      getFeeCategories(),
+      getClasses(),
+      getFeeStructures()
+    ])
+      .then(([categories, classList, structures]) => {
+        setFeeCategories(categories || []);
+        setClasses(classList || []);
+        setFeeStructures(structures || []);
+      })
+      .catch(e => {
+        console.error(e);
+        toast({ title: "Failed to load collection data", variant: "destructive" });
+      });
+  }, []);
 
-      const classStudents = getStudentsByClass(selectedClassId);
-      const feeData = storageKey ? JSON.parse(localStorage.getItem(storageKey) || '{}') : {};
+  /* =========================
+     LOAD STUDENTS + STRUCTURE
+  ========================= */
+  React.useEffect(() => {
+    if (!selectedClassId || !selectedCategoryId) return;
 
-      setStudents(classStudents.map(s => {
-        const studentRecord = feeData[s.id];
-        const amountPaid = studentRecord?.amountPaid || 0;
-        
-        let status: FeeStatus = "Unpaid";
-        if (structure) {
-          if (amountPaid >= structure.amount) {
-            status = "Paid";
-          } else if (amountPaid > 0) {
-            status = "Partial";
+    const structure = feeStructures.find(
+      (s) =>
+        String(s.class_id) === selectedClassId &&
+        String(s.fee_cat_id) === selectedCategoryId
+    );
+
+    setSelectedStructure(structure || null);
+
+    getStudentsByClass(selectedClassId).then(async (data) => {
+      const classStudents = (data || []).filter((s: any) => String(s.class_id) === String(selectedClassId));
+
+      const enriched = await Promise.all(
+        classStudents.map(async (stu: any) => {
+          let totalPaid = 0;
+
+          if (structure) {
+            try {
+              const history = await getStudentFeeCollection(stu.student_id);
+              totalPaid = (history || [])
+                .filter((h: any) => h.fee_struct_id === structure.fee_struct_id)
+                .reduce((sum: number, h: any) => sum + Number(h.amount_paid), 0);
+            } catch (e) {
+              console.error("Failed to fetch history for student:", stu.student_id, e);
+            }
           }
-        }
-        
-        return {
-          ...s,
-          feeStatus: studentRecord?.status || status,
-          amountPaid: amountPaid,
-        }
-      }));
-    } else {
-      setStudents([]);
-      setFeeStructure(null);
+
+          let status: FeeStatus = "Unpaid";
+          if (totalPaid > 0 && totalPaid < structure?.amount) status = "Partial";
+          if (totalPaid >= structure?.amount) status = "Paid";
+
+          return {
+            ...stu,
+            amountPaid: totalPaid,
+            feeStatus: status,
+          };
+        })
+      );
+
+      setStudents(enriched);
+    });
+  }, [selectedClassId, selectedCategoryId, feeStructures]);
+
+  /* =========================
+     COLLECT FEE
+  ========================= */
+  const handleConfirmPayment = async () => {
+    if (!selectedStudent || !selectedStructure) return;
+
+    try {
+      await collectFee({
+        student_id: selectedStudent.student_id,
+        fee_struct_id: selectedStructure.fee_struct_id,
+        amount_paid: Number(amount),
+      });
+
+      toast({ title: "Fee Collected Successfully" });
+      setIsDialogOpen(false);
+      setAmount("");
+
+      // ✅ Trick to force React to re-trigger the useEffect and reload students:
+      const tempClassId = selectedClassId;
+      setSelectedClassId("");
+      setTimeout(() => setSelectedClassId(tempClassId), 10);
+
+    } catch (e: any) {
+      console.error(e);
+      toast({
+        title: "Failed to collect fee",
+        description: e.response?.data?.message || e.message,
+        variant: "destructive"
+      });
     }
-  }, [selectedClassId, selectedCategoryId, storageKey]);
-  
-  const handleCollectFeeClick = (student: StudentWithFeeStatus) => {
-    setSelectedStudent(student);
-    setAmount("");
-    setIsCollectDialogOpen(true);
-  }
+  };
 
-  const handleConfirmPayment = () => {
-    if (!selectedStudent || !storageKey || !feeStructure) return;
-    
-    const paymentAmount = parseFloat(amount);
-    if(isNaN(paymentAmount) || paymentAmount <= 0) {
-        toast({ title: "Invalid Amount", description: "Please enter a valid payment amount.", variant: "destructive" });
-        return;
-    }
-
-    const feeData = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    const studentFeeRecord = feeData[selectedStudent.id] || { status: 'Unpaid', amountPaid: 0 };
-    
-    const newAmountPaid = (studentFeeRecord.amountPaid || 0) + paymentAmount;
-    let newStatus: FeeStatus = "Partial";
-    if (newAmountPaid >= feeStructure.amount) {
-        newStatus = "Paid";
-    }
-    
-    feeData[selectedStudent.id] = { status: newStatus, amountPaid: newAmountPaid };
-    localStorage.setItem(storageKey, JSON.stringify(feeData));
-
-    setStudents(prev => prev.map(s => s.id === selectedStudent.id ? { ...s, feeStatus: newStatus, amountPaid: newAmountPaid } : s));
-
-    toast({ title: "Payment Recorded", description: `Recorded ${paymentAmount} for ${selectedStudent.name}.` });
-    setIsCollectDialogOpen(false);
-    setSelectedStudent(null);
-  }
-
-  const getStatusVariant = (status: FeeStatus) => {
-      switch(status) {
-          case 'Paid': return 'default';
-          case 'Pending': return 'destructive';
-          case 'Unpaid': return 'destructive';
-          case 'Partial': return 'secondary';
-      }
-  }
-
-  const totalAmountDue = feeStructure ? feeStructure.amount * students.length : 0;
-  const totalAmountCollected = students.reduce((acc, student) => acc + student.amountPaid, 0);
-
+  /* =========================
+     UI
+  ========================= */
   return (
     <>
-      <Card className="w-full">
+      <Card>
         <CardHeader>
-          <CardTitle className="font-headline">Fee Collection</CardTitle>
-          <CardDescription>Select a fee category and class to view student payment statuses and collect fees.</CardDescription>
+          <CardTitle>Fee Collection</CardTitle>
+          <CardDescription>
+            Student-wise paid / pending / partial fees
+          </CardDescription>
         </CardHeader>
+
         <CardContent>
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
-            <div className="grid gap-2">
-              <Label htmlFor="category-select">Fee Category</Label>
+          <div className="grid grid-cols-2 gap-6 mb-6">
+            <div>
+              <Label>Fee Category</Label>
               <Select onValueChange={setSelectedCategoryId}>
-                <SelectTrigger id="category-select">
-                  <SelectValue placeholder="Select a category" />
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {feeCategories.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  {feeCategories.map((c) => (
+                    <SelectItem
+                      key={c.fee_category_id}
+                      value={String(c.fee_category_id)}
+                    >
+                      {c.category_name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="class-select">Class</Label>
-              <Select onValueChange={setSelectedClassId} disabled={!selectedCategoryId}>
-                <SelectTrigger id="class-select">
-                  <SelectValue placeholder={selectedCategoryId ? "Select a class" : "Select a category first"} />
+
+            <div>
+              <Label>Class</Label>
+              <Select
+                onValueChange={setSelectedClassId}
+                disabled={!selectedCategoryId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Class" />
                 </SelectTrigger>
                 <SelectContent>
-                  {classes.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  {classes.map((c) => (
+                    <SelectItem
+                      key={c.class_id}
+                      value={String(c.class_id)}
+                    >
+                      {c.class_name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-          
-          {feeStructure && (
-              <div className="mb-4 text-sm font-semibold text-center bg-muted p-3 rounded-md grid grid-cols-2">
-                  <div>
-                      Total Due: <span className="text-primary">${totalAmountDue.toFixed(2)}</span>
-                  </div>
-                  <div>
-                      Total Collected: <span className="text-green-600">${totalAmountCollected.toFixed(2)}</span>
-                  </div>
-              </div>
-          )}
 
-          {selectedClassId && selectedCategoryId && (
-            students.length > 0 ? (
-              !feeStructure ? (
-                <p className="text-center text-destructive-foreground bg-destructive p-3 rounded-md">No fee structure defined for this Class and Fee Category combination. Please define one in 'Manage Structures'.</p>
-              ) : (
-                <Table>
-                    <TableHeader>
-                    <TableRow>
-                        <TableHead>Roll No.</TableHead>
-                        <TableHead>Student Name</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Amount Due</TableHead>
-                        <TableHead>Amount Paid</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
-                    </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                    {students.map((student) => (
-                        <TableRow key={student.id}>
-                        <TableCell>{student.rollNumber}</TableCell>
-                        <TableCell>{student.name}</TableCell>
-                        <TableCell>
-                            <Badge variant={getStatusVariant(student.feeStatus)}>{student.feeStatus}</Badge>
-                        </TableCell>
-                        <TableCell>${feeStructure.amount.toFixed(2)}</TableCell>
-                        <TableCell>${student.amountPaid.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">
-                            <Button variant="outline" size="sm" onClick={() => handleCollectFeeClick(student)} disabled={student.feeStatus === 'Paid'}>Collect Fee</Button>
-                        </TableCell>
-                        </TableRow>
-                    ))}
-                    </TableBody>
-                </Table>
-              )
-            ) : (
-                <p className="text-center text-muted-foreground py-4">Select a category and class to see students.</p>
-            )
+          {selectedStructure ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Student</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Paid</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+
+              <TableBody>
+                {students.map((s) => (
+                  <TableRow key={s.student_id}>
+                    <TableCell>
+                      {s.stu_first_name} {s.stu_last_name}
+                    </TableCell>
+                    <TableCell>
+                      <Badge>{s.feeStatus}</Badge>
+                    </TableCell>
+                    <TableCell>{selectedStructure.amount}</TableCell>
+                    <TableCell>{s.amountPaid}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        disabled={s.feeStatus === "Paid"}
+                        onClick={() => {
+                          setSelectedStudent(s);
+                          setIsDialogOpen(true);
+                        }}
+                      >
+                        Collect
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-center text-red-500">
+              No fee structure defined for this class & category
+            </p>
           )}
         </CardContent>
       </Card>
-       <AlertDialog open={isCollectDialogOpen} onOpenChange={setIsCollectDialogOpen}>
+
+      {/* ================= DIALOG ================= */}
+      <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Collect Fee for {selectedStudent?.name}</AlertDialogTitle>
+            <AlertDialogTitle>
+              Collect Fee – {selectedStudent?.stu_first_name}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Total Amount: ${feeStructure?.amount.toFixed(2)} | Paid: ${selectedStudent?.amountPaid.toFixed(2)} | Due: ${((feeStructure?.amount || 0) - (selectedStudent?.amountPaid || 0)).toFixed(2)}
+              Enter amount to collect
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="amount" className="text-right">
-                Amount
-              </Label>
-              <Input
-                id="amount"
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="col-span-3"
-                placeholder="Enter amount being paid"
-              />
-            </div>
-          </div>
+
+          <Input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmPayment}>Confirm Payment</AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmPayment}>
+              Confirm
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

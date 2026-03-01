@@ -1,6 +1,7 @@
 
 "use client";
 
+import * as React from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,46 +18,79 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getNoticeAudiences } from "@/lib/api/notices";
 
 const noticeSchema = z.object({
-  id: z.string().optional(),
+  notice_id: z.number().optional(),
   title: z.string().min(1, "Notice title is required"),
   content: z.string().min(1, "Notice content is required"),
-  author: z.string().min(1, "Author is required"),
-  date: z.date({ required_error: "A date is required." }),
+  author_name: z.string().min(1, "Author is required"),
+  audience_id: z.string().min(1, "Audience is required"),
+  post_date: z.date({ required_error: "A date is required." }),
 });
 
 export type Notice = z.infer<typeof noticeSchema>;
 
 interface NoticeFormProps {
-  onSubmit: (data: Notice) => void;
-  notice?: Notice;
+  onSubmit: (data: any) => void;
+  notice?: any;
+  loading?: boolean;
 }
 
-export function NoticeForm({ onSubmit, notice }: NoticeFormProps) {
+export function NoticeForm({ onSubmit, notice, loading }: NoticeFormProps) {
+  const [audiences, setAudiences] = React.useState<any[]>([]);
+  const [fetchingAudiences, setFetchingAudiences] = React.useState(true);
+
   const form = useForm<Notice>({
     resolver: zodResolver(noticeSchema),
     defaultValues: notice ? {
       ...notice,
-      date: new Date(notice.date)
+      post_date: new Date(notice.post_date || notice.created_at || new Date()),
+      audience_id: notice.audience_id?.toString() || "",
+      author_name: notice.author_name || notice.author || "",
     } : {
       title: "",
       content: "",
-      author: "",
-      date: new Date(),
+      author_name: "",
+      audience_id: "",
+      post_date: new Date(),
     },
   });
+
+  React.useEffect(() => {
+    const fetchAudiences = async () => {
+      try {
+        const data = await getNoticeAudiences();
+        setAudiences(data);
+      } catch (error) {
+        console.error("Failed to fetch audiences:", error);
+      } finally {
+        setFetchingAudiences(false);
+      }
+    };
+    fetchAudiences();
+  }, []);
 
   const handleSubmit = (values: Notice) => {
     const dataToSend = {
       ...values,
-      date: format(values.date, 'yyyy-MM-dd'),
-      id: notice?.id
+      post_date: format(values.post_date, 'yyyy-MM-dd'),
+      audience_id: parseInt(values.audience_id),
+      // For creation, we might need these (hardcoded for now as per demo logic)
+      author_type: 'admin',
+      author_id: 1
     };
-    onSubmit(dataToSend as any);
+    onSubmit(dataToSend);
   };
 
   return (
@@ -90,7 +124,7 @@ export function NoticeForm({ onSubmit, notice }: NoticeFormProps) {
         />
         <FormField
           control={form.control}
-          name="author"
+          name="author_name"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Author</FormLabel>
@@ -101,9 +135,39 @@ export function NoticeForm({ onSubmit, notice }: NoticeFormProps) {
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
-          name="date"
+          name="audience_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Target Audience</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                disabled={fetchingAudiences}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={fetchingAudiences ? "Loading..." : "Select audience"} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {audiences.map((audience) => (
+                    <SelectItem key={audience.audience_id} value={audience.audience_id.toString()}>
+                      {audience.audience_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="post_date"
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Date</FormLabel>
@@ -139,7 +203,10 @@ export function NoticeForm({ onSubmit, notice }: NoticeFormProps) {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full">{notice ? "Update Notice" : "Post Notice"}</Button>
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {notice ? "Update Notice" : "Post Notice"}
+        </Button>
       </form>
     </Form>
   );

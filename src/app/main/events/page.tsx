@@ -1,8 +1,7 @@
-
 "use client";
 
 import * as React from "react";
-import { MoreHorizontal, PlusCircle, Award } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Award, Loader2, Calendar as CalendarIcon, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,116 +33,126 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { EventForm, type Event } from "@/components/campus-connect/event-form";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useSearch } from "@/components/campus-connect/search-provider";
 import { EventCertificateDialog } from "@/components/campus-connect/event-certificate";
-
-const initialEvents: (Event & { imageId: string, fallback: string })[] = [
-  {
-    id: "1",
-    name: "Annual Science Fair",
-    description: "Showcasing innovative projects from budding scientists.",
-    date: "2024-10-22",
-    status: "Upcoming",
-    imageId: "event-science-fair",
-    fallback: "SF"
-  },
-  {
-    id: "2",
-    name: "Sports Day 2024",
-    description: "A day of thrilling athletic competition and teamwork.",
-    date: "2024-09-05",
-    status: "Completed",
-    imageId: "event-sports-day",
-    fallback: "SD"
-  },
-  {
-    id: "3",
-    name: "Art & Culture Fest",
-    description: "Celebrating creativity with exhibitions and performances.",
-    date: "2024-11-15",
-    status: "Upcoming",
-    imageId: "event-art-exhibition",
-    fallback: "AC"
-  },
-  {
-    id: "4",
-    name: "Parent-Teacher Conference",
-    description: "Discussing student progress and collaboration.",
-    date: "2024-08-30",
-    status: "Completed",
-    imageId: "login-background",
-    fallback: "PT"
-  },
-  {
-    id: "5",
-    name: "Charity Bake Sale",
-    description: "Raising funds for a local community shelter.",
-    date: "2024-12-01",
-    status: "Cancelled",
-    imageId: "event-art-exhibition",
-    fallback: "BS"
-  },
-];
-
+import { getEvents, createEvent, updateEvent, deleteEvent } from "@/lib/api/events";
+import { format } from "date-fns";
 
 const getStatusVariant = (status: string) => {
-    switch (status) {
-      case "Completed":
-        return "secondary";
-      case "Upcoming":
-        return "default";
-      case "Cancelled":
-        return "destructive";
-      default:
-        return "outline";
-    }
+  switch (status?.toLowerCase()) {
+    case "completed":
+      return "secondary";
+    case "upcoming":
+      return "default";
+    case "scheduled":
+      return "outline";
+    case "ongoing":
+      return "default"; // or a custom variant if available
+    case "cancelled":
+      return "destructive";
+    default:
+      return "outline";
+  }
 }
 
 export default function EventsPage() {
   const { toast } = useToast();
   const { searchQuery } = useSearch();
-  const [events, setEvents] = React.useState(initialEvents);
+  const [events, setEvents] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [formLoading, setFormLoading] = React.useState(false);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
-  const [selectedEvent, setSelectedEvent] = React.useState<Event | undefined>(undefined);
+  const [selectedEvent, setSelectedEvent] = React.useState<any>(undefined);
   const [isCertificateOpen, setIsCertificateOpen] = React.useState(false);
+  const [deleteTarget, setDeleteTarget] = React.useState<any>(null);
 
+  const fetchEventsData = React.useCallback(async () => {
+    try {
+      const data = await getEvents();
+      setEvents(data || []);
+    } catch {
+      toast({ title: "Error", description: "Failed to load events", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  React.useEffect(() => {
+    fetchEventsData();
+  }, [fetchEventsData]);
 
   const filteredEvents = React.useMemo(() => {
     if (!searchQuery) {
       return events;
     }
+    const q = searchQuery.toLowerCase();
     return events.filter(event =>
-      event.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.status.toLowerCase().includes(searchQuery.toLowerCase())
+      event.event_name?.toLowerCase().includes(q) ||
+      event.description?.toLowerCase().includes(q) ||
+      event.event_status_name?.toLowerCase().includes(q) ||
+      event.venue?.toLowerCase().includes(q)
     );
   }, [searchQuery, events]);
 
-  const handleFormSubmit = (eventData: Event) => {
-    if (selectedEvent) {
-      // Update existing event
-      setEvents(events.map(e => e.id === eventData.id ? { ...e, ...eventData } : e));
-      toast({ title: "Event Updated", description: `${eventData.name} has been updated.` });
-    } else {
-      // Add new event
-      const newEvent = {
-         ...eventData,
-         id: (events.length + 1).toString(),
-         imageId: "event-art-exhibition",
-         fallback: eventData.name.substring(0, 2).toUpperCase()
+  const handleFormSubmit = async (values: any) => {
+    setFormLoading(true);
+    try {
+      const payload = {
+        ...values,
+        event_date: format(values.event_date, 'yyyy-MM-dd'),
       };
-      setEvents([...events, newEvent]);
-      toast({ title: "Event Created", description: `${eventData.name} has been added.` });
+
+      if (selectedEvent) {
+        await updateEvent(selectedEvent.event_id, payload);
+        toast({ title: "Event Updated", description: `${values.event_name} has been updated.` });
+      } else {
+        await createEvent(payload);
+        toast({ title: "Event Created", description: `${values.event_name} has been added.` });
+      }
+      setIsFormOpen(false);
+      setSelectedEvent(undefined);
+      fetchEventsData();
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err?.response?.data?.message || "Operation failed",
+        variant: "destructive",
+      });
+    } finally {
+      setFormLoading(false);
     }
-    setIsFormOpen(false);
-    setSelectedEvent(undefined);
   };
 
-  const openEditDialog = (event: Event) => {
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteEvent(deleteTarget.event_id);
+      toast({ title: "Event Deleted", description: `${deleteTarget.event_name} has been removed.` });
+      setDeleteTarget(null);
+      fetchEventsData();
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err?.response?.data?.message || "Deletion failed",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openEditDialog = (event: any) => {
     setSelectedEvent(event);
     setIsFormOpen(true);
   }
@@ -152,110 +161,158 @@ export default function EventsPage() {
     setSelectedEvent(undefined);
     setIsFormOpen(true);
   }
-  
-  const openCertificateDialog = (event: Event) => {
+
+  const openCertificateDialog = (event: any) => {
     setSelectedEvent(event);
     setIsCertificateOpen(true);
   }
-
 
   return (
     <>
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                  <CardTitle className="font-headline">Events</CardTitle>
-                  <CardDescription>Manage school events, activities, and calendars.</CardDescription>
-              </div>
-              <Button size="sm" className="gap-1 w-full sm:w-auto" onClick={openNewDialog}>
-                  <PlusCircle className="h-3.5 w-3.5" />
-                  <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                  Create Event
-                  </span>
-              </Button>
+            <div>
+              <CardTitle className="font-headline text-2xl">Events</CardTitle>
+              <CardDescription>Manage school events, activities, and calendars.</CardDescription>
+            </div>
+            <Button size="sm" className="gap-1 w-full sm:w-auto" onClick={openNewDialog}>
+              <PlusCircle className="h-4 w-4" />
+              <span>Create Event</span>
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="hidden w-[100px] sm:table-cell">
-                    <span className="sr-only">Image</span>
-                </TableHead>
-                <TableHead>Event</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden md:table-cell">Date</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredEvents.map((event) => {
-                const image = PlaceHolderImages.find(img => img.id === event.imageId);
-                return (
-                <TableRow key={event.id}>
-                    <TableCell className="hidden sm:table-cell">
-                        <Avatar className="h-12 w-12 rounded-md">
-                            {image && <AvatarImage src={image.imageUrl} alt={event.name} />}
-                            <AvatarFallback className="rounded-md">{event.fallback}</AvatarFallback>
-                        </Avatar>
-                    </TableCell>
-                  <TableCell className="font-medium">
-                    <div className="font-medium">{event.name}</div>
-                    <div className="hidden text-sm text-muted-foreground md:inline-block md:max-w-xs truncate">
-                        {event.description}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusVariant(event.status)}>
-                      {event.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">{event.date}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => openEditDialog(event)}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => openCertificateDialog(event)}>
-                            <Award className="mr-2 h-4 w-4" />
-                            Generate Certificate
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => {
-                          setEvents(events.filter(e => e.id !== event.id));
-                          toast({ title: "Event Deleted", description: `${event.name} has been removed.` });
-                        }}>Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[80px] hidden sm:table-cell">Image</TableHead>
+                  <TableHead>Event</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden md:table-cell">Date & Venue</TableHead>
+                  <TableHead className="w-12 text-right pr-6">Actions</TableHead>
                 </TableRow>
-              )})}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-32 text-center">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                      <p className="text-xs mt-2 text-muted-foreground">Loading events...</p>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredEvents.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
+                      No events found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredEvents.map((event) => (
+                    <TableRow key={event.event_id}>
+                      <TableCell className="hidden sm:table-cell">
+                        <Avatar className="h-10 w-10 rounded-md bg-muted">
+                          <AvatarFallback className="rounded-md">
+                            {event.event_name?.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">{event.event_name}</div>
+                        <div className="text-xs text-muted-foreground max-w-[200px] truncate">
+                          {event.description}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusVariant(event.event_status_name)}>
+                          {event.event_status_name}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <CalendarIcon className="h-3.5 w-3.5" />
+                          {event.event_date ? format(new Date(event.event_date), "PPP") : "No date"}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-muted-foreground mt-0.5">
+                          <MapPin className="h-3.5 w-3.5" />
+                          {event.venue || "No venue"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right pr-6">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => openEditDialog(event)}>
+                              Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openCertificateDialog(event)}>
+                              <Award className="mr-2 h-4 w-4" />
+                              Generate Certificate
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setDeleteTarget(event)}
+                            >
+                              Delete Event
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
+
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
             <DialogTitle>{selectedEvent ? "Edit Event" : "Create New Event"}</DialogTitle>
             <DialogDescription>
-              {selectedEvent ? "Update the details of the event." : "Fill in the details to create a new event."}
+              {selectedEvent ? "Update the details of the event." : "Fill in the details to create a new school event."}
             </DialogDescription>
           </DialogHeader>
-          <EventForm onSubmit={handleFormSubmit} event={selectedEvent} />
+          <EventForm
+            onSubmit={handleFormSubmit}
+            event={selectedEvent}
+            loading={formLoading}
+          />
         </DialogContent>
       </Dialog>
+
       <Dialog open={isCertificateOpen} onOpenChange={setIsCertificateOpen}>
         {selectedEvent && <EventCertificateDialog event={selectedEvent} />}
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the event
+              <strong> {deleteTarget?.event_name}</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

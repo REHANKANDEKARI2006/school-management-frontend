@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -10,7 +9,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter
+  CardFooter,
 } from "@/components/ui/card";
 import {
   Dialog,
@@ -28,142 +27,151 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { getFeeStructures, getFeeCategories, getClasses } from "@/lib/mock-data";
+
+import { getFeeStructures } from "@/lib/api/fees";
+import { getFeeCategories } from "@/lib/api/fees";
+import { getClasses } from "@/lib/api/classes";
+
 import type { FeeStructure, ClassItem } from "@/types";
 import type { FeeCategory } from "@/components/campus-connect/fee-category-form";
 import { FeeStructureForm } from "@/components/campus-connect/fee-structure-form";
 
 interface ClassWithFeeStructures extends ClassItem {
-    structures: (FeeStructure & { categoryName: string })[];
-    totalAmount: number;
+  structures: (FeeStructure & { categoryName: string })[];
+  totalAmount: number;
 }
-
 
 export default function FeeStructuresPage() {
   const { toast } = useToast();
-  const [feeStructures, setFeeStructures] = React.useState<FeeStructure[]>(getFeeStructures());
-  const [feeCategories] = React.useState<FeeCategory[]>(getFeeCategories());
-  const [classes] = React.useState<ClassItem[]>(getClasses());
+
+  const [feeStructures, setFeeStructures] = React.useState<any[]>([]);
+  const [feeCategories, setFeeCategories] = React.useState<FeeCategory[]>([]);
+  const [classes, setClasses] = React.useState<ClassItem[]>([]);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
-  const [selectedStructure, setSelectedStructure] = React.useState<FeeStructure | undefined>(undefined);
 
-  const getCategoryName = (id: string) => feeCategories.find(c => c.id === id)?.name || "Unknown";
+  const loadData = async () => {
+    try {
+      const [structures, categories, classList] = await Promise.all([
+        getFeeStructures(),
+        getFeeCategories(),
+        getClasses(),
+      ]);
 
-  const handleFormSubmit = (structureData: FeeStructure) => {
-    let updatedStructures;
-    if (selectedStructure) {
-      // Update existing structure
-      updatedStructures = feeStructures.map(s => s.id === structureData.id ? { ...s, ...structureData } : s);
-      toast({ title: "Fee Structure Updated", description: "The fee structure has been updated." });
-    } else {
-      // Add new structure
-      const newStructure = {
-         ...structureData,
-         id: `fs${feeStructures.length + 1}`,
-      };
-      updatedStructures = [...feeStructures, newStructure];
-      toast({ title: "Fee Structure Created", description: "A new fee structure has been added." });
+      setFeeStructures(structures || []);
+      setFeeCategories(categories || []);
+      setClasses(classList || []);
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Failed to load fee structures data", variant: "destructive" });
     }
-    setFeeStructures(updatedStructures);
-    // Note: In a real app, you would persist this to a DB. Here we simulate it.
-    // For this demo, we can't easily update localStorage from here as it's not a direct user interaction.
-    setIsFormOpen(false);
-    setSelectedStructure(undefined);
   };
 
-  const openNewDialog = () => {
-    setSelectedStructure(undefined);
-    setIsFormOpen(true);
-  }
-  
-  const handleDownload = (className: string) => {
-      toast({
-          title: "Preparing Download",
-          description: `Generating fee structure summary for ${className}.`
-      })
-  }
+  React.useEffect(() => {
+    loadData();
+  }, []);
 
-  const structuresByClass: ClassWithFeeStructures[] = classes.map(cls => {
+  const getCategoryName = (id: number) => {
+    // The API returns the database rows which have fee_category_id and category_name
+    const category = (feeCategories as any[]).find((c) => c.fee_category_id === id);
+    return category?.category_name || "Unknown";
+  };
+
+  const handleFormSubmit = async (payload: any) => {
+    toast({
+      title: "Fee Structure Created",
+      description: "Structure saved successfully",
+    });
+    setIsFormOpen(false);
+    loadData();
+  };
+
+  const structuresByClass: ClassWithFeeStructures[] = classes
+    .map((cls: any) => {
       const structuresForClass = feeStructures
-          .filter(s => s.classId === cls.id)
-          .map(s => ({
-              ...s,
-              categoryName: getCategoryName(s.feeCategoryId),
-          }));
-      const totalAmount = structuresForClass.reduce((acc, s) => acc + s.amount, 0);
+        .filter((s: any) => s.class_id === cls.class_id)
+        .map((s: any) => ({
+          ...s,
+          id: s.fee_struct_id,
+          classId: s.class_id,
+          feeCategoryId: s.fee_cat_id,
+          amount: Number(s.amount),
+          categoryName: getCategoryName(s.fee_cat_id),
+        }));
+
       return {
-          ...cls,
-          structures: structuresForClass,
-          totalAmount: totalAmount,
+        id: cls.class_id,
+        name: cls.class_name,
+        subjectIds: [],
+        structures: structuresForClass,
+        totalAmount: structuresForClass.reduce((a, b) => a + b.amount, 0),
       };
-  }).filter(c => c.structures.length > 0);
+    })
+    .filter((c) => c.structures.length > 0);
 
   return (
     <>
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="font-headline">Fee Structures</CardTitle>
-              <CardDescription>Map fee categories to classes and define amounts.</CardDescription>
-            </div>
-            <Button size="sm" className="gap-1" onClick={openNewDialog}>
-              <PlusCircle className="h-3.5 w-3.5" />
-              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                Add New Structure
-              </span>
-            </Button>
+        <CardHeader className="flex flex-row justify-between items-center">
+          <div>
+            <CardTitle>Fee Structures</CardTitle>
+            <CardDescription>
+              Map fee categories to classes
+            </CardDescription>
           </div>
+          <Button size="sm" onClick={() => setIsFormOpen(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add Structure
+          </Button>
         </CardHeader>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        {structuresByClass.map((classData) => (
-             <Card key={classData.id}>
-                <CardHeader>
-                    <CardTitle>{classData.name}</CardTitle>
-                    <CardDescription>Fee breakdown for this class.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Category</TableHead>
-                                <TableHead className="text-right">Amount</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {classData.structures.map(structure => (
-                                <TableRow key={structure.id}>
-                                    <TableCell className="font-medium">{structure.categoryName}</TableCell>
-                                    <TableCell className="text-right">${structure.amount.toFixed(2)}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-                <CardFooter className="flex-col items-start gap-4">
-                     <div className="font-bold text-lg self-end">
-                        Total: ${classData.totalAmount.toFixed(2)}
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => handleDownload(classData.name)}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Download Structure
-                    </Button>
-                </CardFooter>
-             </Card>
+        {structuresByClass.map((cls) => (
+          <Card key={cls.id}>
+            <CardHeader>
+              <CardTitle>{cls.name}</CardTitle>
+              <CardDescription>Fee breakdown</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Category</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cls.structures.map((s) => (
+                    <TableRow key={s.id}>
+                      <TableCell>{s.categoryName}</TableCell>
+                      <TableCell className="text-right">
+                        ₹{s.amount}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <strong>Total: ₹{cls.totalAmount}</strong>
+              <Button variant="outline" size="sm">
+                <Download className="mr-2 h-4 w-4" />
+                Download
+              </Button>
+            </CardFooter>
+          </Card>
         ))}
       </div>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>{selectedStructure ? "Edit Fee Structure" : "Create New Fee Structure"}</DialogTitle>
+            <DialogTitle>Create Fee Structure</DialogTitle>
             <DialogDescription>
-              {selectedStructure ? "Update the details of the fee structure." : "Fill in the details to create a new fee structure."}
+              Assign fee category to class
             </DialogDescription>
           </DialogHeader>
-          <FeeStructureForm onSubmit={handleFormSubmit} structure={selectedStructure} />
+          <FeeStructureForm onSubmit={handleFormSubmit} />
         </DialogContent>
       </Dialog>
     </>

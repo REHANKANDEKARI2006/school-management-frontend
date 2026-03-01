@@ -6,13 +6,13 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { Student, AttendanceRecord, ClassItem, Subject, AttendanceStatus } from '@/types';
-import { getClassById, getSubjectById, getStudentsForSubjectInClass, getStudentsByClass as getAllStudentsInClass } from '@/lib/mock-data';
+import type { AttendanceStatus } from '@/types';
 import { FileSpreadsheet, FileText, Users, Library, CalendarDays, Download, Check, X, AlertTriangle, Edit3, Home, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format, isValid } from 'date-fns';
+import axios from "@/lib/axios";
 
 // Inline SVG for WhatsApp icon
 const WhatsAppIcon = () => (
@@ -34,172 +34,140 @@ export default function AttendanceSummaryPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  
+
   const classId = params.classId as string;
   const subjectId = params.subjectId as string;
   const dateQueryParam = searchParams.get('date');
 
-  const [currentClass, setCurrentClass] = useState<ClassItem | null>(null);
-  const [currentSubject, setCurrentSubject] = useState<Subject | null>(null);
-  const [studentsForSubject, setStudentsForSubject] = useState<Student[]>([]);
-  const [allStudentsInClassForLookup, setAllStudentsInClassForLookup] = useState<Student[]>([]);
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [currentClass, setCurrentClass] = useState<any>(null);
+  const [currentSubject, setCurrentSubject] = useState<any>(null);
+  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(() => {
     const date = dateQueryParam ? new Date(dateQueryParam) : new Date();
     return isValid(date) ? date : new Date();
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [localStorageKey, setLocalStorageKey] = useState('');
 
-  useEffect(() => {
-    const dateString = format(selectedDate, 'yyyy-MM-dd');
-    const key = `attendance-${classId}-${subjectId}-${dateString}`;
-    setLocalStorageKey(key);
+  const fetchSummary = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const dateString = format(selectedDate, 'yyyy-MM-dd');
 
-    const classData = getClassById(classId);
-    const subjectData = getSubjectById(subjectId);
-    const studentsEnrolled = getStudentsForSubjectInClass(classId, subjectId);
-    const allStudentsInCls = getAllStudentsInClass(classId); 
-    
-    setAllStudentsInClassForLookup(allStudentsInCls);
-    
-    const storedRecordsRaw = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
-    let storedRecords: AttendanceRecord[] = [];
-    if (storedRecordsRaw) {
-        try {
-            storedRecords = JSON.parse(storedRecordsRaw);
-        } catch (e) {
-            console.error("Failed to parse stored attendance records", e);
-            toast({ title: "Warning", description: "Could not load saved attendance for the selected date.", variant: "default" });
+      const [classRes, subjectRes, checkRes] = await Promise.all([
+        axios.get(`/api/classes/${classId}`),
+        axios.get(`/api/subjects/${subjectId}`),
+        axios.get(`/api/attendance/session/check?class_id=${classId}&subject_id=${subjectId}&attendance_date=${dateString}`)
+      ]);
+
+      if (classRes.data.success) setCurrentClass(classRes.data.data);
+      if (subjectRes.data.success) setCurrentSubject(subjectRes.data.data);
+
+      if (checkRes.data.success && checkRes.data.data) {
+        const sid = checkRes.data.data.session_id;
+        setSessionId(sid);
+        const summaryRes = await axios.get(`/api/attendance/summary?sessionId=${sid}`);
+        if (summaryRes.data.success) {
+          setAttendanceRecords(summaryRes.data.data);
         }
-    }
-
-
-    if (classData && subjectData) {
-      setCurrentClass(classData);
-      setCurrentSubject(subjectData);
-      setStudentsForSubject(studentsEnrolled);
-
-      if (studentsEnrolled.length > 0) {
-        const studentIdsEnrolled = studentsEnrolled.map(s => s.id);
-        const relevantRecords = storedRecords.filter(rec => studentIdsEnrolled.includes(rec.studentId));
-        const studentIdsFromRecords = relevantRecords.map(r => r.studentId);
-        
-        const newPendingRecords = studentsEnrolled
-            .filter(s => !studentIdsFromRecords.includes(s.id))
-            .map(s => ({ studentId: s.id, status: 'pending' as AttendanceStatus }));
-
-        setAttendanceRecords([...relevantRecords, ...newPendingRecords]);
       } else {
+        setSessionId(null);
         setAttendanceRecords([]);
       }
-      
-    } else {
-      toast({ title: "Error", description: "Could not load attendance summary data. Class or Subject might be missing.", variant: "destructive" });
-      router.push('/dashboard/attendance');
+    } catch (err) {
+      console.error("Failed to fetch summary data", err);
+      toast({ title: "Error", description: "Could not load attendance summary.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
-    
-    // Update URL without reloading page
-    if (typeof window !== 'undefined') {
-        const newUrl = `${window.location.pathname}?date=${dateString}`;
-        window.history.pushState({ path: newUrl }, '', newUrl);
-    }
+  }, [classId, subjectId, selectedDate, toast]);
 
-  }, [classId, subjectId, router, toast, selectedDate]);
+  useEffect(() => {
+    fetchSummary();
+
+    const dateString = format(selectedDate, 'yyyy-MM-dd');
+    if (typeof window !== 'undefined') {
+      const newUrl = `${window.location.pathname}?date=${dateString}`;
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    }
+  }, [fetchSummary, selectedDate]);
 
   const handleDateSelect = (date?: Date) => {
     if (date) {
-        setSelectedDate(date);
+      setSelectedDate(date);
     }
   }
 
-  const getStudentDetails = useCallback((studentId: string): { name: string; rollNumber: string } => {
-    const student = allStudentsInClassForLookup.find(s => s.id === studentId);
-    return {
-        name: student?.name || 'Unknown Student',
-        rollNumber: student?.rollNumber || 'N/A'
-    };
-  }, [allStudentsInClassForLookup]);
+  const presentCount = attendanceRecords.filter(r => r.status === 'Present' || r.status === 'present').length;
+  const absentCount = attendanceRecords.filter(r => r.status === 'Absent' || r.status === 'absent').length;
 
-  const presentCount = attendanceRecords.filter(r => r.status === 'present').length;
-  const absentCount = attendanceRecords.filter(r => r.status === 'absent').length;
-
-  const handleExport = (format: 'pdf' | 'excel') => {
+  const handleExport = (formatType: 'pdf' | 'excel') => {
     toast({
-      title: `Exporting to ${format.toUpperCase()}`,
+      title: `Exporting to ${formatType.toUpperCase()}`,
       description: `Preparing attendance data for download. This is a placeholder action.`,
     });
   };
 
   const handleShareToWhatsApp = () => {
     if (!currentClass || !currentSubject || attendanceRecords.length === 0) {
-        toast({ title: "Cannot Share", description: "No attendance data available to share.", variant: "destructive"});
-        return;
+      toast({ title: "Cannot Share", description: "No attendance data available to share.", variant: "destructive" });
+      return;
     }
 
     let summaryText = `*Attendance Summary*\n\n`;
-    summaryText += `*Class:* ${currentClass.name}\n`;
-    summaryText += `*Subject:* ${currentSubject.name}\n`;
+    summaryText += `*Class:* ${currentClass.class_name || currentClass.name}\n`;
+    summaryText += `*Subject:* ${currentSubject.subject_name || currentSubject.name}\n`;
     summaryText += `*Date:* ${format(selectedDate, "PPP")}\n\n`;
     summaryText += `*Present:* ${presentCount}\n`;
     summaryText += `*Absent:* ${absentCount}\n\n`;
     summaryText += `*Student Details:*\n`;
 
     attendanceRecords.forEach(record => {
-        const studentInfo = getStudentDetails(record.studentId);
-        if (studentInfo.name !== 'Unknown Student' && record.status !== 'pending') {
-            summaryText += `- *${studentInfo.name}* (\`${studentInfo.rollNumber}\`): *${record.status.toUpperCase()}*\n`;
-        }
+      summaryText += `- *${record.name}* (\`${record.roll_number}\`): *${record.status.toUpperCase()}*\n`;
     });
 
     const encodedText = encodeURIComponent(summaryText);
     const whatsappUrl = `https://wa.me/?text=${encodedText}`;
-    
+
     window.open(whatsappUrl, '_blank');
 
     toast({
       title: "Sharing to WhatsApp",
-      description: "Sharing text summary. PDF generation is a future enhancement.",
+      description: "Sharing text summary.",
     });
   };
 
-  const handleStatusToggle = (studentId: string) => {
-    let updatedRecords: AttendanceRecord[] = [];
-    let newStatus: AttendanceStatus = 'pending';
+  const handleStatusToggle = async (studentId: string, currentStatus: string) => {
+    if (!sessionId) return;
 
-    setAttendanceRecords(prevRecords => {
-      updatedRecords = prevRecords.map(record => {
-        if (record.studentId === studentId) {
-          newStatus = record.status === 'present' ? 'absent' : (record.status === 'absent' ? 'present' : 'present');
-          return { ...record, status: newStatus };
-        }
-        return record;
+    try {
+      const newStatusId = (currentStatus === 'Present' || currentStatus === 'present') ? 2 : 1;
+      const res = await axios.put('/api/attendance/record', {
+        session_id: sessionId,
+        student_id: studentId,
+        status_id: newStatusId
       });
-      
-      if (localStorageKey) {
-        localStorage.setItem(localStorageKey, JSON.stringify(updatedRecords));
-      }
-      return updatedRecords;
-    });
 
-    toast({
-      title: "Attendance Updated",
-      description: `${getStudentDetails(studentId).name}'s status changed to ${newStatus}.`,
-    });
+      if (res.data.success) {
+        toast({ title: "Updated", description: "Attendance status updated successfully." });
+        fetchSummary(); // Refresh data
+      }
+    } catch (err) {
+      console.error("Failed to update status", err);
+      toast({ title: "Error", description: "Failed to update status.", variant: "destructive" });
+    }
   };
 
   if (isLoading) {
-     return (
+    return (
       <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
-  
+
   if (!currentClass || !currentSubject) {
-     return (
+    return (
       <div className="container mx-auto py-8 px-4 text-center">
         <AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" />
         <h2 className="text-2xl font-semibold mb-2">Data Not Found</h2>
@@ -210,105 +178,129 @@ export default function AttendanceSummaryPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-       <div className="flex justify-start mb-4">
-        <Button onClick={() => router.push('/dashboard/attendance')} variant="outline">
-            <Home className="mr-2 h-4 w-4" /> Back to Attendance Dashboard
-        </Button>
+    <div className="container mx-auto py-8 px-4 space-y-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <Button onClick={() => router.push('/main/attendance')} variant="outline" className="rounded-xl">
+            <Home className="mr-2 h-4 w-4" /> Dashboard
+          </Button>
+          <h1 className="text-3xl font-bold">Attendance Analytics</h1>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => handleExport('excel')} variant="outline" className="rounded-xl" disabled={attendanceRecords.length === 0}>
+            <FileSpreadsheet className="mr-2 h-4 w-4 text-emerald-600" /> Export
+          </Button>
+          <Button onClick={handleShareToWhatsApp} className="bg-green-600 hover:bg-green-700 text-white rounded-xl" disabled={attendanceRecords.length === 0}>
+            <WhatsAppIcon /> Share
+          </Button>
+        </div>
       </div>
-      <Card className="w-full max-w-4xl mx-auto shadow-lg">
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-              <div>
-                <CardTitle className="text-2xl font-headline">Attendance Summary</CardTitle>
-                <CardDescription>Review the attendance records. Click on a status to edit. <Edit3 className="inline h-4 w-4 ml-1" /></CardDescription>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <Card className="lg:col-span-1 shadow-sm">
+          <CardHeader>
+            <CardTitle>Details</CardTitle>
+            <CardDescription>Session information and reporting date.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Users className="h-5 w-5 text-indigo-600" />
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase font-bold">Class</p>
+                  <p className="font-bold">{currentClass.class_name}</p>
+                </div>
               </div>
+              <div className="flex items-center gap-3">
+                <Library className="h-5 w-5 text-purple-600" />
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase font-bold">Subject</p>
+                  <p className="font-bold">{currentSubject.subject_name}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t">
+              <p className="text-sm font-bold mb-2">Select Date</p>
               <Popover>
                 <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full sm:w-auto justify-start text-left font-normal">
-                        <CalendarDays className="mr-2 h-4 w-4" />
-                        <span>{format(selectedDate, "PPP")}</span>
-                    </Button>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal h-11 rounded-xl">
+                    <CalendarDays className="mr-2 h-4 w-4" />
+                    {format(selectedDate, "PPP")}
+                  </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar mode="single" selected={selectedDate} onSelect={handleDateSelect} initialFocus />
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={selectedDate} onSelect={(d) => d && setSelectedDate(d)} initialFocus />
                 </PopoverContent>
               </Popover>
-          </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-muted-foreground pt-4">
-                <div className="flex items-center"><Users className="mr-2 h-4 w-4 text-primary" /> Class: <span className="font-semibold text-foreground ml-1">{currentClass.name}</span></div>
-                <div className="flex items-center"><Library className="mr-2 h-4 w-4 text-primary" /> Subject: <span className="font-semibold text-foreground ml-1">{currentSubject.name}</span></div>
-                <div className="flex items-center"><CalendarDays className="mr-2 h-4 w-4 text-primary" /> Date: <span className="font-semibold text-foreground ml-1">{format(selectedDate, 'PPP')}</span></div>
             </div>
-             <div className="flex gap-4 pt-2">
-                <span className="font-semibold text-green-600">Present: {presentCount}</span>
-                <span className="font-semibold text-destructive">Absent: {absentCount}</span>
-            </div>
-        </CardHeader>
-        <CardContent>
-          {studentsForSubject.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">No students are enrolled in this subject for this class.</p>
-          ) : attendanceRecords.every(r => r.status === 'pending') ? (
-             <p className="text-muted-foreground text-center py-4">Attendance has not been taken for this date. Please <Button variant="link" className="p-0 h-auto" onClick={() => router.push(`/dashboard/attendance/${classId}/${subjectId}`)}>start the attendance session</Button> for today.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Roll No.</TableHead>
-                  <TableHead>Student Name</TableHead>
-                  <TableHead className="text-center">Status (Click to Edit)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {attendanceRecords.filter(r => r.status !== 'pending').map((record) => {
-                    const studentInfo = getStudentDetails(record.studentId);
-                    if(studentInfo.name === 'Unknown Student') return null; 
 
-                    return (
-                    <TableRow key={record.studentId}>
-                        <TableCell>{studentInfo.rollNumber}</TableCell>
-                        <TableCell>{studentInfo.name}</TableCell>
-                        <TableCell 
-                        className="text-center cursor-pointer group"
-                        onClick={() => handleStatusToggle(record.studentId)}
-                        title={`Click to change status for ${studentInfo.name}`}
-                        >
-                        {record.status === 'present' ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 group-hover:bg-green-200 transition-colors">
-                            <Check className="mr-1 h-4 w-4" /> Present
-                            </span>
-                        ) : record.status === 'absent' ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 group-hover:bg-red-200 transition-colors">
-                            <X className="mr-1 h-4 w-4" /> Absent
-                            </span>
-                        ) : null}
-                        </TableCell>
-                    </TableRow>
-                    );
-                })}
-              </TableBody>
-            </Table>
-          )}
-          
-          <div className="mt-8 flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0 sm:space-x-3">
-            <div className="flex flex-col sm:flex-row gap-3">
-                <Button variant="outline" onClick={() => handleExport('excel')} disabled={studentsForSubject.length === 0}>
-                    <FileSpreadsheet className="mr-2 h-4 w-4" /> Export to Excel
-                </Button>
-                <Button variant="outline" onClick={() => handleExport('pdf')} disabled={studentsForSubject.length === 0}>
-                    <FileText className="mr-2 h-4 w-4" /> Export to PDF
-                </Button>
-                <Button variant="outline" onClick={handleShareToWhatsApp} disabled={studentsForSubject.length === 0 || presentCount + absentCount === 0}>
-                    <WhatsAppIcon /> Share to WhatsApp
-                </Button>
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+              <div className="text-center p-3 rounded-xl bg-green-50 text-green-700">
+                <p className="text-[10px] font-bold uppercase">Present</p>
+                <p className="text-2xl font-black">{presentCount}</p>
+              </div>
+              <div className="text-center p-3 rounded-xl bg-rose-50 text-rose-700">
+                <p className="text-[10px] font-bold uppercase">Absent</p>
+                <p className="text-2xl font-black">{absentCount}</p>
+              </div>
             </div>
-            <Button onClick={() => router.push('/dashboard/attendance/new')} className="w-full sm:w-auto">
-              <PlusCircle className="mr-2 h-4 w-4" /> New Attendance Session
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2 shadow-sm overflow-hidden">
+          <CardHeader className="bg-slate-50 border-b">
+            <CardTitle>Attendance Register</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {attendanceRecords.length === 0 ? (
+              <div className="p-12 text-center text-muted-foreground italic">
+                No records found for this date.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[100px]">Roll</TableHead>
+                    <TableHead>Student Name</TableHead>
+                    <TableHead className="text-center w-[120px]">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {attendanceRecords.map((record) => {
+                    const isPresent = record.status?.toLowerCase() === 'present';
+                    return (
+                      <TableRow key={record.student_id}>
+                        <TableCell className="font-mono text-xs text-slate-500">{record.roll_number}</TableCell>
+                        <TableCell className="font-bold">{record.name}</TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleStatusToggle(record.student_id, record.status)}
+                            className={`rounded-full px-4 h-8 text-[11px] font-bold uppercase ${isPresent ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
+                              }`}
+                          >
+                            {isPresent ? <Check className="h-3 w-3 mr-1" /> : <X className="h-3 w-3 mr-1" />}
+                            {record.status}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex justify-center">
+        <Button onClick={() => router.push('/main/attendance/new')} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-12 px-8">
+          <PlusCircle className="mr-2 h-4 w-4" /> Start New Session
+        </Button>
+      </div>
     </div>
   );
 }
-    

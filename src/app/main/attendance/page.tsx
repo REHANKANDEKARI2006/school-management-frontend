@@ -127,6 +127,7 @@ export default function AttendanceDashboardPage() {
             </Popover>
 
             <Button onClick={() => router.push('/main/attendance/new')} className="bg-indigo-600 hover:bg-indigo-700 h-11 px-6">
+              <PlusCircle className="mr-2 h-4 w-4" />
               Take Attendance
             </Button>
           </div>
@@ -183,13 +184,16 @@ export default function AttendanceDashboardPage() {
 
                         <div className="text-right">
                           {sub.session_id ? (
-                            <span className="text-green-600 text-sm font-bold flex items-center gap-1.5">
-                              <CheckCircle className="h-4 w-4" /> View Details
-                            </span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-green-600 text-sm font-medium flex items-center gap-1">
+                                <CheckCircle className="h-4 w-4" /> {sub.present_count}
+                              </span>
+                              <span className="text-red-500 text-sm font-medium flex items-center gap-1">
+                                <XCircle className="h-4 w-4" /> {sub.absent_count}
+                              </span>
+                            </div>
                           ) : (
-                            <span className="text-indigo-600 text-sm font-bold flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <PlusCircle className="h-4 w-4" /> Take Attendance
-                            </span>
+                            <span className="text-muted-foreground text-sm font-medium opacity-50 bg-slate-100 px-2 py-0.5 rounded-md">Not taken</span>
                           )}
                         </div>
                       </div>

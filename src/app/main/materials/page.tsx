@@ -1,7 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { useEffect, useState, useMemo } from "react";
 import RouteGuard from "@/components/auth/RouteGuard";
+import axios from "@/lib/axios";
+import { format } from "date-fns";
 
 import { MoreHorizontal, PlusCircle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,8 +46,8 @@ const initialMaterials: Material[] = [
   {
     id: "1",
     name: "Introduction to Algebra",
-    subject: "Mathematics",
-    class: "9-A",
+    subject_id: "1",
+    class_id: "1",
     fileType: "PDF",
     date: new Date("2024-07-15"),
   },
@@ -64,14 +67,149 @@ export default function MaterialsPage() {
   const { toast } = useToast();
   const { searchQuery } = useSearch();
 
-  const [materials, setMaterials] = React.useState(initialMaterials);
-  const [isFormOpen, setIsFormOpen] = React.useState(false);
-  const [selectedMaterial, setSelectedMaterial] = React.useState<Material | undefined>();
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
-  const filteredMaterials = React.useMemo(() => {
+  const fetchMaterials = async () => {
+    try {
+      const res = await axios.get('/api/materials');
+      if (res.data.success) {
+        setMaterials(res.data.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch materials", error);
+      toast({ title: "Error", description: "Failed to load materials", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMaterials();
+  }, []);
+
+  const handleCreateMaterial = async (data: any) => {
+    try {
+      const res = await axios.post('/api/materials', data);
+      if (res.data.success) {
+        toast({ title: "Success", description: "Material uploaded successfully" });
+        setIsFormOpen(false);
+        fetchMaterials();
+      }
+    } catch (error) {
+      console.error("Failed to create material", error);
+      toast({ title: "Error", description: "Failed to save material", variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      setDeletingId(id);
+      const res = await axios.delete(`/api/materials/${id}`);
+      if (res.data.success) {
+        toast({ title: "Success", description: "Material deleted successfully" });
+        fetchMaterials();
+      }
+    } catch (error) {
+      console.error("Failed to delete material", error);
+      toast({ title: "Error", description: "Failed to delete material", variant: "destructive" });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleDownload = async (material: any) => {
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || '';
+
+      const res = await axios.get(`/api/materials/download/${material.material_id}`, {
+        responseType: 'arraybuffer', // Using arraybuffer enables parsing JSON or Blob manually based on header
+        headers: {
+          Authorization: 'Bearer ' + token
+        }
+      });
+
+      const contentType = res.headers['content-type'];
+
+      // 1. Backend returned JSON (either Google drive link or Error)
+      if (contentType && contentType.includes('application/json')) {
+        const jsonStr = new TextDecoder('utf-8').decode(res.data);
+        const jsonData = JSON.parse(jsonStr);
+
+        if (jsonData.isExternal && jsonData.url) {
+          window.open(jsonData.url, "_blank");
+          toast({ title: "Success", description: "Opening External Link" });
+          return;
+        }
+
+        if (!jsonData.success) {
+          throw new Error(jsonData.message || "Failed to download");
+        }
+      }
+
+      // 2. Backend returned a Steam (Cloudinary File)
+      // Get filename from content-disposition header or fallback
+      const contentDisposition = res.headers['content-disposition'];
+      let filename = material.file_path.split('/').pop() || 'downloaded_file';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (filenameMatch && filenameMatch.length === 2) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast({ title: "Success", description: "Download successful" });
+    } catch (error: any) {
+      console.error("Failed to download material detail:", error);
+      let errorMessage = "Failed to download material";
+
+      // If Axios threw a specific Network or HTTP Error
+      if (error.response?.data) {
+        try {
+          if (error.response.data instanceof Blob) {
+            const text = await error.response.data.text();
+            const json = JSON.parse(text);
+            errorMessage = json.message || errorMessage;
+            console.error("Server returned Blob error:", json);
+          } else {
+            // If response type was arraybuffer, decode it back to string
+            const text = new TextDecoder('utf-8').decode(error.response.data);
+            const json = JSON.parse(text);
+            errorMessage = json.message || errorMessage;
+            console.error("Server returned Error:", json);
+          }
+        } catch (e) {
+          console.error("Failed to parse arraybuffer or blob error", e);
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const filteredMaterials = useMemo(() => {
     if (!searchQuery) return materials;
     return materials.filter(m =>
-      m.name.toLowerCase().includes(searchQuery.toLowerCase())
+      m.material_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.subject_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.class_name?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [searchQuery, materials]);
 
@@ -103,34 +241,62 @@ export default function MaterialsPage() {
               </TableHeader>
 
               <TableBody>
-                {filteredMaterials.map(material => (
-                  <TableRow key={material.id}>
-                    <TableCell>{material.name}</TableCell>
-                    <TableCell>
-                      <Badge variant={getFileTypeVariant(material.fileType)}>
-                        {material.fileType}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{String(material.date)}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => toast({ title: "Downloading..." })}>
-                            <Download className="mr-2 h-4 w-4" /> Download
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setMaterials(materials.filter(m => m.id !== material.id))}>
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                      Loading materials...
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : filteredMaterials.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                      No materials found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredMaterials.map(material => (
+                    <TableRow key={material.material_id}>
+                      <TableCell>
+                        <div className="font-medium">{material.material_name}</div>
+                        <div className="text-xs text-muted-foreground line-clamp-1 mt-1">
+                          {material.class_name} • {material.subject_name}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          Document
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(material.upload_date), "MMM d, yyyy")}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem
+                              onClick={() => handleDownload(material)}
+                              disabled={downloadingId === material.material_id}
+                            >
+                              <Download className="mr-2 h-4 w-4" />
+                              {downloadingId === material.material_id ? "Downloading..." : "Download"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(material.material_id)}
+                              disabled={deletingId === material.material_id}
+                            >
+                              {deletingId === material.material_id ? "Deleting..." : "Delete"}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -142,7 +308,7 @@ export default function MaterialsPage() {
               <DialogTitle>Upload Material</DialogTitle>
               <DialogDescription>Add study material</DialogDescription>
             </DialogHeader>
-            <MaterialForm onSubmit={() => setIsFormOpen(false)} />
+            <MaterialForm onSubmit={handleCreateMaterial} />
           </DialogContent>
         </Dialog>
       </>

@@ -43,7 +43,40 @@ export default function AttendancePage() {
         if (studentsRes.data.success) {
           const studentData = studentsRes.data.data;
           setStudents(studentData);
-          setAttendanceRecords(studentData.map((s: any) => ({ studentId: s.student_id, status: 'pending' })));
+
+          // Check if session already exists for today to pre-fill attendance
+          const dateString = format(new Date(), 'yyyy-MM-dd');
+          const sectionId = classRes.data.data?.section_id;
+
+          let existingRecords: any[] = [];
+          if (sectionId) {
+            try {
+              const checkRes = await axios.get(`/api/attendance/session/check`, {
+                params: { class_id: classId, section_id: sectionId, subject_id: subjectId, attendance_date: dateString }
+              });
+              if (checkRes.data.success && checkRes.data.data?.session_id) {
+                const summaryRes = await axios.get(`/api/attendance/summary?sessionId=${checkRes.data.data.session_id}`);
+                if (summaryRes.data.success) {
+                  existingRecords = summaryRes.data.data;
+                }
+              }
+            } catch (e) {
+              console.warn("No existing session found or error fetching it.");
+            }
+          }
+
+          setAttendanceRecords(studentData.map((s: any) => {
+            const existing = existingRecords.find(r => r.student_id === s.student_id);
+            let mappedStatus = 'pending';
+            if (existing) {
+              if (existing.status === 'Present') mappedStatus = 'present';
+              else if (existing.status === 'Absent' || existing.status === 'On Leave' || existing.status === 'Late') mappedStatus = 'absent';
+            }
+            return {
+              studentId: s.student_id,
+              status: mappedStatus
+            };
+          }));
         }
       } catch (err) {
         console.error("Failed to fetch attendance data", err);
@@ -151,13 +184,30 @@ export default function AttendancePage() {
 
   return (
     <div className="container mx-auto py-8 px-4 flex flex-col items-center">
-      <div className="w-full max-w-4xl flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <Button onClick={() => router.push('/main/attendance')} variant="outline" className="rounded-xl">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
-        </Button>
-        <div className="text-center md:text-right">
-          <h1 className="text-xl font-bold">{currentClass.class_name}</h1>
-          <p className="text-muted-foreground">{currentSubject.subject_name}</p>
+      <div className="w-full max-w-5xl mb-8 relative">
+        <div className="flex flex-col lg:flex-row items-center justify-center gap-6">
+          <div className="w-full flex justify-center lg:absolute lg:top-0 lg:left-0 lg:w-auto">
+            <Button onClick={() => router.push('/main/attendance')} variant="outline" className="rounded-lg h-10 px-4 bg-white/50 border-slate-200">
+              <Home className="mr-2 h-4 w-4" /> Back to Attendance Dashboard
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap justify-center items-center gap-4 bg-white/50 border border-slate-200 rounded-lg px-6 py-3 text-sm font-medium text-slate-700 w-fit">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-indigo-500" />
+              <span>Class: <strong>{currentClass.class_name}{currentClass.section_name ? ` - ${currentClass.section_name}` : ''}</strong></span>
+            </div>
+            <div className="w-px h-4 bg-slate-300 hidden md:block"></div>
+            <div className="flex items-center gap-2">
+              <Library className="h-4 w-4 text-indigo-500" />
+              <span>Subject: <strong>{currentSubject.subject_name}</strong></span>
+            </div>
+            <div className="w-px h-4 bg-slate-300 hidden md:block"></div>
+            <div className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-indigo-500" />
+              <span>Date: <strong>{currentDate}</strong></span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -177,13 +227,9 @@ export default function AttendancePage() {
           />
 
           <div className="w-full max-w-sm mt-8 space-y-6">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Progress</span>
-                <span className="font-bold">{Math.round(progress)}%</span>
-              </div>
-              <Progress value={progress} className="h-2" />
-              <p className="text-center text-xs text-muted-foreground">
+            <div className="space-y-3">
+              <Progress value={progress} className="h-2.5 bg-slate-100" />
+              <p className="text-center text-sm font-medium text-slate-500">
                 {markedStudentsCount} of {students.length} students marked
               </p>
             </div>
@@ -193,27 +239,27 @@ export default function AttendancePage() {
                 variant="outline"
                 onClick={handlePrevious}
                 disabled={currentIndex === 0}
-                className="flex-1 rounded-xl"
+                className="flex-1 rounded-xl h-11 text-slate-500"
               >
-                Previous
+                <ArrowLeft className="mr-2 h-4 w-4" /> Previous
               </Button>
               <Button
-                variant="outline"
                 onClick={handleNext}
                 disabled={currentIndex === students.length - 1}
-                className="flex-1 rounded-xl"
+                className="flex-1 rounded-xl h-11 bg-indigo-600 hover:bg-indigo-700 text-white"
               >
-                Next
+                Next <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
 
             {markedStudentsCount === students.length && (
               <Button
                 onClick={handleFinalize}
-                className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl"
+                className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl mt-4"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Finalizing..." : "Finalize Attendance"}
+                <CheckSquare className="mr-2 h-5 w-5" />
+                {isSubmitting ? "Finalizing..." : "Review & Finalize"}
               </Button>
             )}
           </div>

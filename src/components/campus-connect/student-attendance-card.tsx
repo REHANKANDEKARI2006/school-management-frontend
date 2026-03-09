@@ -28,18 +28,18 @@ export function StudentAttendanceCard({ student, onMarkPresent, onMarkAbsent, cu
 
         <div className="grid grid-cols-2 gap-4">
           <Button
-            variant={currentStatus === 'absent' ? 'destructive' : 'outline'}
+            variant="outline"
             onClick={onMarkAbsent}
             size="lg"
-            className="py-6 text-lg"
+            className={`py-6 text-lg border-2 ${currentStatus === 'absent' ? 'bg-red-500 hover:bg-red-600 text-white border-transparent' : 'bg-transparent hover:bg-red-50 text-slate-500 hover:text-red-500 hover:border-red-200'}`}
           >
             <X className="mr-2 h-5 w-5" /> Absent
           </Button>
           <Button
-            variant={currentStatus === 'present' ? 'default' : 'outline'}
+            variant="outline"
             onClick={onMarkPresent}
             size="lg"
-            className={`py-6 text-lg ${currentStatus === 'present' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
+            className={`py-6 text-lg border-2 ${currentStatus === 'present' ? 'bg-green-600 hover:bg-green-700 text-white border-transparent' : 'bg-transparent hover:bg-green-50 text-slate-500 hover:text-green-600 hover:border-green-200'}`}
           >
             <Check className="mr-2 h-5 w-5" /> Present
           </Button>

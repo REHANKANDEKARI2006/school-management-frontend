@@ -178,128 +178,117 @@ export default function AttendanceSummaryPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <Button onClick={() => router.push('/main/attendance')} variant="outline" className="rounded-xl">
-            <Home className="mr-2 h-4 w-4" /> Dashboard
-          </Button>
-          <h1 className="text-3xl font-bold">Attendance Analytics</h1>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={() => handleExport('excel')} variant="outline" className="rounded-xl" disabled={attendanceRecords.length === 0}>
-            <FileSpreadsheet className="mr-2 h-4 w-4 text-emerald-600" /> Export
-          </Button>
-          <Button onClick={handleShareToWhatsApp} className="bg-green-600 hover:bg-green-700 text-white rounded-xl" disabled={attendanceRecords.length === 0}>
-            <WhatsAppIcon /> Share
-          </Button>
-        </div>
+    <div className="container mx-auto py-8 px-4 flex flex-col items-center min-h-[calc(100vh-80px)]">
+      <div className="w-full max-w-5xl mb-6 flex justify-start">
+        <Button onClick={() => router.push('/main/attendance')} variant="outline" className="rounded-lg h-10 px-4 bg-white/50 border-slate-200">
+          <Home className="mr-2 h-4 w-4" /> Back to Attendance Dashboard
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-1 shadow-sm">
-          <CardHeader>
-            <CardTitle>Details</CardTitle>
-            <CardDescription>Session information and reporting date.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Users className="h-5 w-5 text-indigo-600" />
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase font-bold">Class</p>
-                  <p className="font-bold">{currentClass.class_name}</p>
-                </div>
+      <div className="w-full max-w-5xl">
+        <Card className="shadow-sm border-slate-200 overflow-hidden">
+          <CardHeader className="bg-slate-50/50 border-b pb-6">
+            <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+              <div>
+                <CardTitle className="text-2xl font-bold flex items-center gap-2">Attendance Summary</CardTitle>
+                <CardDescription className="text-sm mt-1 flex items-center gap-1">Review the attendance records. Click on a status to edit. <Edit3 className="h-3 w-3" /></CardDescription>
               </div>
-              <div className="flex items-center gap-3">
-                <Library className="h-5 w-5 text-purple-600" />
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase font-bold">Subject</p>
-                  <p className="font-bold">{currentSubject.subject_name}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t">
-              <p className="text-sm font-bold mb-2">Select Date</p>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal h-11 rounded-xl">
+                  <Button variant="outline" className="h-10 rounded-lg text-slate-700 w-full md:w-auto">
                     <CalendarDays className="mr-2 h-4 w-4" />
                     {format(selectedDate, "PPP")}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0" align="end">
                   <Calendar mode="single" selected={selectedDate} onSelect={(d) => d && setSelectedDate(d)} initialFocus />
                 </PopoverContent>
               </Popover>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-              <div className="text-center p-3 rounded-xl bg-green-50 text-green-700">
-                <p className="text-[10px] font-bold uppercase">Present</p>
-                <p className="text-2xl font-black">{presentCount}</p>
+            <div className="mt-6 flex flex-wrap items-center gap-4 bg-white border border-slate-200 rounded-lg px-6 py-3 text-sm font-medium text-slate-700 w-fit">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-indigo-500" />
+                <span>Class: <strong>{currentClass.class_name}{currentClass.section_name ? ` - ${currentClass.section_name}` : ''}</strong></span>
               </div>
-              <div className="text-center p-3 rounded-xl bg-rose-50 text-rose-700">
-                <p className="text-[10px] font-bold uppercase">Absent</p>
-                <p className="text-2xl font-black">{absentCount}</p>
+              <div className="w-px h-4 bg-slate-300 hidden md:block"></div>
+              <div className="flex items-center gap-2">
+                <Library className="h-4 w-4 text-indigo-500" />
+                <span>Subject: <strong>{currentSubject.subject_name}</strong></span>
+              </div>
+              <div className="w-px h-4 bg-slate-300 hidden md:block"></div>
+              <div className="flex items-center gap-2">
+                <CalendarDays className="h-4 w-4 text-indigo-500" />
+                <span>Date: <strong>{format(selectedDate, "PPP")}</strong></span>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        <Card className="lg:col-span-2 shadow-sm overflow-hidden">
-          <CardHeader className="bg-slate-50 border-b">
-            <CardTitle>Attendance Register</CardTitle>
+            <div className="mt-4 flex items-center gap-4 text-sm font-bold">
+              <span className="text-green-600">Present: {presentCount}</span>
+              <span className="text-red-500">Absent: {absentCount}</span>
+            </div>
           </CardHeader>
+
           <CardContent className="p-0">
             {attendanceRecords.length === 0 ? (
               <div className="p-12 text-center text-muted-foreground italic">
                 No records found for this date.
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[100px]">Roll</TableHead>
-                    <TableHead>Student Name</TableHead>
-                    <TableHead className="text-center w-[120px]">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {attendanceRecords.map((record) => {
-                    const isPresent = record.status?.toLowerCase() === 'present';
-                    return (
-                      <TableRow key={record.student_id}>
-                        <TableCell className="font-mono text-xs text-slate-500">{record.roll_number}</TableCell>
-                        <TableCell className="font-bold">{record.name}</TableCell>
-                        <TableCell className="text-center">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleStatusToggle(record.student_id, record.status)}
-                            className={`rounded-full px-4 h-8 text-[11px] font-bold uppercase ${isPresent ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
-                              }`}
-                          >
-                            {isPresent ? <Check className="h-3 w-3 mr-1" /> : <X className="h-3 w-3 mr-1" />}
-                            {record.status}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+              <div className="px-6 pb-6">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-b-slate-200 hover:bg-transparent">
+                      <TableHead className="w-[150px] text-slate-500 font-medium">Roll No.</TableHead>
+                      <TableHead className="text-slate-500 font-medium">Student Name</TableHead>
+                      <TableHead className="text-center w-[200px] text-slate-500 font-medium">Status (Click to Edit)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {attendanceRecords.map((record) => {
+                      const isPresent = record.status?.toLowerCase() === 'present';
+                      return (
+                        <TableRow key={record.student_id} className="border-b-slate-100 border-b last:border-0 hover:bg-slate-50/50">
+                          <TableCell className="text-slate-600 font-mono text-sm">{record.roll_number}</TableCell>
+                          <TableCell className="font-medium text-slate-900">{record.name}</TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleStatusToggle(record.student_id, record.status)}
+                              className={`rounded-full px-4 h-8 text-xs font-semibold ${isPresent ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-red-50 text-red-500 hover:bg-red-100'
+                                }`}
+                            >
+                              {isPresent ? <Check className="h-3 w-3 mr-1" /> : <X className="h-3 w-3 mr-1" />}
+                              {record.status}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
-        </Card>
-      </div>
 
-      <div className="flex justify-center">
-        <Button onClick={() => router.push('/main/attendance/new')} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-12 px-8">
-          <PlusCircle className="mr-2 h-4 w-4" /> Start New Session
-        </Button>
+          <div className="bg-slate-50/50 p-6 border-t border-slate-100 flex flex-wrap gap-4 items-center justify-between">
+            <div className="flex flex-wrap gap-3">
+              <Button onClick={() => handleExport('excel')} variant="outline" className="rounded-lg bg-white" disabled={attendanceRecords.length === 0}>
+                <FileSpreadsheet className="mr-2 h-4 w-4 text-slate-500" /> Export to Excel
+              </Button>
+              <Button onClick={() => handleExport('pdf')} variant="outline" className="rounded-lg bg-white" disabled={attendanceRecords.length === 0}>
+                <FileText className="mr-2 h-4 w-4 text-slate-500" /> Export to PDF
+              </Button>
+              <Button onClick={handleShareToWhatsApp} variant="outline" className="rounded-lg bg-white" disabled={attendanceRecords.length === 0}>
+                <WhatsAppIcon /> Share to WhatsApp
+              </Button>
+            </div>
+            <Button onClick={() => router.push('/main/attendance/new')} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">
+              <PlusCircle className="mr-2 h-4 w-4" /> New Attendance Session
+            </Button>
+          </div>
+        </Card>
       </div>
     </div>
   );

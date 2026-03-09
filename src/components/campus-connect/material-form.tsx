@@ -4,6 +4,8 @@
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
+import axios from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -26,14 +28,15 @@ import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 const materialSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, "Material name is required"),
-  subject: z.string().min(1, "Subject is required"),
-  class: z.string().min(1, "Class is required"),
+  subject_id: z.string().min(1, "Subject is required"),
+  class_id: z.string().min(1, "Class is required"),
   date: z.date({ required_error: "A date is required." }),
-  fileType: z.enum(["PDF", "DOCX", "PPTX", "VIDEO", "OTHER"]),
+  fileType: z.string().optional(), // Will derive from file extension or keep simple
 });
 
 export type Material = z.infer<typeof materialSchema>;
@@ -44,27 +47,83 @@ interface MaterialFormProps {
 }
 
 export function MaterialForm({ onSubmit, material }: MaterialFormProps) {
+  const { toast } = useToast();
+  const [classes, setClasses] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    Promise.all([
+      axios.get('/api/classes'),
+      axios.get('/api/subjects')
+    ]).then(([classesRes, subjectsRes]) => {
+      setClasses(classesRes.data.data || []);
+      setSubjects(subjectsRes.data.data || []);
+    }).catch(err => {
+      console.error("Failed to load classes or subjects", err);
+    });
+  }, []);
+
   const form = useForm<Material>({
     resolver: zodResolver(materialSchema),
     defaultValues: material ? {
       ...material,
+      subject_id: String((material as any).subject_id || ""),
+      class_id: String((material as any).class_id || ""),
       date: new Date(material.date)
     } : {
       name: "",
-      subject: "",
-      class: "",
+      subject_id: "",
+      class_id: "",
       date: new Date(),
-      fileType: "PDF",
     },
   });
 
-  const handleSubmit = (values: Material) => {
-    const dataToSend = {
-      ...values,
-      date: format(values.date, 'yyyy-MM-dd'),
-      id: material?.id
-    };
-    onSubmit(dataToSend as any);
+  const handleSubmit = async (values: Material) => {
+    if (!selectedFile && !material) {
+      toast({ title: "Error", description: "Please select a file to upload", variant: "destructive" });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      let fileUrl = (material as any)?.file_path || "";
+
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+
+        const uploadRes = await axios.post('/api/materials/upload', formData, {
+          headers: {
+            // Unset the default JSON content-type so the browser can set the multipart boundary
+            "Content-Type": undefined
+          }
+        });
+
+        if (uploadRes.data.success) {
+          fileUrl = uploadRes.data.fileUrl;
+        } else {
+          throw new Error("File upload failed");
+        }
+      }
+
+      const dataToSend = {
+        material_name: values.name,
+        subject_id: parseInt(values.subject_id),
+        class_id: parseInt(values.class_id),
+        upload_date: format(values.date, 'yyyy-MM-dd'),
+        file_path: fileUrl
+      };
+
+      onSubmit(dataToSend as any);
+    } catch (err: any) {
+      console.error("Failed to upload material", err);
+      const errorMessage = err.response?.data?.message || err.message || "Failed to upload material";
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -85,48 +144,42 @@ export function MaterialForm({ onSubmit, material }: MaterialFormProps) {
         />
         <FormField
           control={form.control}
-          name="subject"
+          name="subject_id"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Subject</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g. Mathematics" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="class"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Class</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g. 9-A" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="fileType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>File Type</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a file type" />
+                    <SelectValue placeholder="Select a subject" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="PDF">PDF</SelectItem>
-                  <SelectItem value="DOCX">DOCX</SelectItem>
-                  <SelectItem value="PPTX">PPTX</SelectItem>
-                  <SelectItem value="VIDEO">Video</SelectItem>
-                  <SelectItem value="OTHER">Other</SelectItem>
+                  {subjects.map(s => (
+                    <SelectItem key={s.subject_id} value={String(s.subject_id)}>{s.subject_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="class_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Class</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a class" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {classes.map(c => (
+                    <SelectItem key={c.class_id} value={String(c.class_id)}>{c.class_name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -134,13 +187,16 @@ export function MaterialForm({ onSubmit, material }: MaterialFormProps) {
           )}
         />
         <FormItem>
-            <FormLabel>File</FormLabel>
-            <FormControl>
-                <Button variant="outline" className="w-full justify-start font-normal gap-2">
-                    <Upload className="h-4 w-4" />
-                    <span>{material ? "Change file" : "Select file"}</span>
-                </Button>
-            </FormControl>
+          <FormLabel>File</FormLabel>
+          <FormControl>
+            <div className="relative">
+              <Input
+                type="file"
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                className="cursor-pointer"
+              />
+            </div>
+          </FormControl>
         </FormItem>
         <FormField
           control={form.control}
@@ -180,7 +236,9 @@ export function MaterialForm({ onSubmit, material }: MaterialFormProps) {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full">{material ? "Update Material" : "Upload Material"}</Button>
+        <Button type="submit" className="w-full" disabled={isUploading}>
+          {isUploading ? "Uploading..." : material ? "Update Material" : "Upload Material"}
+        </Button>
       </form>
     </Form>
   );

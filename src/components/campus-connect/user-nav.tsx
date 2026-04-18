@@ -20,6 +20,8 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import axios from "@/lib/axios";
+
 
 import { LogOut, User, Settings } from "lucide-react";
 
@@ -28,13 +30,41 @@ export function UserNav() {
 
   const [name, setName] = useState("User");
   const [email, setEmail] = useState("user@demo.com");
+  const [profileUrl, setProfileUrl] = useState<string | null>(null);
+  const [roleId, setRoleId] = useState<number | null>(null);
 
   useEffect(() => {
-    const storedName = localStorage.getItem("user_name");
-    const storedEmail = localStorage.getItem("user_email");
+    const fetchProfile = async () => {
+      try {
+        const res = await axios.get("/api/auth/profile");
+        if (res.data.success) {
+          const { name, email, profile_url, role_id } = res.data.data;
+          setName(name);
+          setEmail(email);
+          setProfileUrl(profile_url);
+          setRoleId(Number(role_id));
+          
+          localStorage.setItem("user_name", name);
+          localStorage.setItem("user_email", email);
+          if (profile_url) localStorage.setItem("profile_url", profile_url);
+          if (res.data.data.staff_id) localStorage.setItem("staff_id", res.data.data.staff_id);
+        }
+      } catch (error) {
+        console.error("Failed to fetch profile", error);
+        const storedName = localStorage.getItem("user_name");
+        const storedEmail = localStorage.getItem("user_email");
+        const storedAvatar = localStorage.getItem("profile_url");
+        if (storedName) setName(storedName);
+        if (storedEmail) setEmail(storedEmail);
+        if (storedAvatar) setProfileUrl(storedAvatar);
+      }
+    };
 
-    if (storedName) setName(storedName);
-    if (storedEmail) setEmail(storedEmail);
+    fetchProfile();
+
+    // Listen for profile updates
+    window.addEventListener("profileUpdated", fetchProfile);
+    return () => window.removeEventListener("profileUpdated", fetchProfile);
   }, []);
 
   const handleLogout = () => {
@@ -42,13 +72,13 @@ export function UserNav() {
     localStorage.clear();
     sessionStorage.clear();
 
-    router.replace("/login");
+    router.replace("/");
   };
 
   // Avatar initials (Admin User → AU)
   const initials = name
     .split(" ")
-    .map((n) => n[0])
+    .map((n: string) => n[0])
     .join("")
     .toUpperCase()
     .slice(0, 2);
@@ -56,13 +86,16 @@ export function UserNav() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-          <Avatar className="h-9 w-9">
+        <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-offset-background transition-all hover:ring-2 hover:ring-primary/20">
+          <Avatar className="h-9 w-9 border-2 border-background shadow-sm">
             <AvatarImage
-              src="https://picsum.photos/seed/user-avatar/100/100"
-              alt="User avatar"
+              src={profileUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`}
+              alt={name}
+              className="object-cover"
             />
-            <AvatarFallback>{initials}</AvatarFallback>
+            <AvatarFallback className="bg-primary/10 text-primary font-bold">
+              {initials}
+            </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -80,17 +113,19 @@ export function UserNav() {
         <DropdownMenuSeparator />
 
         <DropdownMenuGroup>
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push("/main/profile")}>
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
             <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
           </DropdownMenuItem>
 
-          <DropdownMenuItem>
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
-            <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
-          </DropdownMenuItem>
+          {roleId !== 18 && (
+            <DropdownMenuItem onClick={() => router.push("/main/profile/settings")}>
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Settings</span>
+              <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />

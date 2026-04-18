@@ -1,303 +1,219 @@
 "use client";
 
+import { PageSkeleton } from "@/components/ui/skeletons";
 import * as React from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle, 
+  CardDescription 
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-
-/* ✅ REAL APIs */
-import { getFeeCategories, getFeeStructures, collectFee, getStudentFeeCollection } from "@/lib/api/fees";
 import { getClasses } from "@/lib/api/classes";
-import { getStudentsByClass } from "@/lib/api/students";
-
-// import { getFeeCategories } from "@/lib/api/fees";
-// import { getClasses } from "@/lib/api/classes";
-// import { getStudentsByClass } from "@/lib/api/students";
-// import { getFeeStructures } from "@/lib/api/fees";
-
-
-type FeeStatus = "Paid" | "Partial" | "Unpaid";
+import { getFeeStatusByClass } from "@/lib/api/fees";
+import { StudentFeeLedger } from "@/components/campus-connect/student-fee-ledger";
+import { User, Search, School } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function FeeCollectionPage() {
   const { toast } = useToast();
 
-  const [feeCategories, setFeeCategories] = React.useState<any[]>([]);
   const [classes, setClasses] = React.useState<any[]>([]);
   const [students, setStudents] = React.useState<any[]>([]);
-  const [feeStructures, setFeeStructures] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [fetchingStudents, setFetchingStudents] = React.useState(false);
 
-  const [selectedCategoryId, setSelectedCategoryId] = React.useState<string>();
   const [selectedClassId, setSelectedClassId] = React.useState<string>();
-  const [selectedStructure, setSelectedStructure] = React.useState<any>();
-
-  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  const [selectedStudent, setSelectedStudent] = React.useState<any>();
-  const [amount, setAmount] = React.useState("");
+  const [selectedStudent, setSelectedStudent] = React.useState<any>(null);
+  const [searchQuery, setSearchQuery] = React.useState("");
 
   /* =========================
      INITIAL LOAD
   ========================= */
   React.useEffect(() => {
-    Promise.all([
-      getFeeCategories(),
-      getClasses(),
-      getFeeStructures()
-    ])
-      .then(([categories, classList, structures]) => {
-        setFeeCategories(categories || []);
+    getClasses()
+      .then((classList) => {
         setClasses(classList || []);
-        setFeeStructures(structures || []);
       })
-      .catch(e => {
+      .catch((e) => {
         console.error(e);
-        toast({ title: "Failed to load collection data", variant: "destructive" });
-      });
+        toast({ title: "Failed to load classes", variant: "destructive" });
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   /* =========================
-     LOAD STUDENTS + STRUCTURE
+     LOAD STUDENTS FOR CLASS
   ========================= */
-  React.useEffect(() => {
-    if (!selectedClassId || !selectedCategoryId) return;
-
-    const structure = feeStructures.find(
-      (s) =>
-        String(s.class_id) === selectedClassId &&
-        String(s.fee_cat_id) === selectedCategoryId
-    );
-
-    setSelectedStructure(structure || null);
-
-    getStudentsByClass(selectedClassId).then(async (data) => {
-      const classStudents = (data || []).filter((s: any) => String(s.class_id) === String(selectedClassId));
-
-      const enriched = await Promise.all(
-        classStudents.map(async (stu: any) => {
-          let totalPaid = 0;
-
-          if (structure) {
-            try {
-              const history = await getStudentFeeCollection(stu.student_id);
-              totalPaid = (history || [])
-                .filter((h: any) => h.fee_struct_id === structure.fee_struct_id)
-                .reduce((sum: number, h: any) => sum + Number(h.amount_paid), 0);
-            } catch (e) {
-              console.error("Failed to fetch history for student:", stu.student_id, e);
-            }
-          }
-
-          let status: FeeStatus = "Unpaid";
-          if (totalPaid > 0 && totalPaid < structure?.amount) status = "Partial";
-          if (totalPaid >= structure?.amount) status = "Paid";
-
-          return {
-            ...stu,
-            amountPaid: totalPaid,
-            feeStatus: status,
-          };
-        })
-      );
-
-      setStudents(enriched);
-    });
-  }, [selectedClassId, selectedCategoryId, feeStructures]);
-
-  /* =========================
-     COLLECT FEE
-  ========================= */
-  const handleConfirmPayment = async () => {
-    if (!selectedStudent || !selectedStructure) return;
-
-    try {
-      await collectFee({
-        student_id: selectedStudent.student_id,
-        fee_struct_id: selectedStructure.fee_struct_id,
-        amount_paid: Number(amount),
-      });
-
-      toast({ title: "Fee Collected Successfully" });
-      setIsDialogOpen(false);
-      setAmount("");
-
-      // ✅ Trick to force React to re-trigger the useEffect and reload students:
-      const tempClassId = selectedClassId;
-      setSelectedClassId("");
-      setTimeout(() => setSelectedClassId(tempClassId), 10);
-
-    } catch (e: any) {
-      console.error(e);
-      toast({
-        title: "Failed to collect fee",
-        description: e.response?.data?.message || e.message,
-        variant: "destructive"
-      });
-    }
+  const loadStudents = (classId: string) => {
+    setFetchingStudents(true);
+    getFeeStatusByClass(classId)
+      .then((data) => {
+        setStudents(data || []);
+        setSelectedStudent(null); // Reset when class changes
+      })
+      .catch((e) => {
+        console.error(e);
+        toast({ title: "Failed to load students", variant: "destructive" });
+      })
+      .finally(() => setFetchingStudents(false));
   };
 
-  /* =========================
-     UI
-  ========================= */
+  React.useEffect(() => {
+    if (selectedClassId) {
+      loadStudents(selectedClassId);
+    }
+  }, [selectedClassId]);
+
+  const filteredStudents = students.filter(s => 
+    `${s.stu_first_name} ${s.stu_last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (s.roll_no && String(s.roll_no).includes(searchQuery))
+  );
+
+  if (loading) return <PageSkeleton rows={5} />;
+
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Fee Collection</CardTitle>
-          <CardDescription>
-            Student-wise paid / pending / partial fees
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div>
-              <Label>Fee Category</Label>
-              <Select onValueChange={setSelectedCategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {feeCategories.map((c) => (
-                    <SelectItem
-                      key={c.fee_category_id}
-                      value={String(c.fee_category_id)}
-                    >
-                      {c.category_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Class</Label>
-              <Select
-                onValueChange={setSelectedClassId}
-                disabled={!selectedCategoryId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Class" />
+    <div className="flex flex-col h-[calc(100vh-120px)] gap-6">
+      <Card className="flex-shrink-0 shadow-sm border-none bg-blue-50/30">
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-6 items-end">
+            <div className="w-full md:w-1/3">
+              <Label className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2 block">Select Class & Section</Label>
+              <Select onValueChange={setSelectedClassId}>
+                <SelectTrigger className="bg-white border-2 border-blue-100 hover:border-blue-200 transition-colors">
+                  <SelectValue placeholder="Choose a class..." />
                 </SelectTrigger>
                 <SelectContent>
                   {classes.map((c) => (
-                    <SelectItem
-                      key={c.class_id}
-                      value={String(c.class_id)}
-                    >
-                      {c.class_name}
+                    <SelectItem key={c.class_id} value={String(c.class_id)}>
+                      {c.class_name} {c.section_name ? ` - ${c.section_name}` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+            
+            <div className="flex-grow">
+               <div className="flex items-center gap-4 text-blue-800">
+                    <School className="h-10 w-10 p-2 bg-blue-100 rounded-lg" />
+                    <div>
+                        <h2 className="text-2xl font-black tracking-tight">Fee Collection Center</h2>
+                        <p className="text-sm text-blue-600 font-medium">Manage student fees and issue receipts</p>
+                    </div>
+               </div>
+            </div>
           </div>
-
-          {selectedStructure ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Paid</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {students.map((s) => (
-                  <TableRow key={s.student_id}>
-                    <TableCell>
-                      {s.stu_first_name} {s.stu_last_name}
-                    </TableCell>
-                    <TableCell>
-                      <Badge>{s.feeStatus}</Badge>
-                    </TableCell>
-                    <TableCell>{selectedStructure.amount}</TableCell>
-                    <TableCell>{s.amountPaid}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        disabled={s.feeStatus === "Paid"}
-                        onClick={() => {
-                          setSelectedStudent(s);
-                          setIsDialogOpen(true);
-                        }}
-                      >
-                        Collect
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <p className="text-center text-red-500">
-              No fee structure defined for this class & category
-            </p>
-          )}
         </CardContent>
       </Card>
 
-      {/* ================= DIALOG ================= */}
-      <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Collect Fee – {selectedStudent?.stu_first_name}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Enter amount to collect
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+      <div className="flex flex-1 gap-6 overflow-hidden">
+        {/* SIDEBAR: Student List */}
+        <Card className="w-full md:w-80 flex flex-col shadow-md border-gray-100 overflow-hidden">
+          <CardHeader className="pb-4 bg-gray-50/50">
+            <CardTitle className="text-sm flex items-center justify-between">
+              <span>Students</span>
+              <Badge variant="secondary" className="font-mono">{filteredStudents.length}</Badge>
+            </CardTitle>
+            <div className="relative mt-2">
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search name/roll..."
+                className="pl-8 h-9 text-xs border-gray-200"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </CardHeader>
+          <ScrollArea className="flex-grow">
+            <CardContent className="p-2 space-y-1">
+              {!selectedClassId ? (
+                <div className="text-center py-10 text-xs text-muted-foreground">Please select a class</div>
+              ) : fetchingStudents ? (
+                <div className="space-y-2 p-2">
+                    {[1,2,3,4,5].map(i => <div key={i} className="h-12 bg-gray-100 animate-pulse rounded-md" />)}
+                </div>
+              ) : filteredStudents.length === 0 ? (
+                <div className="text-center py-10 text-xs text-muted-foreground">No students found</div>
+              ) : (
+                filteredStudents.map((s) => {
+                  const balance = Number(s.total_fees) - Number(s.total_paid);
+                  const isSelected = selectedStudent?.student_id === s.student_id;
+                  return (
+                    <button
+                      key={s.student_id}
+                      onClick={() => setSelectedStudent(s)}
+                      className={`w-full text-left p-3 rounded-lg transition-all group relative ${
+                        isSelected 
+                        ? "bg-blue-600 shadow-blue-200 shadow-lg translate-x-1" 
+                        : "hover:bg-gray-50"
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <span className={`text-xs font-bold truncate ${isSelected ? "text-white" : "text-gray-900"}`}>
+                          {s.stu_first_name} {s.stu_last_name}
+                        </span>
+                        <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${isSelected ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"}`}>
+                          #{s.roll_no || 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className={`text-[10px] font-medium ${isSelected ? "text-blue-100" : "text-gray-500"}`}>
+                            {balance <= 0 ? "Fully Paid" : `Bal: ₹${balance.toLocaleString()}`}
+                        </span>
+                        {balance > 0 && (
+                            <div className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-white" : "bg-red-500"}`} />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </CardContent>
+          </ScrollArea>
+        </Card>
 
-          <Input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmPayment}>
-              Confirm
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+        {/* MAIN AREA: Ledger */}
+        <Card className="flex-grow shadow-md border-gray-100 overflow-hidden bg-dot-pattern">
+             <ScrollArea className="h-full">
+                <CardContent className="p-6">
+                    <AnimatePresence mode="wait">
+                        {selectedStudent ? (
+                            <motion.div
+                                key={selectedStudent.student_id}
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <StudentFeeLedger 
+                                    studentId={selectedStudent.student_id} 
+                                    studentName={`${selectedStudent.stu_first_name} ${selectedStudent.stu_last_name}`} 
+                                />
+                            </motion.div>
+                        ) : (
+                            <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
+                                <User className="h-20 w-20 mb-4 stroke-1" />
+                                <p className="text-lg font-medium">Select a student to view and collect fees</p>
+                                <p className="text-sm">Payments are instantly recorded in the system</p>
+                            </div>
+                        )}
+                    </AnimatePresence>
+                </CardContent>
+             </ScrollArea>
+        </Card>
+      </div>
+    </div>
   );
 }

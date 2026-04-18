@@ -22,30 +22,23 @@ import {
   Megaphone,
   Settings,
   CreditCard,
+  Scroll,
+  CalendarDays,
+  CalendarOff,
 } from "lucide-react";
 
-/* =========================
-   ROLE CONSTANTS
-========================= */
-const ROLE = {
-  MASTER_ADMIN: 1,
-  INSTITUTE_ADMIN: 2,
-  TEACHER: 3,
-  CLASS_TEACHER: 4,
-  STUDENT: 18,
-  GUARDIAN: 20,
-};
+import { ROLE, ADMIN_GROUP, ALL_STAFF_GROUP } from "@/config/roles";
 
 /* =========================
    TYPES (IMPORTANT FIX)
 ========================= */
-type RoleAccess = "ALL" | number[];
+type RoleAccess = "ALL" | number[] | readonly number[];
 
 type NavItem = {
   href: string;
   label: string;
   icon: any;
-  roles: RoleAccess;
+  roles: RoleAccess | (() => boolean);
 };
 
 /* =========================
@@ -62,41 +55,31 @@ const navItems: NavItem[] = [
     href: "/main/students",
     label: "Students",
     icon: Users,
-    roles: [ROLE.MASTER_ADMIN, ROLE.INSTITUTE_ADMIN],
+    roles: [...ADMIN_GROUP, ROLE.TEACHER, ROLE.CLASS_TEACHER, ROLE.ADMISSION_OFFICER],
   },
   {
     href: "/main/faculty",
     label: "Faculty",
     icon: Briefcase,
-    roles: [ROLE.MASTER_ADMIN, ROLE.INSTITUTE_ADMIN],
+    roles: ADMIN_GROUP,
   },
   {
     href: "/main/classes",
     label: "Classes",
     icon: School,
-    roles: [
-      ROLE.MASTER_ADMIN,
-      ROLE.INSTITUTE_ADMIN,
-      ROLE.TEACHER,
-      ROLE.CLASS_TEACHER,
-    ],
+    roles: [...ADMIN_GROUP, ROLE.TEACHER, ROLE.CLASS_TEACHER],
   },
   {
     href: "/main/attendance",
     label: "Attendance",
     icon: ClipboardCheck,
-    roles: [
-      ROLE.MASTER_ADMIN,
-      ROLE.INSTITUTE_ADMIN,
-      ROLE.TEACHER,
-      ROLE.CLASS_TEACHER,
-    ],
+    roles: [...ADMIN_GROUP, ROLE.TEACHER, ROLE.CLASS_TEACHER, ROLE.STUDENT, ROLE.GUARDIAN],
   },
   {
     href: "/main/fees",
     label: "Fees",
     icon: CreditCard,
-    roles: [ROLE.MASTER_ADMIN, ROLE.INSTITUTE_ADMIN],
+    roles: [...ADMIN_GROUP, ROLE.CASHIER, ROLE.ACCOUNTANT],
   },
   {
     href: "/main/schedule",
@@ -111,11 +94,30 @@ const navItems: NavItem[] = [
     roles: "ALL",
   },
   {
+    href: "/main/paper-generator",
+    label: "Paper Generator",
+    icon: Scroll,
+    roles: [...ADMIN_GROUP, ROLE.TEACHER, ROLE.CLASS_TEACHER],
+  },
+  {
     href: "/main/events",
     label: "Events",
     icon: CalendarPlus,
     roles: "ALL",
   },
+  {
+    href: "/main/holidays",
+    label: "Holidays",
+    icon: CalendarDays,
+    roles: ADMIN_GROUP,
+  },
+  {
+    href: "/main/leaves",
+    label: "Leaves",
+    icon: CalendarOff,
+    roles: ALL_STAFF_GROUP,
+  },
+
   {
     href: "/main/materials",
     label: "Materials",
@@ -131,10 +133,10 @@ const navItems: NavItem[] = [
 ];
 
 const settingsItem: NavItem = {
-  href: "/dashboard/settings",
+  href: "/main/settings",
   label: "Settings",
   icon: Settings,
-  roles: [ROLE.MASTER_ADMIN],
+  roles: [...ADMIN_GROUP, ROLE.IT_SUPPORT],
 };
 
 /* =========================
@@ -153,7 +155,8 @@ export function MainNav() {
     if (isMobile) setOpenMobile(false);
   };
 
-  const hasAccess = (roles: RoleAccess) => {
+  const hasAccess = (roles: RoleAccess | (() => boolean)) => {
+    if (typeof roles === "function") return roles();
     if (roles === "ALL") return true;
     if (!roleId) return false;
     return roles.includes(roleId);
@@ -173,7 +176,10 @@ export function MainNav() {
                 tooltip={item.label}
                 className="justify-start"
               >
-                <Link href={item.href} onClick={handleLinkClick}>
+                <Link 
+                  href={item.label === "Leaves" && hasAccess(ADMIN_GROUP) ? "/main/leaves/approvals" : item.href} 
+                  onClick={handleLinkClick}
+                >
                   <item.icon />
                   <span>{item.label}</span>
                 </Link>

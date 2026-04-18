@@ -9,6 +9,7 @@ import { SearchInput } from "@/components/campus-connect/search-input";
 import { HeaderLogo } from "@/components/campus-connect/logo";
 import { MainNav } from "@/components/campus-connect/main-nav";
 import { UserNav } from "@/components/campus-connect/user-nav";
+import { NotificationBell } from "@/components/campus-connect/notification-bell";
 
 import {
   SidebarProvider,
@@ -37,7 +38,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
     const token = localStorage.getItem("accessToken");
 
     if (!token) {
-      router.replace("/login");
+      router.replace("/");
       return;
     }
 
@@ -82,7 +83,10 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
               <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-6">
                 <SidebarTrigger className="md:hidden" />
                 <SearchInput />
-                <UserNav />
+                <div className="ml-auto flex items-center gap-2">
+                   <NotificationBell />
+                   <UserNav />
+                </div>
               </header>
 
               <main className="flex-1 overflow-y-auto p-4 sm:p-6">

@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Loader2 } from "lucide-react";
 
 const feeCategorySchema = z.object({
   id: z.union([z.string(), z.number()]).optional(),
@@ -42,8 +43,8 @@ export function FeeCategoryForm({ onSubmit, category }: FeeCategoryFormProps) {
     },
   });
 
-  const handleSubmit = (values: FeeCategory) => {
-    onSubmit({ ...values, id: category?.id });
+  const handleSubmit = async (values: FeeCategory) => {
+    await onSubmit({ ...values, id: category?.id });
   };
 
   return (
@@ -95,7 +96,9 @@ export function FeeCategoryForm({ onSubmit, category }: FeeCategoryFormProps) {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full">{category ? "Update Category" : "Create Category"}</Button>
+        <Button type="submit" className="w-full" loading={form.formState.isSubmitting}>
+          {category ? "Update Category" : "Create Category"}
+        </Button>
       </form>
     </Form>
   );

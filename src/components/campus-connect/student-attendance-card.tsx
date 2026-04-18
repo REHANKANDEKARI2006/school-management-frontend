@@ -16,32 +16,43 @@ interface StudentAttendanceCardProps {
 
 export function StudentAttendanceCard({ student, onMarkPresent, onMarkAbsent, currentStatus }: StudentAttendanceCardProps) {
   return (
-    <Card className="w-full max-w-sm rounded-2xl shadow-xl overflow-hidden text-center">
-      <CardContent className="p-8">
-        <Avatar className="h-32 w-32 border-4 border-white shadow-lg mx-auto mb-6">
-          <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${student.student_id}`} alt={student.name} />
-          <AvatarFallback className="text-4xl">{student.name?.charAt(0)}</AvatarFallback>
-        </Avatar>
-        <h3 className="text-2xl font-bold font-headline">{student.name}</h3>
-        <p className="text-muted-foreground">Roll No: {student.roll_number}</p>
-        <p className="text-muted-foreground mb-6">Class: {student.class}</p>
+    <Card className="w-full max-w-[400px] rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden text-center border-0 bg-white">
+      <CardContent className="px-8 py-10">
+        <div className="relative inline-block mb-4">
+          <Avatar className="h-36 w-36 ring-4 ring-white shadow-lg mx-auto overflow-hidden">
+            {/* The user's screenshot had a landscape nature avatar. So we'll use one as a generic placeholder if dicebear is preferred, 
+                but let's stick to the generated avatar so it's unique per student */}
+            <AvatarImage className="object-cover" src={`https://api.dicebear.com/7.x/notionists/svg?seed=${student.student_id}&backgroundColor=f3f4f6`} alt={student.name} />
+            <AvatarFallback className="text-4xl bg-slate-100 text-slate-400">{student.name?.charAt(0)}</AvatarFallback>
+          </Avatar>
+        </div>
+        
+        <h3 className="text-2xl font-bold font-headline text-slate-900 mb-1">{student.name}</h3>
+        <p className="text-[15px] text-slate-500 font-medium">Roll No: {student.roll_number}</p>
+        <p className="text-[15px] text-slate-500 font-medium mb-8">Class: {student.class}</p>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="flex justify-center gap-4">
           <Button
             variant="outline"
             onClick={onMarkAbsent}
-            size="lg"
-            className={`py-6 text-lg border-2 ${currentStatus === 'absent' ? 'bg-red-500 hover:bg-red-600 text-white border-transparent' : 'bg-transparent hover:bg-red-50 text-slate-500 hover:text-red-500 hover:border-red-200'}`}
+            className={`flex-1 h-[46px] text-[15px] font-semibold rounded-[10px] transition-all border-2 ${
+              currentStatus === 'absent' 
+                ? 'bg-[#ef4444] text-white border-[#ef4444] shadow-sm' 
+                : 'bg-white text-[#ef4444] border-[#fee2e2] hover:bg-[#fef2f2] hover:border-[#ef4444]'
+            }`}
           >
-            <X className="mr-2 h-5 w-5" /> Absent
+            <X className="mr-2 h-4 w-4" strokeWidth={3} /> Absent
           </Button>
           <Button
             variant="outline"
             onClick={onMarkPresent}
-            size="lg"
-            className={`py-6 text-lg border-2 ${currentStatus === 'present' ? 'bg-green-600 hover:bg-green-700 text-white border-transparent' : 'bg-transparent hover:bg-green-50 text-slate-500 hover:text-green-600 hover:border-green-200'}`}
+            className={`flex-1 h-[46px] text-[15px] font-semibold rounded-[10px] transition-all border-2 ${
+              currentStatus === 'present' 
+                ? 'bg-[#22c55e] text-white border-[#22c55e] shadow-sm' 
+                : 'bg-white text-[#22c55e] border-[#dcfce7] hover:bg-[#f0fdf4] hover:border-[#22c55e]'
+            }`}
           >
-            <Check className="mr-2 h-5 w-5" /> Present
+            <Check className="mr-2 h-4 w-4" strokeWidth={3} /> Present
           </Button>
         </div>
       </CardContent>

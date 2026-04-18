@@ -14,7 +14,7 @@ export type Student = {
   subjectIds?: string[]; // Added to track student's subjects
   // Fields for student details form
   email?: string;
-  status?: "Active" | "Suspended" | "Withdrawn";
+  status?: string;
   address?: string;
   bloodGroup?: string;
   fatherName?: string;

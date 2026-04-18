@@ -4,7 +4,6 @@ import * as React from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -22,6 +21,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import axios from "@/lib/axios";
+import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
+import { UploadCloud, Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+
+/* =========================
+   HELPER FUNCTIONS
+========================= */
+function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
+  return centerCrop(
+    makeAspectCrop(
+      { unit: '%', width: 90 },
+      aspect,
+      mediaWidth,
+      mediaHeight,
+    ),
+    mediaWidth,
+    mediaHeight,
+  );
+}
 
 /* =========================
    VALIDATION SCHEMA
@@ -41,6 +62,7 @@ const facultySchema = z.object({
 
   user_status_id: z.string(),
   joining_date: z.string().optional(),
+  avatar: z.string().optional(),
 });
 
 export type FacultyFormData = z.infer<typeof facultySchema>;
@@ -98,13 +120,166 @@ export function FacultyForm({
       joining_date: initialData?.joining_date
         ? initialData.joining_date.split("T")[0]
         : "",
+      avatar: initialData?.profile_url ?? "",
     },
   });
 
+  const [isUploading, setIsUploading] = React.useState(false);
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(initialData?.profile_url || null);
+
+  const [imgSrc, setImgSrc] = React.useState("");
+  const [crop, setCrop] = React.useState<Crop>();
+  const [completedCrop, setCompletedCrop] = React.useState<any>();
+  const imgRef = React.useRef<HTMLImageElement>(null);
+
+  const [userStatuses, setUserStatuses] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    axios.get("/api/user-status").then((res) => {
+      setUserStatuses(res.data.data);
+    });
+  }, []);
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      setCrop(undefined);
+      const reader = new FileReader();
+      reader.addEventListener('load', () => setImgSrc(reader.result?.toString() || ''));
+      reader.readAsDataURL(event.target.files[0]);
+    }
+  };
+
+  const handleConfirmCrop = async () => {
+    if (!completedCrop || !imgRef.current) return;
+    const image = imgRef.current;
+    const canvas = document.createElement('canvas');
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+    canvas.width = completedCrop.width;
+    canvas.height = completedCrop.height;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    ctx.drawImage(
+      image,
+      completedCrop.x * scaleX,
+      completedCrop.y * scaleY,
+      completedCrop.width * scaleX,
+      completedCrop.height * scaleY,
+      0,
+      0,
+      completedCrop.width,
+      completedCrop.height
+    );
+
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      setIsUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", blob, "avatar.jpg");
+        const res = await axios.post("/api/faculty/upload-photo", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        if (res.data.success) {
+          form.setValue("avatar", res.data.data.url, { shouldValidate: true });
+          setPreviewUrl(res.data.data.url);
+          setImgSrc("");
+        }
+      } catch (err) {
+        console.error("Photo upload failed:", err);
+      } finally {
+        setIsUploading(false);
+      }
+    }, 'image/jpeg');
+  };
+
+  const handleFormSubmit = async (values: FacultyFormData) => {
+    await onSubmit(values);
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+        
+        {/* PHOTO UPLOAD */}
+        <div className="flex flex-col items-center gap-3 pb-2">
+          {imgSrc ? (
+            <div className="flex flex-col items-center gap-2 w-full border border-dashed p-4 rounded-md">
+              <ReactCrop
+                crop={crop}
+                onChange={(_, percentCrop) => setCrop(percentCrop)}
+                onComplete={(c) => setCompletedCrop(c)}
+                aspect={1}
+                circularCrop
+              >
+                <img
+                  ref={imgRef}
+                  alt="Crop me"
+                  src={imgSrc}
+                  className="max-h-[300px] w-auto mx-auto"
+                  onLoad={(e) => {
+                    const { width, height } = e.currentTarget;
+                    setCrop(centerAspectCrop(width, height, 1));
+                  }}
+                />
+              </ReactCrop>
+              <div className="flex gap-2">
+                <Button type="button" onClick={handleConfirmCrop} loading={isUploading}>
+                  Confirm & Upload
+                </Button>
+                <Button type="button" variant="outline" onClick={() => {
+                  setImgSrc("");
+                }} disabled={isUploading}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <Avatar className="h-24 w-24">
+                <AvatarImage src={previewUrl || undefined} className="object-cover" />
+                <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                  {form.getValues("name")?.charAt(0) || <UploadCloud className="h-8 w-8 opacity-50" />}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  loading={isUploading}
+                >
+                  {isUploading ? "Uploading..." : "Upload Photo"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={handleFileUpload}
+                    disabled={isUploading}
+                    onClick={(e) => e.currentTarget.value = ""}
+                  />
+                </Button>
+                {previewUrl && !isUploading && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive h-8 px-2"
+                    onClick={() => {
+                      setPreviewUrl(null);
+                      form.setValue("avatar", "");
+                    }}
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+        <Separator />
 
         <FormField
           control={form.control}
@@ -281,15 +456,18 @@ export function FacultyForm({
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">Active</SelectItem>
-                  <SelectItem value="2">Inactive</SelectItem>
+                  {userStatuses.map((s) => (
+                    <SelectItem key={s.user_status_id} value={String(s.user_status_id)}>
+                      {s.status_name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </FormItem>
           )}
         />
 
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full" loading={form.formState.isSubmitting}>
           {mode === "add" ? "Add Faculty" : "Update Faculty"}
         </Button>
       </form>

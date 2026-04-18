@@ -2,9 +2,10 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { ROLE, RoleId } from "@/config/roles";
 
 interface RouteGuardProps {
-  allowedRoles: number[];
+  allowedRoles: RoleId[] | number[];
   children: React.ReactNode;
 }
 
@@ -26,12 +27,12 @@ export default function RouteGuard({ allowedRoles, children }: RouteGuardProps) 
 
     // ❌ Not logged in
     if (!accessToken || roleId === null) {
-      router.replace("/login");
+      router.replace("/");
       return;
     }
 
     // ❌ Role not allowed
-    if (!allowedRoles.includes(roleId)) {
+    if (!allowedRoles.includes(roleId as RoleId)) {
       router.replace("/unauthorized");
     }
   }, [allowedRoles, router]);

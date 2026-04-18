@@ -27,6 +27,7 @@ export const rolePermissions: Record<number, string[]> = {
     "/main/events",
     "/main/materials",
     "/main/notices",
+    "/main/profile",
   ],
 
   [ROLE.TEACHER]: [
@@ -37,6 +38,7 @@ export const rolePermissions: Record<number, string[]> = {
     "/main/exams",
     "/main/materials",
     "/main/notices",
+    "/main/profile",
   ],
 
   [ROLE.CLASS_TEACHER]: [
@@ -47,6 +49,7 @@ export const rolePermissions: Record<number, string[]> = {
     "/main/exams",
     "/main/materials",
     "/main/notices",
+    "/main/profile",
   ],
 
   [ROLE.STUDENT]: [
@@ -56,6 +59,8 @@ export const rolePermissions: Record<number, string[]> = {
     "/main/events",
     "/main/materials",
     "/main/notices",
+    "/main/profile",
+    "/main/attendance",
   ],
 
   [ROLE.GUARDIAN]: [
@@ -63,5 +68,7 @@ export const rolePermissions: Record<number, string[]> = {
     "/main/exams",
     "/main/events",
     "/main/notices",
+    "/main/profile",
+    "/main/attendance",
   ],
 };

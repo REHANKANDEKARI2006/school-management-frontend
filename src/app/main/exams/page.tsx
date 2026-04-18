@@ -11,14 +11,21 @@ import {
   MoreHorizontal,
   PlusCircle,
   FilePenLine,
-  Loader2,
   CalendarClock,
   BookOpen,
   Users,
 } from "lucide-react";
+import { PageSkeleton } from "@/components/ui/skeletons";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Card,
   CardContent,
@@ -63,11 +70,12 @@ import {
 import { ExamForm } from "@/components/campus-connect/exam-form";
 import { GradeEntryForm } from "@/components/campus-connect/grade-entry-form";
 import { ViewResultsDialog } from "@/components/campus-connect/view-results-dialog";
+import { ROLE, RoleId, ADMIN_GROUP } from "@/config/roles";
 
 /* ===================================================================
    HELPERS
 =================================================================== */
-const ALLOWED_ROLES = [1, 2];
+const ALLOWED_ROLES: number[] = [...ADMIN_GROUP, ROLE.TEACHER, ROLE.CLASS_TEACHER, ROLE.STUDENT];
 
 function getStatusVariant(status: string) {
   switch (status?.toLowerCase()) {
@@ -100,10 +108,21 @@ export default function ExamsPage() {
   const { toast } = useToast();
   const { searchQuery } = useSearch();
 
+  const roleId =
+    typeof window !== "undefined"
+      ? Number(localStorage.getItem("role_id"))
+      : null;
+  const isStudent = roleId === ROLE.STUDENT;
+  const isTeacher = roleId === ROLE.TEACHER || roleId === ROLE.CLASS_TEACHER;
+  const canManage = roleId ? ADMIN_GROUP.includes(roleId as any) : false;
+  const userEmail = typeof window !== "undefined" ? localStorage.getItem("user_email") : null;
+  const studentClassId = typeof window !== "undefined" ? localStorage.getItem("class_id") : null;
+
   /* State */
   const [exams, setExams] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [formLoading, setFormLoading] = React.useState(false);
+  const [selectedStandard, setSelectedStandard] = React.useState<string>("all");
 
   /* Dialog visibility */
   const [isScheduleOpen, setIsScheduleOpen] = React.useState(false);
@@ -118,34 +137,76 @@ export default function ExamsPage() {
   /* ===== FETCH ===== */
   const fetchExams = React.useCallback(async () => {
     try {
-      const res = await axios.get("/api/exams");
+      const url = isStudent && studentClassId ? `/api/exams?class_id=${studentClassId}` : "/api/exams";
+      const res = await axios.get(url);
       setExams(res.data.data || []);
     } catch {
       toast({ title: "Error", description: "Failed to load exams", variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  React.useEffect(() => { fetchExams(); }, [fetchExams]);
+  }, [isStudent, studentClassId]);
 
   /* Refresh list after any modification */
   const handleActionSuccess = () => {
     fetchExams();
   };
 
-  /* ===== SEARCH FILTER ===== */
+  React.useEffect(() => {
+    fetchExams();
+  }, [fetchExams]);
+
+  /* ===== SEARCH FILTER & GROUPING ===== */
+  const uniqueStandards = React.useMemo(() => {
+    const stds = new Set(exams.map((e) => e.class_name).filter(Boolean));
+    return Array.from(stds).sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
+  }, [exams]);
+
+  // We group exams by standard (class_name) + exam_name + subject_id to hide duplicate section entries.
   const filtered = React.useMemo(() => {
-    if (!searchQuery) return exams;
-    const q = searchQuery.toLowerCase();
-    return exams.filter(
-      (e) =>
-        e.exam_name?.toLowerCase().includes(q) ||
-        e.class_name?.toLowerCase().includes(q) ||
-        e.subject_name?.toLowerCase().includes(q) ||
-        e.exam_status_name?.toLowerCase().includes(q)
-    );
-  }, [exams, searchQuery]);
+    let result = exams;
+
+    if (selectedStandard !== "all") {
+      result = result.filter((e) => e.class_name === selectedStandard);
+    }
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (e) =>
+          e.exam_name?.toLowerCase().includes(q) ||
+          e.class_name?.toLowerCase().includes(q) ||
+          e.subject_name?.toLowerCase().includes(q) ||
+          e.computed_status?.toLowerCase().includes(q)
+      );
+    }
+
+    // Deduplicate logic
+    const uniqueExamsMap = new Map<string, any>();
+    result.forEach((exam) => {
+      // Create a unique key based on exam name, standard (class_name), and subject
+      const key = `${exam.exam_name}_${exam.class_name}_${exam.subject_id}`;
+      if (!uniqueExamsMap.has(key)) {
+        uniqueExamsMap.set(key, { 
+          ...exam, 
+          section_name: "", 
+          all_sections: [exam],
+          all_subject_teacher_emails: [exam.subject_teacher_email?.toLowerCase()].filter(Boolean)
+        });
+      } else {
+        const existing = uniqueExamsMap.get(key);
+        existing.all_sections.push(exam);
+        if (exam.subject_teacher_email) {
+          const email = exam.subject_teacher_email.toLowerCase();
+          if (!existing.all_subject_teacher_emails.includes(email)) {
+            existing.all_subject_teacher_emails.push(email);
+          }
+        }
+      }
+    });
+
+    return Array.from(uniqueExamsMap.values());
+  }, [exams, searchQuery, selectedStandard]);
 
   /* ===== CREATE ===== */
   const handleCreate = async (values: any) => {
@@ -234,29 +295,48 @@ export default function ExamsPage() {
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row justify-between">
+        <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
             <CardTitle>Examination Management</CardTitle>
             <CardDescription>
               Design papers, schedule tests, and track academic performance
             </CardDescription>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push("/main/exams/generate")}
-            >
-              <FilePenLine className="mr-2 h-4 w-4" />
-              Generate Paper
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => setIsScheduleOpen(true)}
-            >
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Schedule Exam
-            </Button>
+          
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={selectedStandard} onValueChange={setSelectedStandard}>
+              <SelectTrigger className="w-[140px] h-9">
+                <SelectValue placeholder="Standard" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Standards</SelectItem>
+                {uniqueStandards.map((std) => (
+                  <SelectItem key={std} value={std}>
+                    Standard {std}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {canManage && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push("/main/exams/generate")}
+                >
+                  <FilePenLine className="mr-2 h-4 w-4" />
+                  Generate Paper
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => setIsScheduleOpen(true)}
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Schedule Exam
+                </Button>
+              </>
+            )}
           </div>
         </CardHeader>
 
@@ -278,8 +358,8 @@ export default function ExamsPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-12 text-center">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                    <TableCell colSpan={7} className="p-0">
+                      <PageSkeleton rows={4} />
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
@@ -291,6 +371,7 @@ export default function ExamsPage() {
                 ) : (
                   filtered.map((exam) => {
                     const dt = formatDateTime(exam.date_time);
+                    const isCompleted = exam.computed_status?.toLowerCase() === "completed" || exam.exam_status_name?.toLowerCase() === "completed";
                     return (
                       <TableRow key={exam.exam_id} className="group">
                         <TableCell>
@@ -298,8 +379,7 @@ export default function ExamsPage() {
                           <p className="text-xs text-muted-foreground">{exam.exam_type_name}</p>
                         </TableCell>
                         <TableCell>
-                          {exam.class_name}
-                          {exam.section_name ? ` - ${exam.section_name}` : ""}
+                          Standard {exam.class_name}
                         </TableCell>
                         <TableCell>{exam.subject_name}</TableCell>
                         <TableCell>
@@ -310,19 +390,31 @@ export default function ExamsPage() {
                           {exam.total_score}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getStatusVariant(exam.exam_status_name)}>
-                            {exam.exam_status_name || "Unknown"}
+                          <Badge variant={getStatusVariant(exam.computed_status)}>
+                            {exam.computed_status ? exam.computed_status.charAt(0).toUpperCase() + exam.computed_status.slice(1) : "Unknown"}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          <ExamActionMenu
-                            exam={exam}
-                            onEdit={() => { setSelectedExam(exam); setIsEditOpen(true); }}
-                            onGrades={() => { setSelectedExam(exam); setIsGradeOpen(true); }}
-                            onResults={() => { setSelectedExam(exam); setIsResultsOpen(true); }}
-                            onDelete={() => setDeleteTarget(exam)}
-                          />
-                        </TableCell>
+                        {!isStudent && (
+                          <TableCell>
+                            <ExamActionMenu
+                              exam={exam}
+                              canEnterGrades={isCompleted && (canManage || (Boolean(isTeacher && exam.all_subject_teacher_emails?.includes(userEmail?.toLowerCase()))))}
+                              canViewResults={isCompleted}
+                              canEditDelete={canManage}
+                              onEdit={() => { setSelectedExam(exam); setIsEditOpen(true); }}
+                              onGrades={() => { 
+                                // For teachers, find the specific section/exam they are authorized for
+                                const targetExam = isTeacher 
+                                  ? exam.all_sections?.find((s: any) => s.subject_teacher_email?.toLowerCase() === userEmail?.toLowerCase())
+                                  : exam;
+                                setSelectedExam(targetExam || exam); 
+                                setIsGradeOpen(true); 
+                              }}
+                              onResults={() => { setSelectedExam(exam); setIsResultsOpen(true); }}
+                              onDelete={() => setDeleteTarget(exam)}
+                            />
+                          </TableCell>
+                        )}
                       </TableRow>
                     );
                   })
@@ -334,8 +426,8 @@ export default function ExamsPage() {
           {/* Mobile Card List */}
           <div className="sm:hidden divide-y">
             {loading ? (
-              <div className="py-12 flex justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <div className="py-4 px-2">
+                <PageSkeleton rows={3} />
               </div>
             ) : filtered.length === 0 ? (
               <p className="text-center text-muted-foreground py-10">
@@ -344,6 +436,7 @@ export default function ExamsPage() {
             ) : (
               filtered.map((exam) => {
                 const dt = formatDateTime(exam.date_time);
+                const isCompleted = exam.computed_status?.toLowerCase() === "completed" || exam.exam_status_name?.toLowerCase() === "completed";
                 return (
                   <div key={exam.exam_id} className="p-4 space-y-2">
                     <div className="flex items-start justify-between gap-2">
@@ -351,18 +444,29 @@ export default function ExamsPage() {
                         <p className="font-semibold text-sm">{exam.exam_name}</p>
                         <p className="text-xs text-muted-foreground">{exam.exam_type_name}</p>
                       </div>
-                      <ExamActionMenu
-                        exam={exam}
-                        onEdit={() => { setSelectedExam(exam); setIsEditOpen(true); }}
-                        onGrades={() => { setSelectedExam(exam); setIsGradeOpen(true); }}
-                        onResults={() => { setSelectedExam(exam); setIsResultsOpen(true); }}
-                        onDelete={() => setDeleteTarget(exam)}
-                      />
+                      {!isStudent && (
+                        <ExamActionMenu
+                          exam={exam}
+                          canEnterGrades={isCompleted && (canManage || (Boolean(isTeacher && exam.all_subject_teacher_emails?.includes(userEmail?.toLowerCase()))))}
+                          canViewResults={isCompleted}
+                          canEditDelete={canManage}
+                          onEdit={() => { setSelectedExam(exam); setIsEditOpen(true); }}
+                          onGrades={() => { 
+                            const targetExam = isTeacher 
+                              ? exam.all_sections?.find((s: any) => s.subject_teacher_email?.toLowerCase() === userEmail?.toLowerCase())
+                              : exam;
+                            setSelectedExam(targetExam || exam); 
+                            setIsGradeOpen(true); 
+                          }}
+                          onResults={() => { setSelectedExam(exam); setIsResultsOpen(true); }}
+                          onDelete={() => setDeleteTarget(exam)}
+                        />
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
-                        {exam.class_name}{exam.section_name ? ` - ${exam.section_name}` : ""}
+                        Standard {exam.class_name}
                       </span>
                       <span className="flex items-center gap-1">
                         <BookOpen className="h-3 w-3" />
@@ -374,8 +478,8 @@ export default function ExamsPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant={getStatusVariant(exam.exam_status_name)}>
-                        {exam.exam_status_name || "Unknown"}
+                      <Badge variant={getStatusVariant(exam.computed_status)}>
+                        {exam.computed_status ? exam.computed_status.charAt(0).toUpperCase() + exam.computed_status.slice(1) : "Unknown"}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
                         Total: <strong>{exam.total_score}</strong>
@@ -484,12 +588,18 @@ export default function ExamsPage() {
 =================================================================== */
 function ExamActionMenu({
   exam,
+  canEnterGrades,
+  canViewResults,
+  canEditDelete,
   onEdit,
   onGrades,
   onResults,
   onDelete,
 }: {
   exam: any;
+  canEnterGrades: boolean;
+  canViewResults: boolean;
+  canEditDelete: boolean;
   onEdit: () => void;
   onGrades: () => void;
   onResults: () => void;
@@ -506,22 +616,36 @@ function ExamActionMenu({
       <DropdownMenuContent align="end" className="w-40">
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onEdit}>
-          Edit Schedule
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={onGrades}>
-          Enter Grades
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={onResults}>
-          View Results
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          className="text-destructive focus:text-destructive"
-          onClick={onDelete}
-        >
-          Delete
-        </DropdownMenuItem>
+        
+        {canEditDelete && (
+          <DropdownMenuItem onClick={onEdit}>
+            Edit Schedule
+          </DropdownMenuItem>
+        )}
+
+        {canEnterGrades && (
+          <DropdownMenuItem onClick={onGrades}>
+            Enter Grades
+          </DropdownMenuItem>
+        )}
+
+        {canViewResults && (
+          <DropdownMenuItem onClick={onResults}>
+            View Results
+          </DropdownMenuItem>
+        )}
+
+        {canEditDelete && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={onDelete}
+            >
+              Delete
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

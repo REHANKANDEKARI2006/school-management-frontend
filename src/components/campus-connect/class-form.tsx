@@ -25,6 +25,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const STANDARD_OPTIONS = [
+  "Nursery", "LKG", "UKG", "1", "2", "3", "4", 
+  "5", "6", "7", "8", "9", "10", "11", "12"
+];
+
 const classSchema = z.object({
   class_name: z.string().min(1, "Class name is required"),
   section_id: z.string().min(1, "Section is required"),
@@ -56,6 +61,24 @@ export function ClassForm({ onSubmit, classData }: ClassFormProps) {
       room_number: classData?.roomNumber || "",
     },
   });
+
+  React.useEffect(() => {
+    if (classData) {
+      form.reset({
+        class_name: classData.name || "",
+        section_id: classData.section_id ? String(classData.section_id) : "",
+        staff_id: classData.staff_id ? String(classData.staff_id) : "",
+        room_number: classData.roomNumber || "",
+      });
+    } else {
+      form.reset({
+        class_name: "",
+        section_id: "",
+        staff_id: "",
+        room_number: "",
+      });
+    }
+  }, [classData, form]);
 
   /* =========================
      LOAD TEACHERS
@@ -89,9 +112,18 @@ export function ClassForm({ onSubmit, classData }: ClassFormProps) {
             }
 
             onSubmit(data); // existing success flow (toast + refresh)
-          } catch (err) {
-            console.error("❌ Failed to save class", err);
-            alert("Failed to save class");
+          } catch (err: any) {
+            const errorMessage = err.response?.data?.message || "Failed to save class";
+            console.warn("⚠️ Validation error during class save:", errorMessage);
+            
+            const lowerMsg = errorMessage.toLowerCase();
+            if (lowerMsg.includes("class name")) {
+              form.setError("class_name", { type: "server", message: errorMessage });
+            } else if (lowerMsg.includes("teacher")) {
+              form.setError("staff_id", { type: "server", message: errorMessage });
+            } else {
+              alert(errorMessage);
+            }
           }
         })}
         className="space-y-4"
@@ -102,10 +134,19 @@ export function ClassForm({ onSubmit, classData }: ClassFormProps) {
           name="class_name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Class Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Class 10" {...field} />
-              </FormControl>
+              <FormLabel>Class/Standard</FormLabel>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select standard" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STANDARD_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>
+                      {opt}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
@@ -160,6 +201,7 @@ export function ClassForm({ onSubmit, classData }: ClassFormProps) {
                   ))}
                 </SelectContent>
               </Select>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -179,7 +221,7 @@ export function ClassForm({ onSubmit, classData }: ClassFormProps) {
           )}
         />
 
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full" loading={form.formState.isSubmitting}>
           {classData ? "Update Class" : "Create Class"}
         </Button>
       </form>

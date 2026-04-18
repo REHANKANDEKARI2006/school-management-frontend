@@ -47,3 +47,23 @@ export const getStudentFeeCollection = async (studentId: string) => {
   const res = await axios.get(`/api/fees/collection/${studentId}`);
   return res.data.data;
 };
+
+export const getFeeStatusByClass = async (classId: string) => {
+  const res = await axios.get(`/api/fees/status/class/${classId}`);
+  return res.data.data;
+};
+
+export const getStudentDetailedFeeStatus = async (studentId: string) => {
+  const res = await axios.get(`/api/fees/status/student/${studentId}`);
+  return res.data.data;
+};
+
+export const updateFeeStructure = async (data: { standardName: string; feeCatId: number; newAmount: number }) => {
+  const res = await axios.put(`/api/fees/structure`, data);
+  return res.data.data;
+};
+
+export const deleteFeeStructure = async (standardName: string, feeCatId: number) => {
+  const res = await axios.delete(`/api/fees/structure`, { params: { standardName, feeCatId } });
+  return res.data.data;
+};

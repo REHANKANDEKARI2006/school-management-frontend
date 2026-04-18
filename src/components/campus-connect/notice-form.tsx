@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import axios from "@/lib/axios";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,6 +37,7 @@ const noticeSchema = z.object({
   content: z.string().min(1, "Notice content is required"),
   author_name: z.string().min(1, "Author is required"),
   audience_id: z.string().min(1, "Audience is required"),
+  class_id: z.string().optional(),
   post_date: z.date({ required_error: "A date is required." }),
 });
 
@@ -50,6 +52,7 @@ interface NoticeFormProps {
 export function NoticeForm({ onSubmit, notice, loading }: NoticeFormProps) {
   const [audiences, setAudiences] = React.useState<any[]>([]);
   const [fetchingAudiences, setFetchingAudiences] = React.useState(true);
+  const [classes, setClasses] = React.useState<any[]>([]);
 
   const form = useForm<Notice>({
     resolver: zodResolver(noticeSchema),
@@ -57,28 +60,34 @@ export function NoticeForm({ onSubmit, notice, loading }: NoticeFormProps) {
       ...notice,
       post_date: new Date(notice.post_date || notice.created_at || new Date()),
       audience_id: notice.audience_id?.toString() || "",
+      class_id: notice.class_id?.toString() || "all",
       author_name: notice.author_name || notice.author || "",
     } : {
       title: "",
       content: "",
       author_name: "",
       audience_id: "",
+      class_id: "all",
       post_date: new Date(),
     },
   });
 
   React.useEffect(() => {
-    const fetchAudiences = async () => {
+    const fetchData = async () => {
       try {
-        const data = await getNoticeAudiences();
-        setAudiences(data);
+        const [audRes, clsRes] = await Promise.all([
+          getNoticeAudiences(),
+          axios.get("/api/classes")
+        ]);
+        setAudiences(audRes);
+        setClasses(clsRes.data.data || clsRes.data || []);
       } catch (error) {
-        console.error("Failed to fetch audiences:", error);
+        console.error("Failed to fetch form data:", error);
       } finally {
         setFetchingAudiences(false);
       }
     };
-    fetchAudiences();
+    fetchData();
   }, []);
 
   const handleSubmit = (values: Notice) => {
@@ -86,6 +95,7 @@ export function NoticeForm({ onSubmit, notice, loading }: NoticeFormProps) {
       ...values,
       post_date: format(values.post_date, 'yyyy-MM-dd'),
       audience_id: parseInt(values.audience_id),
+      class_id: values.class_id && values.class_id !== "all" ? parseInt(values.class_id) : null,
       // For creation, we might need these (hardcoded for now as per demo logic)
       author_type: 'admin',
       author_id: 1
@@ -167,6 +177,36 @@ export function NoticeForm({ onSubmit, notice, loading }: NoticeFormProps) {
 
         <FormField
           control={form.control}
+          name="class_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Target Class (Optional)</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                disabled={fetchingAudiences}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Classes / General" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="all">All Classes / General</SelectItem>
+                  {classes.map((c) => (
+                    <SelectItem key={c.class_id} value={c.class_id.toString()}>
+                      {c.class_name}{c.section_name ? ` - ${c.section_name}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
           name="post_date"
           render={({ field }) => (
             <FormItem className="flex flex-col">
@@ -203,8 +243,7 @@ export function NoticeForm({ onSubmit, notice, loading }: NoticeFormProps) {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <Button type="submit" className="w-full" loading={loading}>
           {notice ? "Update Notice" : "Post Notice"}
         </Button>
       </form>

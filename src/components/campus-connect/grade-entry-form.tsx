@@ -29,15 +29,15 @@ interface StudentGrade {
   saved: boolean;
 }
 
-function calculateGrade(marks: number, total: number): string {
+function calculateGrade(marks: number, total: number, minMarks: number | null): string {
+  if (minMarks !== null && marks < minMarks) return "F";
   const pct = (marks / total) * 100;
   if (pct >= 90) return "A+";
   if (pct >= 80) return "A";
   if (pct >= 70) return "B+";
   if (pct >= 60) return "B";
   if (pct >= 50) return "C";
-  if (pct >= 40) return "D";
-  return "F";
+  return "D";
 }
 
 export function GradeEntryForm({ exam, onSave }: GradeEntryFormProps) {
@@ -97,7 +97,7 @@ export function GradeEntryForm({ exam, onSave }: GradeEntryFormProps) {
         const numVal = parseFloat(value);
         const grade =
           !isNaN(numVal) && exam.total_score
-            ? calculateGrade(numVal, exam.total_score)
+            ? calculateGrade(numVal, exam.total_score, exam.min_marks)
             : "";
         return { ...sg, marks_obtained: value, grade, saved: false };
       })
@@ -211,8 +211,7 @@ export function GradeEntryForm({ exam, onSave }: GradeEntryFormProps) {
         </Table>
       </div>
 
-      <Button onClick={handleSaveAll} className="w-full" disabled={saving}>
-        {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      <Button onClick={handleSaveAll} className="w-full" loading={saving}>
         Save All Grades
       </Button>
     </div>

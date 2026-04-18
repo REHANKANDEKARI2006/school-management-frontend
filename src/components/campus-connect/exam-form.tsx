@@ -45,7 +45,7 @@ const examSchema = z.object({
   total_score: z.coerce.number().min(1, "Total score must be > 0"),
   min_marks: z.coerce.number().optional(),
   max_marks: z.coerce.number().optional(),
-  exam_status_id: z.string().min(1, "Status is required"),
+  exam_status_id: z.string().optional(),
 });
 
 export type ExamFormValues = z.infer<typeof examSchema>;
@@ -62,6 +62,7 @@ interface ExamFormProps {
 export function ExamForm({ onSubmit, exam, loading }: ExamFormProps) {
   const { toast } = useToast();
   const [classes, setClasses] = React.useState<{ class_id: number; label: string }[]>([]);
+  const [uniqueStandards, setUniqueStandards] = React.useState<string[]>([]);
   const [subjects, setSubjects] = React.useState<{ subject_id: number; subject_name: string }[]>([]);
   const [examTypes, setExamTypes] = React.useState<{ exam_type_id: number; exam_type_name: string }[]>([]);
   const [statuses, setStatuses] = React.useState<{ exam_status_id: number; exam_status_name: string }[]>([]);
@@ -77,7 +78,18 @@ export function ExamForm({ onSubmit, exam, loading }: ExamFormProps) {
           axios.get("/api/exams/types"),
           axios.get("/api/exams/statuses"),
         ]);
-        setClasses(classRes.data.data || []);
+        const clsData = classRes.data.data || [];
+        setClasses(clsData);
+
+        // Extract unique standards
+        const stands = Array.from(new Set(clsData.map((c: any) => c.class_name || c.label.split(" - ")[0]))) as string[];
+        setUniqueStandards(stands.sort((a, b) => {
+          const numA = parseInt(a);
+          const numB = parseInt(b);
+          if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+          return a.localeCompare(b);
+        }));
+
         setSubjects(subjectRes.data.data || []);
         setExamTypes(typeRes.data.data || []);
         setStatuses(statusRes.data.data || []);
@@ -125,7 +137,7 @@ export function ExamForm({ onSubmit, exam, loading }: ExamFormProps) {
         total_score: 100,
         min_marks: undefined,
         max_marks: undefined,
-        exam_status_id: "",
+        exam_status_id: "1",
       },
   });
 
@@ -159,17 +171,17 @@ export function ExamForm({ onSubmit, exam, loading }: ExamFormProps) {
         {/* Class */}
         <FormField control={form.control} name="class_id" render={({ field }) => (
           <FormItem>
-            <FormLabel>Class</FormLabel>
+            <FormLabel>Standard</FormLabel>
             <Select onValueChange={field.onChange} value={field.value}>
               <FormControl>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select class" />
+                  <SelectValue placeholder="Select standard" />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {classes.map((c) => (
-                  <SelectItem key={c.class_id} value={String(c.class_id)}>
-                    {c.label}
+                {uniqueStandards.map((std) => (
+                  <SelectItem key={std} value={std}>
+                    Standard {std}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -302,30 +314,9 @@ export function ExamForm({ onSubmit, exam, loading }: ExamFormProps) {
           )} />
         </div>
 
-        {/* Status */}
-        <FormField control={form.control} name="exam_status_id" render={({ field }) => (
-          <FormItem>
-            <FormLabel>Status</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {statuses.map((s) => (
-                  <SelectItem key={s.exam_status_id} value={String(s.exam_status_id)}>
-                    {s.exam_status_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )} />
 
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+
+        <Button type="submit" className="w-full" loading={loading}>
           {exam ? "Update Exam" : "Schedule Exam"}
         </Button>
       </form>

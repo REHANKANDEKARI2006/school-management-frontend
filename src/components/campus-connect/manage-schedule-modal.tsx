@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import axios from "@/lib/axios";
+import { Loader2 } from "lucide-react";
 
 const scheduleSchema = z.object({
     class_id: z.string().min(1, "Class is required"),
@@ -79,9 +80,13 @@ export function ManageScheduleModal({ onSubmit }: ManageScheduleModalProps) {
         },
     });
 
+    const handleFormSubmit = async (values: ScheduleFormValues) => {
+        await onSubmit(values);
+    };
+
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
                 <FormField
                     control={form.control}
                     name="class_id"
@@ -229,7 +234,9 @@ export function ManageScheduleModal({ onSubmit }: ManageScheduleModalProps) {
                     />
                 </div>
 
-                <Button type="submit" className="w-full">Create Schedule</Button>
+                <Button type="submit" className="w-full" loading={form.formState.isSubmitting}>
+                    Create Schedule
+                </Button>
             </form>
         </Form>
     );

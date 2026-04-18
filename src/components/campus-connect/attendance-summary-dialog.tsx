@@ -103,7 +103,7 @@ export function AttendanceSummaryDialog({ classId, subjectId, date, sessionId }:
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 border rounded-xl bg-slate-50/50">
                 <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Class</p>
-                <p className="font-bold text-slate-800">{currentClass.class_name}</p>
+                <p className="font-bold text-slate-800">{currentClass.class_name}{currentClass.section_name ? ` - ${currentClass.section_name}` : ""}</p>
               </div>
               <div className="p-3 border rounded-xl bg-slate-50/50">
                 <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Subject</p>

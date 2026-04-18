@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import axios from "@/lib/axios";
 import { useRouter } from "next/navigation";
 
-const WARNING_TIME = 20; // seconds before expiry (testing)
-const IDLE_LIMIT = 15;  // seconds idle allowed (testing)
+const WARNING_TIME = 60; // seconds before expiry
+const IDLE_LIMIT = 3600;  // 1 hour idle allowed
 
 export function useSessionManager() {
   const router = useRouter();
@@ -26,7 +26,7 @@ export function useSessionManager() {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("role_id");
-    router.push("/login");
+    router.push("/");
   }, [router]);
 
   // 🔄 Silent refresh

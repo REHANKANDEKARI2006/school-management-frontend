@@ -178,7 +178,9 @@ export function MaterialForm({ onSubmit, material }: MaterialFormProps) {
                 </FormControl>
                 <SelectContent>
                   {classes.map(c => (
-                    <SelectItem key={c.class_id} value={String(c.class_id)}>{c.class_name}</SelectItem>
+                    <SelectItem key={c.class_id} value={String(c.class_id)}>
+                      {c.class_name}{c.section_name ? ` - ${c.section_name}` : ""}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -236,8 +238,8 @@ export function MaterialForm({ onSubmit, material }: MaterialFormProps) {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" disabled={isUploading}>
-          {isUploading ? "Uploading..." : material ? "Update Material" : "Upload Material"}
+        <Button type="submit" className="w-full" loading={isUploading}>
+          {material ? "Update Material" : "Upload Material"}
         </Button>
       </form>
     </Form>

@@ -13,6 +13,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format, isValid } from 'date-fns';
 import axios from "@/lib/axios";
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Inline SVG for WhatsApp icon
 const WhatsAppIcon = () => (
@@ -101,22 +104,119 @@ export default function AttendanceSummaryPage() {
   const presentCount = attendanceRecords.filter(r => r.status === 'Present' || r.status === 'present').length;
   const absentCount = attendanceRecords.filter(r => r.status === 'Absent' || r.status === 'absent').length;
 
-  const handleExport = (formatType: 'pdf' | 'excel') => {
-    toast({
-      title: `Exporting to ${formatType.toUpperCase()}`,
-      description: `Preparing attendance data for download. This is a placeholder action.`,
+  const generatePDF = () => {
+    const doc = new jsPDF();
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const displayDate = format(selectedDate, "PPP");
+
+    // Add title and metadata
+    doc.setFontSize(20);
+    doc.setTextColor(79, 70, 229); // Indigo-600
+    doc.text("CampusConnect", 14, 22);
+
+    doc.setFontSize(14);
+    doc.setTextColor(33, 37, 41);
+    doc.text("Attendance Summary", 14, 32);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Class: ${currentClass.class_name}${currentClass.section_name ? ` - ${currentClass.section_name}` : ''}`, 14, 42);
+    doc.text(`Subject: ${currentSubject.subject_name}`, 14, 47);
+    doc.text(`Date: ${displayDate}`, 14, 52);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 57);
+
+    // Stats summary
+    doc.setFontSize(11);
+    doc.setTextColor(22, 163, 74); // Green-600
+    doc.text(`Present: ${presentCount}`, 14, 67);
+    doc.setTextColor(220, 38, 38); // Red-600
+    doc.text(`Absent: ${absentCount}`, 45, 67);
+
+    // Table
+    const tableData = attendanceRecords.map(record => [
+      record.roll_number,
+      record.name,
+      record.status.toUpperCase()
+    ]);
+
+    autoTable(doc, {
+      startY: 72,
+      head: [['Roll No.', 'Student Name', 'Status']],
+      body: tableData,
+      headStyles: { fillColor: [79, 70, 229], textColor: 255 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      margin: { top: 72 },
     });
+
+    return doc;
   };
 
-  const handleShareToWhatsApp = () => {
+  const handleExport = (formatType: 'pdf' | 'excel') => {
+    if (!currentClass || !currentSubject || attendanceRecords.length === 0) return;
+
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const fileName = `Attendance_${currentClass.class_name.replace(/\s+/g, '_')}_${currentSubject.subject_name.replace(/\s+/g, '_')}_${dateStr}`;
+
+    if (formatType === 'excel') {
+      try {
+        // Prepare data for Excel
+        const worksheetData = [
+          ["Attendance Summary"],
+          ["Class", `${currentClass.class_name}${currentClass.section_name ? ` - ${currentClass.section_name}` : ''}`],
+          ["Subject", currentSubject.subject_name],
+          ["Date", format(selectedDate, "PPP")],
+          ["Present", presentCount],
+          ["Absent", absentCount],
+          [], // Empty row
+          ["Roll No.", "Student Name", "Status"]
+        ];
+
+        attendanceRecords.forEach(record => {
+          worksheetData.push([record.roll_number, record.name, record.status]);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+
+        XLSX.writeFile(wb, `${fileName}.xlsx`);
+
+        toast({
+          title: "Export Successful",
+          description: "Attendance data has been exported to Excel.",
+        });
+      } catch (error) {
+        console.error("Excel Export Error:", error);
+        toast({ title: "Export Failed", description: "Failed to generate Excel file.", variant: "destructive" });
+      }
+    } else {
+      try {
+        const doc = generatePDF();
+        doc.save(`${fileName}.pdf`);
+
+        toast({
+          title: "Export Successful",
+          description: "Attendance data has been exported to PDF.",
+        });
+      } catch (error) {
+        console.error("PDF Export Error:", error);
+        toast({ title: "Export Failed", description: "Failed to generate PDF document.", variant: "destructive" });
+      }
+    }
+  };
+
+  const handleShareToWhatsApp = async () => {
     if (!currentClass || !currentSubject || attendanceRecords.length === 0) {
       toast({ title: "Cannot Share", description: "No attendance data available to share.", variant: "destructive" });
       return;
     }
 
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const fileName = `Attendance_${currentClass.class_name.replace(/\s+/g, '_')}_${currentSubject.subject_name.replace(/\s+/g, '_')}_${dateStr}.pdf`;
+
     let summaryText = `*Attendance Summary*\n\n`;
-    summaryText += `*Class:* ${currentClass.class_name || currentClass.name}\n`;
-    summaryText += `*Subject:* ${currentSubject.subject_name || currentSubject.name}\n`;
+    summaryText += `*Class:* ${currentClass.class_name}${currentClass.section_name ? ` - ${currentClass.section_name}` : ''}\n`;
+    summaryText += `*Subject:* ${currentSubject.subject_name}\n`;
     summaryText += `*Date:* ${format(selectedDate, "PPP")}\n\n`;
     summaryText += `*Present:* ${presentCount}\n`;
     summaryText += `*Absent:* ${absentCount}\n\n`;
@@ -126,15 +226,42 @@ export default function AttendanceSummaryPage() {
       summaryText += `- *${record.name}* (\`${record.roll_number}\`): *${record.status.toUpperCase()}*\n`;
     });
 
-    const encodedText = encodeURIComponent(summaryText);
-    const whatsappUrl = `https://wa.me/?text=${encodedText}`;
+    try {
+      // 1. Try to generate and share the PDF file if supported
+      const doc = generatePDF();
+      const pdfBlob = doc.output('blob');
+      const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
 
-    window.open(whatsappUrl, '_blank');
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+        await navigator.share({
+          files: [pdfFile],
+          title: 'Attendance Summary PDF',
+          text: summaryText,
+        });
+        toast({ title: "Shared", description: "Attendance summary shared successfully." });
+        return;
+      }
+    } catch (err) {
+      console.warn("Web Share failed, falling back to URL shared", err);
+    }
 
-    toast({
-      title: "Sharing to WhatsApp",
-      description: "Sharing text summary.",
-    });
+    // 2. Fallback to WhatsApp Web URL + Auto-download PDF
+    try {
+      const doc = generatePDF();
+      doc.save(fileName); // Provide file for manual attachment
+
+      const encodedText = encodeURIComponent(summaryText);
+      const whatsappUrl = `https://wa.me/?text=${encodedText}`;
+      window.open(whatsappUrl, '_blank');
+
+      toast({
+        title: "Sharing to WhatsApp",
+        description: "PDF downloaded for manual attachment; summary text sent to WhatsApp.",
+      });
+    } catch (err) {
+      console.error("WhatsApp share fallback failed", err);
+      toast({ title: "Error", description: "Failed to share to WhatsApp.", variant: "destructive" });
+    }
   };
 
   const handleStatusToggle = async (studentId: string, currentStatus: string) => {

@@ -2,7 +2,9 @@
 "use client";
 
 import * as React from "react";
-import { MoreHorizontal, PlusCircle, Loader2, Calendar as CalendarIcon, User } from "lucide-react";
+import axios from "@/lib/axios";
+import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, User } from "lucide-react";
+import { PageSkeleton } from "@/components/ui/skeletons";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -51,6 +53,8 @@ import { getNotices, createNotice, updateNotice, deleteNotice } from "@/lib/api/
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 
+import { ROLE } from "@/config/roles";
+
 export default function NoticesPage() {
   const { toast } = useToast();
   const { searchQuery } = useSearch();
@@ -61,16 +65,24 @@ export default function NoticesPage() {
   const [selectedNotice, setSelectedNotice] = React.useState<any>(undefined);
   const [deleteTarget, setDeleteTarget] = React.useState<any>(null);
 
+  const roleId =
+    typeof window !== "undefined"
+      ? Number(localStorage.getItem("role_id"))
+      : null;
+  const isStudent = roleId === ROLE.STUDENT;
+
   const fetchNoticesData = React.useCallback(async () => {
     try {
-      const data = await getNotices();
-      setNotices(data || []);
+      const studentClassId = typeof window !== "undefined" ? localStorage.getItem("class_id") : null;
+      const url = isStudent && studentClassId ? `/api/notices?class_id=${studentClassId}` : "/api/notices";
+      const res = await axios.get(url);
+      setNotices(res.data.data || []);
     } catch (error) {
       toast({ title: "Error", description: "Failed to load notices", variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [isStudent, toast]);
 
   React.useEffect(() => {
     fetchNoticesData();
@@ -153,10 +165,12 @@ export default function NoticesPage() {
               <CardTitle className="font-headline text-2xl">E-Notice Board</CardTitle>
               <CardDescription>Post and manage digital notices for all users.</CardDescription>
             </div>
-            <Button size="sm" className="gap-1 w-full sm:w-auto" onClick={openNewDialog}>
-              <PlusCircle className="h-4 w-4" />
-              <span>Post Notice</span>
-            </Button>
+            {!isStudent && (
+              <Button size="sm" className="gap-1 w-full sm:w-auto" onClick={openNewDialog}>
+                <PlusCircle className="h-4 w-4" />
+                <span>Post Notice</span>
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -168,15 +182,14 @@ export default function NoticesPage() {
                   <TableHead className="hidden md:table-cell">Audience</TableHead>
                   <TableHead className="hidden md:table-cell">Author</TableHead>
                   <TableHead className="hidden sm:table-cell">Date</TableHead>
-                  <TableHead className="w-12 text-right pr-6">Actions</TableHead>
+                  {!isStudent && <TableHead className="w-12 text-right pr-6">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-32 text-center">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                      <p className="text-xs mt-2 text-muted-foreground">Loading notices...</p>
+                    <TableCell colSpan={5} className="p-0">
+                      <PageSkeleton rows={4} />
                     </TableCell>
                   </TableRow>
                 ) : filteredNotices.length === 0 ? (
@@ -198,12 +211,17 @@ export default function NoticesPage() {
                         <Badge variant="outline">{notice.audience_name || "General"}</Badge>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={`https://picsum.photos/seed/${notice.author_name}/100/100`} alt={notice.author_name} />
-                            <AvatarFallback>{getFallback(notice.author_name)}</AvatarFallback>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9 border border-slate-100 shadow-sm">
+                            <AvatarImage src={notice.author_img || ""} alt={notice.author_name} />
+                            <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-[10px] font-bold">
+                              {getFallback(notice.author_name)}
+                            </AvatarFallback>
                           </Avatar>
-                          <span className="text-sm">{notice.author_name}</span>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-bold text-slate-700">{notice.author_name}</span>
+                            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{notice.author_type || "Staff"}</span>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
@@ -212,27 +230,29 @@ export default function NoticesPage() {
                           {notice.post_date ? format(new Date(notice.post_date), "PPP") : "No date"}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right pr-6">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button size="icon" variant="ghost" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => openEditDialog(notice)}>
-                              Edit Notice
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => setDeleteTarget(notice)}
-                            >
-                              Delete Notice
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+                      {!isStudent && (
+                        <TableCell className="text-right pr-6">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => openEditDialog(notice)}>
+                                  Edit Notice
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => setDeleteTarget(notice)}
+                                >
+                                  Delete Notice
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                      )}
                     </TableRow>
                   ))
                 )}

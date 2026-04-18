@@ -4,6 +4,7 @@ import * as React from "react";
 import { useEffect, useState, useMemo } from "react";
 import RouteGuard from "@/components/auth/RouteGuard";
 import axios from "@/lib/axios";
+import { PageSkeleton } from "@/components/ui/skeletons";
 import { format } from "date-fns";
 
 import { MoreHorizontal, PlusCircle, Download } from "lucide-react";
@@ -63,9 +64,18 @@ const getFileTypeVariant = (fileType: string) => {
   }
 };
 
+import { ROLE, RoleId, ADMIN_GROUP } from "@/config/roles";
+
 export default function MaterialsPage() {
   const { toast } = useToast();
   const { searchQuery } = useSearch();
+
+  const roleId =
+    typeof window !== "undefined"
+      ? Number(localStorage.getItem("role_id"))
+      : null;
+  const isStudent = roleId === ROLE.STUDENT;
+  const studentClassId = typeof window !== "undefined" ? localStorage.getItem("class_id") : null;
 
   const [materials, setMaterials] = useState<any[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -75,7 +85,8 @@ export default function MaterialsPage() {
 
   const fetchMaterials = async () => {
     try {
-      const res = await axios.get('/api/materials');
+      const url = isStudent && studentClassId ? `/api/materials?class_id=${studentClassId}` : "/api/materials";
+      const res = await axios.get(url);
       if (res.data.success) {
         setMaterials(res.data.data);
       }
@@ -89,7 +100,7 @@ export default function MaterialsPage() {
 
   useEffect(() => {
     fetchMaterials();
-  }, []);
+  }, [isStudent, studentClassId]);
 
   const handleCreateMaterial = async (data: any) => {
     try {
@@ -214,7 +225,7 @@ export default function MaterialsPage() {
   }, [searchQuery, materials]);
 
   return (
-    <RouteGuard allowedRoles={[1, 2]}>
+    <RouteGuard allowedRoles={[...ADMIN_GROUP, ROLE.TEACHER, ROLE.CLASS_TEACHER, ROLE.STUDENT]}>
       <>
         <Card>
           <CardHeader>
@@ -223,9 +234,11 @@ export default function MaterialsPage() {
                 <CardTitle>Materials</CardTitle>
                 <CardDescription>Study materials</CardDescription>
               </div>
-              <Button onClick={() => setIsFormOpen(true)}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Upload
-              </Button>
+              {!isStudent && (
+                <Button onClick={() => setIsFormOpen(true)}>
+                  <PlusCircle className="mr-2 h-4 w-4" /> Upload
+                </Button>
+              )}
             </div>
           </CardHeader>
 
@@ -243,8 +256,8 @@ export default function MaterialsPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
-                      Loading materials...
+                    <TableCell colSpan={4} className="p-0">
+                      <PageSkeleton rows={4} />
                     </TableCell>
                   </TableRow>
                 ) : filteredMaterials.length === 0 ? (
@@ -259,7 +272,7 @@ export default function MaterialsPage() {
                       <TableCell>
                         <div className="font-medium">{material.material_name}</div>
                         <div className="text-xs text-muted-foreground line-clamp-1 mt-1">
-                          {material.class_name} • {material.subject_name}
+                          {material.class_name}{material.section_name ? ` - ${material.section_name}` : ""} • {material.subject_name}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -285,12 +298,14 @@ export default function MaterialsPage() {
                               <Download className="mr-2 h-4 w-4" />
                               {downloadingId === material.material_id ? "Downloading..." : "Download"}
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(material.material_id)}
-                              disabled={deletingId === material.material_id}
-                            >
-                              {deletingId === material.material_id ? "Deleting..." : "Delete"}
-                            </DropdownMenuItem>
+                            {!isStudent && (
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(material.material_id)}
+                                disabled={deletingId === material.material_id}
+                              >
+                                {deletingId === material.material_id ? "Deleting..." : "Delete"}
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

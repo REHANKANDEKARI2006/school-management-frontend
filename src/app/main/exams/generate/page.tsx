@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { paperTemplates, PaperTemplate } from "@/lib/paper-templates";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FilePenLine, Info, Download, Eye, Loader2 } from "lucide-react";
+import { PageSkeleton } from "@/components/ui/skeletons";
 import { QuestionInput } from "@/components/campus-connect/question-input";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -164,10 +165,7 @@ export default function GeneratePaperPage() {
           <div className="grid gap-2">
             <Label htmlFor="exam-select">Select Exam</Label>
             {loadingExams ? (
-              <div className="flex items-center gap-2 text-muted-foreground text-sm py-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading exams…
-              </div>
+              <PageSkeleton rows={3} />
             ) : (
               <Select onValueChange={setSelectedExamId}>
                 <SelectTrigger id="exam-select">

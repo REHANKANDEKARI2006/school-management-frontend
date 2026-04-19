@@ -629,7 +629,193 @@ export default function AttendanceDashboardPage() {
             <AttendanceSummaryDialog {...selectedSummary} />
           )}
         </Dialog>
+
+        {/* Monthly Attendance Report Section */}
+        {!isStudentOrGuardian && (
+           <MonthlyAttendanceReportCard roleId={roleId} />
+        )}
       </div>
     </RouteGuard>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/*                 MONTHLY ATTENDANCE REPORT COMPONENT                        */
+/* -------------------------------------------------------------------------- */
+
+function MonthlyAttendanceReportCard({ roleId }: { roleId: number | null }) {
+  const [classes, setClasses] = React.useState<{ class_id: string; label: string }[]>([]);
+  const [selectedClass, setSelectedClass] = React.useState<string>("");
+  const [selectedMonth, setSelectedMonth] = React.useState<string>((new Date().getMonth() + 1).toString());
+  const [selectedYear, setSelectedYear] = React.useState<string>(new Date().getFullYear().toString());
+  const [loading, setLoading] = React.useState(false);
+  const [fetchingClasses, setFetchingClasses] = React.useState(false);
+  const { toast } = useToast();
+
+  const isAdmin = roleId ? (ADMIN_GROUP as readonly number[]).includes(roleId) : false;
+  const isClassTeacher = roleId === ROLE.CLASS_TEACHER;
+
+  React.useEffect(() => {
+    const fetchClasses = async () => {
+      setFetchingClasses(true);
+      try {
+        const res = await axios.get("/api/classes/class-enrollments/list");
+        if (res.data.data) {
+          setClasses(res.data.data);
+          
+          // If Class Teacher, try to auto-select their class
+          if (isClassTeacher) {
+            // Usually Class Teachers look for their assigned class. 
+            // The backend endpoint /api/attendance/monthly-report handles the security, 
+            // but we can help by finding the class they are assigned to.
+            // For now, if we have only one class for them, we could select it.
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch classes", error);
+      } finally {
+        setFetchingClasses(false);
+      }
+    };
+
+    if (!isStudentOrGuardian) {
+      fetchClasses();
+    }
+  }, [isClassTeacher]);
+
+  const handleGeneratePDF = async () => {
+    if (!selectedClass) {
+      toast({ title: "Selection Required", description: "Please select a class first.", variant: "destructive" });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await axios.get(
+        `/api/documents/attendance-report/${selectedClass}/${selectedYear}/${selectedMonth}`,
+        { responseType: 'blob' }
+      );
+
+      // Create a link to download the PDF
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Get filename from header or fallback
+      const contentDisposition = response.headers['content-disposition'];
+      let fileName = `Monthly_Attendance_${selectedMonth}_${selectedYear}.pdf`;
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/);
+        if (fileNameMatch?.[1]) fileName = fileNameMatch[1];
+      }
+      
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      toast({ title: "Success", description: "Your report is downloading." });
+    } catch (error: any) {
+      console.error("PDF Generation failed", error);
+      toast({ 
+        title: "Generation Failed", 
+        description: error.response?.data?.message || "Failed to generate monthly report. Ensure data exists for the selected month.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const months = [
+    { value: "1", label: "January" }, { value: "2", label: "February" }, { value: "3", label: "March" },
+    { value: "4", label: "April" }, { value: "5", label: "May" }, { value: "6", label: "June" },
+    { value: "7", label: "July" }, { value: "8", label: "August" }, { value: "9", label: "September" },
+    { value: "10", label: "October" }, { value: "11", label: "November" }, { value: "12", label: "December" }
+  ];
+
+  const currentYear = new Date().getFullYear();
+  const years = [currentYear - 1, currentYear, currentYear + 1].map(String);
+
+  return (
+    <Card className="border-none shadow-2xl shadow-indigo-100 bg-white rounded-[2rem] overflow-hidden mt-12 ring-1 ring-slate-100">
+      <div className="h-2 bg-gradient-to-r from-indigo-500 to-primary w-full" />
+      <CardHeader className="p-8 pb-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-indigo-50 rounded-2xl">
+            <FileText className="h-6 w-6 text-indigo-600" />
+          </div>
+          <div>
+            <CardTitle className="text-2xl font-bold">Monthly Attendance Report</CardTitle>
+            <CardDescription className="text-base text-slate-500 font-medium">Generate a comprehensive A3 landscape attendance sheet for any month.</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-8 pt-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+          <div className="space-y-3">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Academic Class</label>
+            <select 
+              value={selectedClass}
+              onChange={(e) => setSelectedClass(e.target.value)}
+              className="w-full h-12 bg-slate-50 border-none rounded-xl px-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+            >
+              <option value="">Select Class</option>
+              {classes.map(c => (
+                <option key={c.class_id} value={c.class_id}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Selected Month</label>
+            <select 
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="w-full h-12 bg-slate-50 border-none rounded-xl px-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+            >
+              {months.map(m => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Academic Year</label>
+            <select 
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="w-full h-12 bg-slate-50 border-none rounded-xl px-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+            >
+              {years.map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+
+          <Button 
+            onClick={handleGeneratePDF}
+            disabled={loading || !selectedClass}
+            className="h-12 bg-slate-900 hover:bg-black text-white rounded-xl font-bold shadow-lg shadow-slate-200 transition-all active:scale-95 flex items-center gap-2 group"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 group-hover:translate-y-0.5 transition-transform" />}
+            {loading ? "Generating..." : "Generate PDF Sheet"}
+          </Button>
+        </div>
+        
+        <div className="mt-8 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex items-start gap-3">
+          <Share2 className="h-5 w-5 text-blue-500 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-xs font-bold text-blue-800">Professional A3 Format</p>
+            <p className="text-[10px] text-blue-600 font-medium">
+              Reports include automated school branding, Sunday/Holiday highlights, and daily attendance summaries. 
+              {isClassTeacher && " As a Class Teacher, you can only generate reports for your assigned class."}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+const isStudentOrGuardian = false; // Mock for component outside main func scope if needed

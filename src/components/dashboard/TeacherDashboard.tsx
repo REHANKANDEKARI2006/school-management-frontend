@@ -12,8 +12,11 @@ import { Announcements } from "./Announcements";
 import { TeacherSchedule } from "./TeacherSchedule";
 import { AcademicCalendarWidget, CalendarDayDetail } from "@/components/campus-connect/academic-calendar-widget";
 import { PageSkeleton } from "@/components/ui/skeletons";
-import { AlertCircle, RefreshCcw } from "lucide-react";
+import { AlertCircle, RefreshCcw, CheckCircle2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 import api from "@/lib/axios";
 
 export const TeacherDashboard = () => {

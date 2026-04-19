@@ -3,7 +3,7 @@
 import { CreditCard, Layers, Moon, Plus, Check, FileCheck, GraduationCap, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getTemplate1, getTemplate2, getTemplate3, getBonafideTemplate, getAchievementTemplate } from "./starter-templates";
+import { getTemplate1, getTemplate2, getTemplate3, getBonafideTemplate1, getBonafideTemplate2, getBonafideTemplate3, getAchievementTemplate } from "./starter-templates";
 import type { CanvasTemplate, DocumentType } from "./types";
 import { CanvasMiniPreview } from "./canvas-mini-preview";
 
@@ -37,7 +37,9 @@ export function DocumentTemplateGallery({ documentType, branding, savedLayout, o
     ];
   } else if (documentType === "BONAFIDE") {
     templates = [
-      { id: "bonafide_std", name: "Standard Bonafide", layout: getBonafideTemplate(pc) }
+      { id: "bonafide_std", name: "Formal Standard", layout: getBonafideTemplate1(pc) },
+      { id: "bonafide_mod", name: "Modern Corporate", layout: getBonafideTemplate2(pc) },
+      { id: "bonafide_pre", name: "Premium Institutional", layout: getBonafideTemplate3("#ff0000") },
     ];
   } else if (documentType === "ACHIEVEMENT") {
     templates = [

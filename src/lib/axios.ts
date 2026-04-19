@@ -35,15 +35,44 @@ instance.interceptors.request.use(
  * 🚨 Global response error handler (future-ready)
  * 401 / 403 → token expired / unauthorized
  */
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
+
 instance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      const refreshToken = localStorage.getItem("refreshToken");
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return instance(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+      }
 
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const refreshToken = localStorage.getItem("refreshToken");
       if (refreshToken) {
         try {
           const hostname = window.location.hostname;
@@ -55,16 +84,14 @@ instance.interceptors.response.use(
             const { accessToken } = res.data;
             localStorage.setItem("accessToken", accessToken);
             
-            // ✅ Ensure the header is updated for the retry
-            originalRequest.headers = {
-              ...originalRequest.headers,
-              Authorization: `Bearer ${accessToken}`
-            };
+            instance.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
+            originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
             
-            console.log("🔄 Retrying request with new token...");
+            processQueue(null, accessToken);
             return instance(originalRequest);
           }
         } catch (refreshError) {
+          processQueue(refreshError, null);
           console.error("Refresh token failed", refreshError);
           // 🚨 Session absolutely expired - clear and redirect
           localStorage.removeItem("accessToken");
@@ -72,6 +99,8 @@ instance.interceptors.response.use(
           if (typeof window !== "undefined") {
             window.location.href = "/?session=expired";
           }
+        } finally {
+          isRefreshing = false;
         }
       } else {
         // No refresh token available - clear and redirect

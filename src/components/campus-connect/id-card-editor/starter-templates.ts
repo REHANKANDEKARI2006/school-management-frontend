@@ -231,10 +231,10 @@ export function getTemplate3(primaryColor: string = "#3b82f6"): CanvasLayout {
 }
 
 /**
- * BONAFIDE CERTIFICATE (A4 Portrait)
- * Formal institutional layout.
+ * BONAFIDE TEMPLATE 1: THE FORMAL STANDARD
+ * Classic institucional portrait layout.
  */
-export function getBonafideTemplate(primaryColor: string = PRIMARY): CanvasLayout {
+export function getBonafideTemplate1(primaryColor: string = "#437ef1"): CanvasLayout {
   return {
     documentType: "BONAFIDE",
     paperSize: "A4",
@@ -256,13 +256,84 @@ export function getBonafideTemplate(primaryColor: string = PRIMARY): CanvasLayou
       { id: "title", type: "certificate_title", text: "BONAFIDE CERTIFICATE", x: 50, y: 300, width: 495, height: 45, fontSize: 32, fontWeight: "black", textAlign: "center", textColor: primaryColor, zIndex: 2 },
       
       { id: "body", type: "certificate_description", 
-        text: "This is to certify that Master/Miss {{student_name}}, son/daughter of Mr. {{father_name}}, is a bonafide student of this institution. \n\nHe/She is currently enrolled in Class {{class_section}} for the Academic Session {{academic_year}} under Admission Number {{admission_number}}.\n\nTo the best of our knowledge, he/she bears a good moral character and has shown consistent academic dedication during his/her tenure at this school.",
-        x: 80, y: 380, width: 435, height: 280, fontSize: 15, fontFamily: "Inter", textAlign: "justify", lineHeight: 1.8, textColor: "#334155", zIndex: 2 
+        text: "This is to certify that Master/Miss {{student_name}}, son/daughter of Mr. {{father_name}}, is a bonafide student of this institution. \n\nHe/She is currently enrolled in Class {{class_section}} for the Academic Session {{academic_year}} under Admission Number {{admission_number}}.",
+        x: 80, y: 380, width: 435, height: 200, fontSize: 15, fontFamily: "Inter", textAlign: "justify", lineHeight: 1.8, textColor: "#334155", zIndex: 2 
       },
       
       { id: "stamp", type: "stamp", x: 100, y: 680, width: 90, height: 90, opacity: 0.8, zIndex: 3 },
       { id: "sig", type: "signature", x: 380, y: 690, width: 140, height: 50, zIndex: 3 },
       { id: "sig-label", type: "text_box", text: "PRINCIPAL AUTHORITY", x: 380, y: 745, width: 140, height: 15, fontSize: 10, fontWeight: "black", textAlign: "center", textColor: "#1e293b", zIndex: 3 }
+    ]
+  };
+}
+
+/**
+ * BONAFIDE TEMPLATE 2: MODERN CORPORATE
+ * Clean, minimal, high-impact typography.
+ */
+export function getBonafideTemplate2(primaryColor: string = "#1e293b"): CanvasLayout {
+  return {
+    documentType: "BONAFIDE",
+    paperSize: "A4",
+    orientation: "portrait",
+    bgColor: "#ffffff",
+    elements: [
+       { id: "hdr", type: "rectangle", x: 0, y: 0, width: 595, height: 120, bgColor: "#f8fafc", zIndex: 1 },
+       { id: "logo", type: "school_logo", x: 50, y: 35, width: 50, height: 50, zIndex: 2 },
+       { id: "sn", type: "text_box", text: "{{school_name}}", x: 110, y: 35, width: 435, height: 30, fontSize: 22, fontWeight: "bold", textAlign: "left", textColor: "#0f172a", zIndex: 2 },
+       { id: "sa", type: "text_box", text: "{{school_address}}", x: 110, y: 65, width: 435, height: 20, fontSize: 9, textAlign: "left", textColor: "#64748b", zIndex: 2 },
+       
+       { id: "title", type: "certificate_title", text: "BONAFIDE STATEMENT", x: 50, y: 180, width: 495, height: 60, fontSize: 42, fontWeight: "black", textAlign: "left", textColor: primaryColor, zIndex: 2 },
+       { id: "date", type: "issue_date", x: 50, y: 245, width: 200, height: 20, fontSize: 11, fontWeight: "bold", textColor: "#94a3b8", zIndex: 2 },
+       
+       { id: "body", type: "certificate_description", 
+         text: "To whom it may concern,\n\nWe hereby confirm that {{student_name}}, documented under ID {{admission_number}}, is a registered student in active standing at our institution.\n\nCurrent Academic Progress:\nLevel: {{class_section}}\nSession: {{academic_year}}",
+         x: 50, y: 300, width: 495, height: 300, fontSize: 16, fontFamily: "Outfit", textAlign: "left", lineHeight: 1.6, textColor: "#475569", zIndex: 2 },
+       
+       { id: "line", type: "line", x: 50, y: 650, width: 150, height: 2, bgColor: primaryColor, zIndex: 2 },
+       { id: "sig", type: "signature", x: 50, y: 660, width: 150, height: 50, zIndex: 2 },
+       { id: "s-l", type: "text_box", text: "Registrar / Principal", x: 50, y: 720, width: 150, height: 15, fontSize: 10, fontWeight: "bold", zIndex: 2 }
+    ]
+  };
+}
+
+/**
+ * BONAFIDE TEMPLATE 3: PREMIUM INSTITUTIONAL (Screenshot Match)
+ * Exact replica of the user-provided design.
+ */
+export function getBonafideTemplate3(primaryColor: string = "#e11d48"): CanvasLayout {
+  return {
+    documentType: "BONAFIDE",
+    paperSize: "A4",
+    orientation: "portrait",
+    bgColor: "#ffffff",
+    elements: [
+      // Double Red Border
+      { id: "border-out", type: "rectangle", x: 20, y: 20, width: 555, height: 802, bgColor: "transparent", borderWidth: 3, borderColor: "#ff0000", zIndex: 1 },
+      { id: "border-in",  type: "rectangle", x: 28, y: 28, width: 539, height: 786, bgColor: "transparent", borderWidth: 1, borderColor: "#ff0000", zIndex: 1 },
+      
+      // Header
+      { id: "logo", type: "school_logo", x: 257, y: 65, width: 80, height: 80, zIndex: 2 },
+      { id: "school", type: "text_box", text: "{{school_name}}", x: 40, y: 165, width: 515, height: 45, fontSize: 28, fontWeight: "black", textAlign: "center", textColor: "#ff0000", fontFamily: "Outfit", zIndex: 2 },
+      { id: "addr", type: "text_box", text: "{{school_address}} | Phone: {{school_phone}}", x: 40, y: 210, width: 515, height: 20, fontSize: 11, fontWeight: "bold", textAlign: "center", textColor: "#64748b", zIndex: 2 },
+      
+      // Title Box
+      { id: "title-bg", type: "rectangle", x: 147, y: 270, width: 300, height: 55, bgColor: "#f1f5f9", borderRadius: 27, zIndex: 2 },
+      { id: "title-txt", type: "certificate_title", text: "BONAFIDE CERTIFICATE", x: 147, y: 270, width: 300, height: 55, fontSize: 22, fontWeight: "black", textAlign: "center", textColor: "#0f172a", zIndex: 3 },
+      
+      // Body
+      { id: "body", type: "certificate_description", 
+        text: "This is to certify that Mr./Ms. {{student_name}} , son/daughter of {{father_name}} and {{mother_name}} , bearing ID number {{admission_number}} , is a bonafide student of this institution.\n\nHe/She is currently studying in class {{class_section}} for the academic year {{academic_year}} . His/Her date of birth according to the school records is {{dob}} .\n\nTo the best of our knowledge, he/she possesses a good moral character.",
+        x: 80, y: 380, width: 435, height: 280, fontSize: 16, fontFamily: "Inter", textAlign: "justify", lineHeight: 1.8, textColor: "#1e293b", zIndex: 2 
+      },
+      
+      // Footer
+      { id: "date-txt", type: "text_box", text: "Date: {{date}}", x: 80, y: 730, width: 150, height: 20, fontSize: 13, fontWeight: "bold", textColor: "#0f172a", zIndex: 2 },
+      { id: "stamp", type: "stamp", x: 227, y: 680, width: 120, height: 120, zIndex: 3 },
+      { id: "sig", type: "signature", x: 360, y: 690, width: 160, height: 50, zIndex: 3 },
+      { id: "base", type: "line", x: 360, y: 745, width: 160, height: 2, bgColor: "#0f172a", zIndex: 3 },
+      { id: "p-txt", type: "text_box", text: "PRINCIPAL", x: 360, y: 755, width: 160, height: 15, fontSize: 12, fontWeight: "black", textAlign: "center", textColor: "#0f172a", zIndex: 3 },
+      { id: "auth", type: "text_box", text: "Authorized Signatory", x: 360, y: 775, width: 160, height: 12, fontSize: 9, fontWeight: "bold", textAlign: "center", textColor: "#64748b", zIndex: 3 }
     ]
   };
 }

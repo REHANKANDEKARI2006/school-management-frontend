@@ -84,9 +84,9 @@ export interface CanvasTemplate {
 
 // Mock student data for previews
 export const MOCK_STUDENT = {
-  student_name: "Rahul Kumar Sharma",
-  father_name: "Ramesh Sharma",
-  mother_name: "Sunita Sharma",
+  student_name: "Nikita Vilas Patil",
+  father_name: "Vilas Patil",
+  mother_name: "Smita Patil",
   class_section: "9 - A",
   admission_number: "2025001",
   dob: "15/08/2012",
@@ -108,6 +108,7 @@ export const DYNAMIC_FIELDS: { type: ElementType; label: string; token: string }
   { type: "school_logo", label: "School Logo", token: "{{logo}}" },
   { type: "student_name", label: "Student Name", token: "{{student_name}}" },
   { type: "father_name", label: "Father Name", token: "{{father_name}}" },
+  { type: "mother_name", label: "Mother Name", token: "{{mother_name}}" },
   { type: "class_section", label: "Class & Section", token: "{{class_section}}" },
   { type: "admission_number", label: "Admission No", token: "{{admission_number}}" },
   

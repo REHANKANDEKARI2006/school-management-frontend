@@ -62,3 +62,22 @@ export const getDisplacedPeriods = async (id: string | number) => {
     const res = await axios.get(`/api/events/${id}/displaced-periods`);
     return res.data.data;
 };
+
+// Event Photos
+export const getEventPhotos = async (eventId: string | number) => {
+    const res = await axios.get(`/api/events/${eventId}/photos`);
+    return res.data.data;
+};
+
+export const uploadEventPhotos = async (eventId: string | number, files: File[]) => {
+    const formData = new FormData();
+    files.forEach(file => {
+        formData.append("photos", file);
+    });
+    const res = await axios.post(`/api/events/${eventId}/photos`, formData, {
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
+    });
+    return res.data.data;
+};

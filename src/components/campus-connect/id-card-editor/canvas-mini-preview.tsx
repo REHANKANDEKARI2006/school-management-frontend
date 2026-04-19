@@ -1,6 +1,6 @@
 "use client";
 
-import { MOCK_STUDENT } from "./types";
+import { MOCK_STUDENT, DIMENSIONS } from "./types";
 import type { CanvasLayout, CanvasElement } from "./types";
 import Image from "next/image";
 import QRCode from "react-qr-code";
@@ -25,39 +25,48 @@ function resolveText(text: string | undefined, branding: MiniPreviewProps["brand
     .replace("{{school_name}}", branding.schoolName || "YOUR SCHOOL NAME")
     .replace("{{school_address}}", branding.address || "School Address, City")
     .replace("{{school_phone}}", branding.phone || "9876543210")
-    .replace("{{student_name}}", MOCK_STUDENT.student_name)
-    .replace("{{father_name}}", MOCK_STUDENT.father_name)
-    .replace("{{mother_name}}", MOCK_STUDENT.mother_name)
-    .replace("{{class_section}}", MOCK_STUDENT.class_section)
-    .replace("{{admission_number}}", MOCK_STUDENT.admission_number)
-    .replace("{{dob}}", MOCK_STUDENT.dob)
-    .replace("{{blood_group}}", MOCK_STUDENT.blood_group)
-    .replace("{{contact}}", MOCK_STUDENT.contact_number)
-    .replace("{{address}}", MOCK_STUDENT.address)
-    .replace("{{academic_year}}", branding.academicYear || MOCK_STUDENT.academic_year);
+    .replace("{{student_name}}", "[STUDENT NAME]")
+    .replace("{{father_name}}", "[FATHER NAME]")
+    .replace("{{mother_name}}", "[MOTHER NAME]")
+    .replace("{{class_section}}", "[CLASS-SECTION]")
+    .replace("{{admission_number}}", "[ADMISSION NO]")
+    .replace("{{dob}}", "[DOB]")
+    .replace("{{blood_group}}", "[BLOOD]")
+    .replace("{{contact}}", "[CONTACT]")
+    .replace("{{address}}", "[ADDRESS]")
+    .replace("{{academic_year}}", branding.academicYear || MOCK_STUDENT.academic_year)
+    .replace("{{date}}", "[DATE]")
+    .replace("{{title}}", "[TITLE]")
+    .replace("{{desc}}", "[DESCRIPTION]");
 }
 
 function getDynamicValue(type: CanvasElement["type"], branding: MiniPreviewProps["branding"]): string {
   switch (type) {
-    case "student_name": return MOCK_STUDENT.student_name;
-    case "father_name": return MOCK_STUDENT.father_name;
-    case "mother_name": return MOCK_STUDENT.mother_name;
-    case "class_section": return `Class ${MOCK_STUDENT.class_section}`;
-    case "admission_number": return MOCK_STUDENT.admission_number;
-    case "dob": return MOCK_STUDENT.dob;
-    case "blood_group": return MOCK_STUDENT.blood_group;
-    case "contact_number": return MOCK_STUDENT.contact_number;
-    case "address": return MOCK_STUDENT.address;
+    case "student_name": return "[STUDENT NAME]";
+    case "father_name": return "[FATHER NAME]";
+    case "mother_name": return "[MOTHER NAME]";
+    case "class_section": return "[CLASS - SECTION]";
+    case "admission_number": return "[ADMISSION NO]";
+    case "dob": return "[DATE OF BIRTH]";
+    case "blood_group": return "[BLOOD]";
+    case "contact_number": return "[CONTACT NO]";
+    case "address": return "[STUDENT ADDRESS]";
     case "academic_year": return branding.academicYear || MOCK_STUDENT.academic_year;
+    case "issue_date": return "[ISSUE DATE]";
+    case "certificate_title": return "[CERTIFICATE TITLE]";
+    case "certificate_description": return "[CERTIFICATE DESCRIPTION / BODY CONTENT]";
     default: return "";
   }
 }
 
 export function CanvasMiniPreview({ layout, branding, scale = 1 }: MiniPreviewProps) {
   const isLandscape = layout.orientation === "landscape";
-  const cardW = isLandscape ? 324 : 204;
-  const cardH = isLandscape ? 204 : 324;
-  const displayScale = scale * (isLandscape ? 0.55 : 0.62);
+  const { width: cardW, height: cardH } = DIMENSIONS[layout.paperSize || "CR80"][layout.orientation];
+  
+  // Calculate display scale based on container size (approx 200x300 in gallery)
+  // For A4 (595x842) we need much smaller scale than CR80 (204x324)
+  const isA4 = layout.paperSize === "A4";
+  const displayScale = scale * (isA4 ? (isLandscape ? 0.28 : 0.28) : (isLandscape ? 0.55 : 0.62));
 
   return (
     <div
@@ -226,13 +235,12 @@ function renderElement(el: CanvasElement, branding: MiniPreviewProps["branding"]
     );
   }
 
-  // Text elements (text_box, student_name, father_name, etc.)
-  const isDynamic = !["text_box", "rectangle", "circle", "line", "bg_color", "bg_image", "school_logo", "student_photo", "signature", "qr_code", "barcode", "stamp"].includes(el.type);
-  const textContent = isDynamic
-    ? getDynamicValue(el.type, branding)
-    : resolveText(el.text, branding);
+  // Text elements resolution logic
+  const textContent = el.text 
+    ? resolveText(el.text, branding) 
+    : getDynamicValue(el.type, branding);
 
-  if (!textContent && !el.text) return null;
+  if (!textContent) return null;
 
   return (
     <div
@@ -259,7 +267,7 @@ function renderElement(el: CanvasElement, branding: MiniPreviewProps["branding"]
         textOverflow: "ellipsis",
       }}
     >
-      {isDynamic ? textContent : resolveText(el.text, branding)}
+      {textContent}
     </div>
   );
 }

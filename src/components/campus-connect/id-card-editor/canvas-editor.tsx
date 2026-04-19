@@ -245,8 +245,13 @@ export function IdCardCanvasEditor({ template, branding, onSave, onBack }: Edito
       {/* ===== TOP TOOLBAR ===== */}
       <div className="flex items-center h-16 px-6 bg-white/80 backdrop-blur-md border-b border-slate-200/60 gap-3 shrink-0 relative z-10">
         <Button variant="ghost" size="sm" onClick={onBack} className="gap-2 h-10 px-4 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
-          <ChevronLeft className="h-4 w-4" /> 
-          <span className="font-bold text-xs uppercase tracking-widest">Back to Hub</span>
+          <ChevronLeft className="h-4 w-4" />
+          <div className="flex items-center gap-3">
+            <span className="font-black text-slate-800 tracking-tight text-lg">{template.name}</span>
+            <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-black uppercase">
+              {layout.paperSize} {layout.orientation}
+            </Badge>
+          </div>
         </Button>
         <Separator orientation="vertical" className="h-6 mx-2 opacity-50" />
         
@@ -875,37 +880,32 @@ function CanvasElementRenderer({ el, zoom, isSelected, branding, onMouseDown }: 
     "dob", "blood_group", "contact_number", "address", "academic_year",
     "issue_date", "certificate_title", "certificate_description", "achievement_rank", "event_name"
   ];
-  
   let displayText = s.text || "";
-  if (DYNAMIC_TEXT_TYPES.includes(s.type)) {
-    const map: Record<string, any> = {
-      student_name: MOCK_STUDENT.student_name,
-      father_name: MOCK_STUDENT.father_name,
-      mother_name: MOCK_STUDENT.mother_name,
-      class_section: `Class ${MOCK_STUDENT.class_section}`,
-      admission_number: MOCK_STUDENT.admission_number,
-      dob: MOCK_STUDENT.dob,
-      blood_group: MOCK_STUDENT.blood_group,
-      contact_number: MOCK_STUDENT.contact_number,
-      address: MOCK_STUDENT.address,
-      academic_year: branding.academicYear || MOCK_STUDENT.academic_year,
-      issue_date: MOCK_STUDENT.issue_date,
-      certificate_title: MOCK_STUDENT.certificate_title,
-      certificate_description: MOCK_STUDENT.certificate_description,
-      achievement_rank: MOCK_STUDENT.achievement_rank,
-      event_name: MOCK_STUDENT.event_name,
-    };
-    displayText = map[s.type] || s.type;
-  }
   
-  // Resolve {{tokens}} for text_box
-  displayText = String(displayText)
-    .replace("{{school_name}}", branding.schoolName || "YOUR SCHOOL NAME")
-    .replace("{{school_address}}", branding.address || "")
-    .replace("{{school_phone}}", branding.phone || "")
-    .replace("{{academic_year}}", branding.academicYear || "2025-26")
-    .replace("{{admission_number}}", MOCK_STUDENT.admission_number)
-    .replace("{{student_name}}", MOCK_STUDENT.student_name);
+  // Resolve {{tokens}} using a central logic
+  const resolveTokens = (t: string) => {
+    return String(t)
+      .replace(/\{\{school_name\}\}/g, branding.schoolName || "YOUR SCHOOL NAME")
+      .replace(/\{\{school_address\}\}/g, branding.address || "School Address, City")
+      .replace(/\{\{school_phone\}\}/g, branding.phone || "9876543210")
+      .replace(/\{\{academic_year\}\}/g, branding.academicYear || MOCK_STUDENT.academic_year)
+      .replace(/\{\{student_name\}\}/g, "{{student_name}}")
+      .replace(/\{\{father_name\}\}/g, "{{father_name}}")
+      .replace(/\{\{mother_name\}\}/g, "{{mother_name}}")
+      .replace(/\{\{class_section\}\}/g, "{{class_section}}")
+      .replace(/\{\{admission_number\}\}/g, "{{admission_number}}")
+      .replace(/\{\{dob\}\}/g, "{{dob}}")
+      .replace(/\{\{date\}\}/g, "{{date}}")
+      .replace(/\{\{title\}\}/g, "{{title}}")
+      .replace(/\{\{desc\}\}/g, "{{desc}}");
+  };
+
+  if (s.text) {
+    displayText = resolveTokens(s.text);
+  } else if (DYNAMIC_TEXT_TYPES.includes(s.type)) {
+    // Show raw token in editor for clarity
+    displayText = `{{${s.type}}}`;
+  }
 
   const isMultiline = s.type === "certificate_description" || s.type === "address" || s.type === "text_box";
 

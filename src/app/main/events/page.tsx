@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import axios from "@/lib/axios";
-import { MoreHorizontal, PlusCircle, Award, Calendar as CalendarIcon, MapPin } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Award, Calendar as CalendarIcon, MapPin, Image as ImageIcon } from "lucide-react";
 import { PageSkeleton } from "@/components/ui/skeletons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,7 @@ import { useSearch } from "@/components/campus-connect/search-provider";
 import { EventCertificateDialog } from "@/components/campus-connect/event-certificate";
 import { getEvents, createEvent, updateEvent, deleteEvent } from "@/lib/api/events";
 import { format } from "date-fns";
+import { EventGallery } from "@/components/campus-connect/event-gallery";
 
 const getStatusVariant = (status: string) => {
   switch (status?.toLowerCase()) {
@@ -193,13 +194,16 @@ export default function EventsPage() {
   }
 
   const [isDetailOpen, setIsDetailOpen] = React.useState(false);
-  const openDetailDialog = (event: any) => {
+  const [defaultDetailTab, setDefaultDetailTab] = React.useState("overview");
+  
+  const openDetailWithTab = (event: any, tab: string = "overview") => {
     setSelectedEvent(event);
+    setDefaultDetailTab(tab);
     setIsDetailOpen(true);
-  }
+  };
 
   const staffId = typeof window !== "undefined" ? Number(localStorage.getItem("staff_id")) : undefined;
-  const isAdmin = roleId === ROLE.ADMIN;
+  const isAdmin = roleId === ROLE.MASTER_ADMIN || roleId === ROLE.INSTITUTE_ADMIN;
 
   const navigateToAttendance = (eventId: number, classId: number) => {
     window.location.href = `/main/events/attendance/${eventId}/${classId}`;
@@ -256,7 +260,7 @@ export default function EventsPage() {
                     <TableRow 
                       key={event.event_id} 
                       className="group border-slate-50 hover:bg-blue-50/20 transition-colors cursor-pointer"
-                      onClick={() => openDetailDialog(event)}
+                      onClick={() => openDetailWithTab(event, "overview")}
                     >
                       <TableCell className="hidden sm:table-cell pl-6">
                         <Avatar className="h-12 w-12 rounded-2xl bg-white border border-slate-100 shadow-sm transition-transform group-hover:scale-110">
@@ -343,6 +347,10 @@ export default function EventsPage() {
                                 <Award className="mr-2 h-4 w-4" />
                                 Generate Certificates
                               </DropdownMenuItem>
+                              <DropdownMenuItem className="rounded-xl px-3 py-2 cursor-pointer font-bold text-slate-700 focus:bg-blue-50 focus:text-blue-600" onClick={() => openDetailWithTab(event, "photos")}>
+                                <ImageIcon className="mr-2 h-4 w-4" />
+                                Photo Gallery
+                              </DropdownMenuItem>
                               <div className="h-px bg-slate-100 my-1 mx-1" />
                               <DropdownMenuItem
                                 className="rounded-xl px-3 py-2 cursor-pointer font-bold text-rose-600 focus:bg-rose-50 focus:text-rose-600"
@@ -395,6 +403,7 @@ export default function EventsPage() {
             onMarkAttendance={navigateToAttendance}
             isAdmin={isAdmin}
             currentStaffId={staffId}
+            defaultTab={defaultDetailTab}
           />
         )}
       </Dialog>
@@ -423,11 +432,12 @@ export default function EventsPage() {
   );
 }
 
-function EventDetailDialog({ eventId, onMarkAttendance, isAdmin, currentStaffId }: { 
+function EventDetailDialog({ eventId, onMarkAttendance, isAdmin, currentStaffId, defaultTab = "overview" }: { 
   eventId: number; 
   onMarkAttendance: (eid: number, cid: number) => void;
   isAdmin: boolean;
   currentStaffId?: number;
+  defaultTab?: string;
 }) {
   const [eventData, setEventData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
@@ -495,106 +505,125 @@ function EventDetailDialog({ eventId, onMarkAttendance, isAdmin, currentStaffId 
           </div>
        </div>
 
-       <Tabs defaultValue="overview" className="w-full">
+       <Tabs defaultValue={defaultTab} className="w-full">
           <div className="bg-slate-50 px-8 border-b border-slate-100">
             <TabsList className="bg-transparent h-14 p-0 gap-8">
               <TabsTrigger value="overview" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 h-14 rounded-none px-0 text-xs font-black uppercase tracking-widest text-slate-400">Overview</TabsTrigger>
               <TabsTrigger value="classes" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 h-14 rounded-none px-0 text-xs font-black uppercase tracking-widest text-slate-400">Participants ({eventData.classes?.length || 0})</TabsTrigger>
+              <TabsTrigger value="photos" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 h-14 rounded-none px-0 text-xs font-black uppercase tracking-widest text-slate-400">Event Photos</TabsTrigger>
             </TabsList>
           </div>
 
-          <ScrollArea className="max-h-[50vh]">
-            <TabsContent value="overview" className="p-8 m-0 space-y-8">
-               <div className="space-y-3">
-                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">About the Event</h3>
-                 <p className="text-sm text-slate-600 leading-relaxed font-medium bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                   {eventData.description || "No description provided."}
-                 </p>
-               </div>
-
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                 <div className="p-6 bg-white border border-slate-100 rounded-3xl space-y-4 shadow-sm">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Schedule Timeline</h3>
-                    <div className="space-y-3">
-                       <div className="flex items-center justify-between">
-                         <span className="text-xs font-bold text-slate-500">Start Time</span>
-                         <span className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-md">{eventData.start_time?.substring(0, 5) || "N/A"}</span>
-                       </div>
-                       <div className="flex items-center justify-between">
-                         <span className="text-xs font-bold text-slate-500">End Time</span>
-                         <span className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-md">{eventData.end_time?.substring(0, 5) || "N/A"}</span>
-                       </div>
-                    </div>
+          <TabsContent value="overview" className="m-0">
+            <ScrollArea className="h-[450px]">
+              <div className="p-8 space-y-8">
+                 <div className="space-y-3">
+                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">About the Event</h3>
+                   <p className="text-sm text-slate-600 leading-relaxed font-medium bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                     {eventData.description || "No description provided."}
+                   </p>
                  </div>
-                 
-                 <div className="p-6 bg-white border border-slate-100 rounded-3xl space-y-4 shadow-sm">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Event Statistics</h3>
-                    <div className="space-y-4">
-                       <div className="flex justify-between items-end">
-                          <span className="text-xs font-bold text-slate-500">Attendance</span>
-                          <span className="text-[10px] font-black text-slate-400">{eventData.att_present}/{eventData.att_total} Students</span>
-                       </div>
-                       <Progress value={eventData.attendance_percentage} className="h-2 rounded-full" />
-                    </div>
-                 </div>
-               </div>
-            </TabsContent>
 
-            <TabsContent value="classes" className="p-8 m-0 space-y-4">
-               {eventData.classes?.map((c: any) => {
-                 const isCoordinator = c.coordinator_id === currentStaffId;
-                 return (
-                   <div key={c.class_id} className="group flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-white border border-slate-100 rounded-[2rem] hover:border-blue-200 transition-all gap-4">
-                      <div className="flex items-center gap-4">
-                         <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 font-black text-xs border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                           {c.class_name[0]}
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                   <div className="p-6 bg-white border border-slate-100 rounded-3xl space-y-4 shadow-sm">
+                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Schedule Timeline</h3>
+                      <div className="space-y-3">
+                         <div className="flex items-center justify-between">
+                           <span className="text-xs font-bold text-slate-500">Start Time</span>
+                           <span className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-md">{eventData.start_time?.substring(0, 5) || "N/A"}</span>
                          </div>
-                         <div className="space-y-0.5">
-                           <h4 className="font-bold text-slate-800">{c.class_name}</h4>
-                           <div className="flex items-center gap-2">
-                             <span className="text-[10px] font-black uppercase text-slate-400 tracking-tighter">Coordinator:</span>
-                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">{c.coordinator_name}</span>
-                           </div>
+                         <div className="flex items-center justify-between">
+                           <span className="text-xs font-bold text-slate-500">End Time</span>
+                           <span className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-md">{eventData.end_time?.substring(0, 5) || "N/A"}</span>
                          </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                         <div className="text-right mr-4">
-                           <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</div>
-                           <Badge variant="outline" className={cn(
-                             "text-[9px] font-black uppercase h-5",
-                             c.attendance_completed ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-amber-50 text-amber-600 border-amber-100"
-                           )}>
-                             {c.attendance_completed ? "Completed" : "Pending"}
-                           </Badge>
-                         </div>
-                         
-                         {(isAdmin || isCoordinator) && (
-                           <div className="flex items-center gap-2">
-                              {isAdmin && c.attendance_completed && (
-                                <Button variant="ghost" size="sm" className="h-9 w-9 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50" onClick={() => handleUnlock(c.class_id)}>
-                                  <Award size={16} /> {/* Replace with unlock icon if available */}
-                                </Button>
-                              )}
-                              <Button 
-                                size="sm" 
-                                className={cn(
-                                  "h-10 px-5 rounded-xl font-bold gap-2",
-                                  c.attendance_completed ? "bg-slate-100 text-slate-500 hover:bg-slate-200" : "bg-blue-600 text-white hover:bg-blue-700"
-                                )}
-                                onClick={() => onMarkAttendance(eventId, c.class_id)}
-                              >
-                                {c.attendance_completed ? "Update" : "Mark Attendance"}
-                                <ChevronRight size={14} />
-                              </Button>
-                           </div>
-                         )}
                       </div>
                    </div>
-                 );
-               })}
-            </TabsContent>
-          </ScrollArea>
+                   
+                   <div className="p-6 bg-white border border-slate-100 rounded-3xl space-y-4 shadow-sm">
+                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Event Statistics</h3>
+                      <div className="space-y-4">
+                         <div className="flex justify-between items-end">
+                            <span className="text-xs font-bold text-slate-500">Attendance</span>
+                            <span className="text-[10px] font-black text-slate-400">{eventData.att_present}/{eventData.att_total} Students</span>
+                         </div>
+                         <Progress value={eventData.attendance_percentage} className="h-2 rounded-full" />
+                      </div>
+                   </div>
+                 </div>
+              </div>
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="classes" className="m-0">
+            <ScrollArea className="h-[450px]">
+              <div className="p-8 space-y-4">
+                 {eventData.classes?.map((c: any) => {
+                   const isCoordinator = c.coordinator_id === currentStaffId;
+                   return (
+                     <div key={c.class_id} className="group flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-white border border-slate-100 rounded-[2rem] hover:border-blue-200 transition-all gap-4">
+                        <div className="flex items-center gap-4">
+                           <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 font-black text-xs border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                             {c.class_name[0]}
+                           </div>
+                           <div className="space-y-0.5">
+                             <h4 className="font-bold text-slate-800">{c.class_name}</h4>
+                             <div className="flex items-center gap-2">
+                               <span className="text-[10px] font-black uppercase text-slate-400 tracking-tighter">Coordinator:</span>
+                               <span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">{c.coordinator_name}</span>
+                             </div>
+                           </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                           <div className="text-right mr-4">
+                             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</div>
+                             <Badge variant="outline" className={cn(
+                               "text-[9px] font-black uppercase h-5",
+                               c.attendance_completed ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-amber-50 text-amber-600 border-amber-100"
+                             )}>
+                               {c.attendance_completed ? "Completed" : "Pending"}
+                             </Badge>
+                           </div>
+                           
+                           {(isAdmin || isCoordinator) && (
+                             <div className="flex items-center gap-2">
+                                {isAdmin && c.attendance_completed && (
+                                  <Button variant="ghost" size="sm" className="h-9 w-9 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50" onClick={() => handleUnlock(c.class_id)}>
+                                    <Award size={16} /> {/* Replace with unlock icon if available */}
+                                  </Button>
+                                )}
+                                <Button 
+                                  size="sm" 
+                                  className={cn(
+                                    "h-10 px-5 rounded-xl font-bold gap-2",
+                                    c.attendance_completed ? "bg-slate-100 text-slate-500 hover:bg-slate-200" : "bg-blue-600 text-white hover:bg-blue-700"
+                                  )}
+                                  onClick={() => onMarkAttendance(eventId, c.class_id)}
+                                >
+                                  {c.attendance_completed ? "Update" : "Mark Attendance"}
+                                  <ChevronRight size={14} />
+                                </Button>
+                             </div>
+                           )}
+                        </div>
+                     </div>
+                   );
+                 })}
+              </div>
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="photos" className="m-0">
+            <ScrollArea className="h-[450px]">
+               <div className="p-8 space-y-4">
+                <EventGallery 
+                  eventId={eventId} 
+                  isAdmin={isAdmin} 
+                  eventStatus={eventData.computed_status} 
+                />
+               </div>
+            </ScrollArea>
+          </TabsContent>
        </Tabs>
     </DialogContent>
   );

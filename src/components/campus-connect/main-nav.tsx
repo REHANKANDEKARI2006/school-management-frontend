@@ -25,6 +25,8 @@ import {
   Scroll,
   CalendarDays,
   CalendarOff,
+  ShieldCheck,
+  UserCog,
 } from "lucide-react";
 
 import { ROLE, ADMIN_GROUP, ALL_STAFF_GROUP } from "@/config/roles";
@@ -129,6 +131,18 @@ const navItems: NavItem[] = [
     label: "Notices",
     icon: Megaphone,
     roles: "ALL",
+  },
+  {
+    href: "/main/user-management/admins",
+    label: "Manage Admins",
+    icon: ShieldCheck,
+    roles: [ROLE.MASTER_ADMIN],
+  },
+  {
+    href: "/main/user-management/staff",
+    label: "Manage Staff",
+    icon: UserCog,
+    roles: [ROLE.MASTER_ADMIN, ROLE.INSTITUTE_ADMIN],
   },
 ];
 

@@ -147,14 +147,12 @@ export default function LoginPage() {
                 <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                   Password
                 </Label>
-                <button
-                  type="button"
-                  className="text-xs font-semibold text-muted-foreground/60 hover:text-primary transition-colors cursor-not-allowed"
-                  disabled
-                  title="Feature coming soon"
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-xs font-semibold text-muted-foreground/60 hover:text-primary transition-colors"
                 >
                   Forgot password?
-                </button>
+                </Link>
               </div>
               <div className="relative group">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
@@ -220,6 +218,17 @@ export default function LoginPage() {
             </motion.div>
 
             {/* Login Button */}
+            {/* Forgot Password */}
+            <div className="flex items-center justify-end">
+              <Link
+                href="/auth/forgot-password"
+                className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+              >
+                Forgot your password?
+              </Link>
+            </div>
+
+            {/* Login Button */}
             <div className="grid gap-3 pt-2">
               <Button
                 type="button"
@@ -232,23 +241,7 @@ export default function LoginPage() {
                   {loading ? "Authenticating..." : "Sign In"}
                 </span>
               </Button>
-
-              <Button 
-                variant="outline" 
-                className="w-full h-14 text-sm font-bold border-muted-foreground/10 hover:bg-muted/50 rounded-xl transition-all cursor-not-allowed opacity-60" 
-                disabled
-              >
-                <Chrome className="mr-2 h-5 w-5" />
-                Continue with Google
-              </Button>
             </div>
-          </div>
-
-          <div className="mt-2 text-center text-sm font-medium text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link href="#" className="font-bold text-primary hover:text-primary/80 transition-all underline decoration-2 underline-offset-4">
-              Contact Admin
-            </Link>
           </div>
         </motion.div>
       </div>

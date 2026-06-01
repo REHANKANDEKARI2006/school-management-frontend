@@ -116,14 +116,12 @@ export function UserNav() {
           <DropdownMenuItem onClick={() => router.push("/main/profile")}>
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
-            <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
           </DropdownMenuItem>
 
           {roleId !== 18 && (
             <DropdownMenuItem onClick={() => router.push("/main/profile/settings")}>
               <Settings className="mr-2 h-4 w-4" />
               <span>Settings</span>
-              <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
             </DropdownMenuItem>
           )}
         </DropdownMenuGroup>
@@ -133,7 +131,6 @@ export function UserNav() {
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4 text-red-500" />
           <span className="text-red-500">Log out</span>
-          <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

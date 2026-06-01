@@ -1,5 +1,6 @@
 "use client";
 import { PageSkeleton } from "@/components/ui/skeletons";
+import { useFeedback } from "@/components/campus-connect/feedback-provider";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
@@ -53,6 +54,7 @@ export default function FeesPage() {
   const router = useRouter();
   const { searchQuery } = useSearch();
   const { toast } = useToast();
+  const { showWarning } = useFeedback();
 
   const roleId =
     typeof window !== "undefined"
@@ -98,17 +100,18 @@ export default function FeesPage() {
       ) : (
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <CardTitle>Fees</CardTitle>
                 <CardDescription>Manage fee categories</CardDescription>
               </div>
 
               {/* ✅ ACTION BUTTONS */}
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
                   size="sm"
+                  className="flex-1 sm:flex-none"
                   onClick={() => router.push("/main/fees/structures")}
                 >
                   Manage Structures
@@ -117,6 +120,7 @@ export default function FeesPage() {
                 <Button
                   variant="outline"
                   size="sm"
+                  className="flex-1 sm:flex-none"
                   onClick={() => router.push("/main/fees/collection")}
                 >
                   Fee Collection
@@ -124,6 +128,7 @@ export default function FeesPage() {
 
                 <Button
                   size="sm"
+                  className="w-full sm:w-auto mt-2 sm:mt-0"
                   onClick={() => {
                     setEditing(null);
                     setOpen(true);
@@ -137,15 +142,16 @@ export default function FeesPage() {
           </CardHeader>
 
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Installments</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
+            <div className="overflow-x-auto w-full">
+              <Table className="min-w-[600px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[150px]">Name</TableHead>
+                    <TableHead className="min-w-[200px]">Description</TableHead>
+                    <TableHead className="w-[120px]">Installments</TableHead>
+                    <TableHead className="w-[50px]" />
+                  </TableRow>
+                </TableHeader>
 
               <TableBody>
                 {filtered.map((fee) => (
@@ -183,18 +189,24 @@ export default function FeesPage() {
                           <DropdownMenuItem
                             className="text-red-600"
                             onClick={async () => {
-                              if (!confirm("Delete this category?")) return;
-                              try {
-                                await deleteFeeCategory(fee.fee_category_id);
-                                toast({ title: "Category deleted" });
-                                loadFees();
-                              } catch (e: any) {
-                                toast({
-                                  title: "Cannot delete category",
-                                  description: e.response?.data?.message || "Category might be linked to a fee structure.",
-                                  variant: "destructive"
-                                });
-                              }
+                              showWarning(
+                                `Delete "${fee.category_name}"?`,
+                                "This fee category may be linked to fee structures. Deleting it is permanent.",
+                                async () => {
+                                  try {
+                                    await deleteFeeCategory(fee.fee_category_id);
+                                    toast({ title: "Category Deleted", variant: "destructive" });
+                                    loadFees();
+                                  } catch (e: any) {
+                                    toast({
+                                      title: "Cannot Delete",
+                                      description: e.response?.data?.message || "Category might be linked to a fee structure.",
+                                      variant: "destructive"
+                                    });
+                                  }
+                                },
+                                "Yes, Delete"
+                              );
                             }}
                           >
                             Delete
@@ -206,6 +218,7 @@ export default function FeesPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -247,7 +260,7 @@ export default function FeesPage() {
                     allow_installments: data.allowInstallments,
                   });
                 }
-                toast({ title: "Saved successfully" });
+                toast({ title: "Saved Successfully", variant: "success" });
                 setOpen(false);
                 setEditing(null);
                 loadFees();

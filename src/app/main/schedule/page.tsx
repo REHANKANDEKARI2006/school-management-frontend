@@ -180,13 +180,13 @@ export default function SchedulePage() {
     let displayPeriodNumber = 1;
 
     return (
-      <div className="overflow-x-auto pb-4">
-        <Table className="min-w-[800px]">
+      <div className="w-full overflow-x-auto pb-4">
+        <Table className="w-full">
           <TableHeader>
             <TableRow className="border-b-0 hover:bg-transparent">
-              <TableHead className="w-[150px] font-medium text-muted-foreground">Time</TableHead>
+              <TableHead className="w-[110px] font-medium text-muted-foreground text-xs">Time</TableHead>
               {DAYS.map((day) => (
-                <TableHead key={day.id} className="font-medium text-muted-foreground">{day.name}</TableHead>
+                <TableHead key={day.id} className="font-medium text-muted-foreground text-xs">{day.name}</TableHead>
               ))}
             </TableRow>
           </TableHeader>
@@ -221,9 +221,9 @@ export default function SchedulePage() {
 
               return (
                 <TableRow key={periodNum} className="border-b-0 hover:bg-transparent">
-                  <TableCell className="font-medium align-top pt-6 border-r-transparent">
-                    <div className="whitespace-nowrap text-sm">{timeRange}</div>
-                    <div className="text-xs text-muted-foreground mt-1">Period {currentDisplayPeriod}</div>
+                  <TableCell className="font-medium align-top pt-4 border-r-transparent">
+                    <div className="whitespace-nowrap text-[11px] leading-tight font-bold">{timeRange}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">Period {currentDisplayPeriod}</div>
                   </TableCell>
 
                   {DAYS.map((day) => {
@@ -232,19 +232,19 @@ export default function SchedulePage() {
                     const isMyPeriod = userName && cellData && userName.trim().toLowerCase() === `${cellData.staff_first_name || ''} ${cellData.staff_last_name || ''}`.trim().toLowerCase();
 
                     return (
-                      <TableCell key={`${day.id}-${periodNum}`} className="h-[90px] min-w-[140px] align-top px-2 py-3 border-r-transparent">
+                      <TableCell key={`${day.id}-${periodNum}`} className="h-[75px] min-w-[110px] align-top px-1.5 py-2 border-r-transparent">
                         {cellData ? (
                           cellData.is_break ? (
-                            <div className="text-center text-xs text-orange-400 font-medium py-2">Break</div>
+                            <div className="text-center text-[10px] text-orange-400 font-medium py-1">Break</div>
                           ) : (
-                            <div className={`rounded-md p-3 border h-full transition-all duration-300 ${
+                            <div className={`rounded-md p-2 border h-full transition-all duration-300 ${
                                cellData.is_substitute
                                  ? "bg-purple-50 border-purple-200 hover:bg-purple-100/80 shadow-sm"
                                  : isMyPeriod
                                    ? "bg-emerald-100/60 border-emerald-300 dark:bg-emerald-900/30 dark:border-emerald-700/50 ring-1 ring-emerald-400"
                                    : "bg-blue-50/50 border-blue-100/50 hover:bg-blue-50 dark:bg-blue-950/20 dark:border-blue-900/30 dark:hover:bg-blue-900/30"
                               }`}>
-                              <div className={`font-semibold text-sm truncate ${
+                              <div className={`font-semibold text-[11px] leading-tight truncate ${
                                 cellData.is_substitute
                                   ? "text-purple-900"
                                   : isMyPeriod
@@ -253,10 +253,10 @@ export default function SchedulePage() {
                               }`} title={cellData.subject_name}>
                                 {cellData.subject_name}
                                 {cellData.is_substitute && (
-                                  <Badge variant="outline" className="ml-2 h-4 px-1 text-[8px] border-purple-300 bg-purple-100 text-purple-700">SUB</Badge>
+                                  <Badge variant="outline" className="ml-1 h-3 px-0.5 text-[7px] border-purple-300 bg-purple-100 text-purple-700">SUB</Badge>
                                 )}
                               </div>
-                              <div className={`text-xs mt-1 truncate ${
+                              <div className={`text-[10px] mt-0.5 truncate opacity-80 ${
                                 cellData.is_substitute
                                   ? "text-purple-700 font-medium"
                                   : isMyPeriod
@@ -285,12 +285,12 @@ export default function SchedulePage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 pb-10">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-3xl font-bold tracking-tight">Schedule</h2>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={setTab} className="w-full">
         {canManage && (
           <div className="flex items-center">
             <TabsList>
@@ -309,7 +309,7 @@ export default function SchedulePage() {
         <TabsContent value="view">
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-center bg-transparent">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-transparent">
                 <div>
                   <CardTitle className="font-headline">
                     {isStudent ? "Your Class Schedule" : "Class Schedules"}
@@ -319,10 +319,10 @@ export default function SchedulePage() {
                   </CardDescription>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
                   {!isStudent && classes.length > 0 && (
                     <Select onValueChange={(val) => setSelectedClass(val)} value={selectedClass}>
-                      <SelectTrigger className="w-[180px]">
+                      <SelectTrigger className="w-full sm:w-[200px]">
                         <SelectValue placeholder="Select a class" />
                       </SelectTrigger>
                       <SelectContent>
@@ -343,7 +343,7 @@ export default function SchedulePage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0 sm:p-6 overflow-hidden">
               {loading ? (
                 <PageSkeleton rows={5} />
               ) : selectedClass ? (

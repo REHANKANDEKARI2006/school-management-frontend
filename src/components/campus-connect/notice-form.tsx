@@ -45,11 +45,12 @@ export type Notice = z.infer<typeof noticeSchema>;
 
 interface NoticeFormProps {
   onSubmit: (data: any) => void;
+  onCancel?: () => void;
   notice?: any;
   loading?: boolean;
 }
 
-export function NoticeForm({ onSubmit, notice, loading }: NoticeFormProps) {
+export function NoticeForm({ onSubmit, onCancel, notice, loading }: NoticeFormProps) {
   const [audiences, setAudiences] = React.useState<any[]>([]);
   const [fetchingAudiences, setFetchingAudiences] = React.useState(true);
   const [classes, setClasses] = React.useState<any[]>([]);
@@ -96,7 +97,6 @@ export function NoticeForm({ onSubmit, notice, loading }: NoticeFormProps) {
       post_date: format(values.post_date, 'yyyy-MM-dd'),
       audience_id: parseInt(values.audience_id),
       class_id: values.class_id && values.class_id !== "all" ? parseInt(values.class_id) : null,
-      // For creation, we might need these (hardcoded for now as per demo logic)
       author_type: 'admin',
       author_id: 1
     };
@@ -105,13 +105,13 @@ export function NoticeForm({ onSubmit, notice, loading }: NoticeFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 pt-4">
         <FormField
           control={form.control}
           name="title"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Title</FormLabel>
+            <FormItem className="space-y-2">
+              <FormLabel className="text-sm font-semibold text-slate-700">Title</FormLabel>
               <FormControl>
                 <Input placeholder="e.g. Mid-term Exam Schedule" {...field} />
               </FormControl>
@@ -123,129 +123,142 @@ export function NoticeForm({ onSubmit, notice, loading }: NoticeFormProps) {
           control={form.control}
           name="content"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Content</FormLabel>
+            <FormItem className="space-y-2">
+              <FormLabel className="text-sm font-semibold text-slate-700">Content</FormLabel>
               <FormControl>
-                <Textarea placeholder="The full content of the notice." {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="author_name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Author</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g. Principal, Sports Dept." {...field} />
+                <Textarea placeholder="The full content of the notice." {...field} className="min-h-[100px] resize-none" />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="audience_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Target Audience</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-                disabled={fetchingAudiences}
-              >
+        <div className="grid grid-cols-2 gap-4">
+            <FormField
+            control={form.control}
+            name="author_name"
+            render={({ field }) => (
+                <FormItem className="space-y-2">
+                <FormLabel className="text-sm font-semibold text-slate-700">Author</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder={fetchingAudiences ? "Loading..." : "Select audience"} />
-                  </SelectTrigger>
+                    <Input placeholder="e.g. Admin" {...field} />
                 </FormControl>
-                <SelectContent>
-                  {audiences.map((audience) => (
-                    <SelectItem key={audience.audience_id} value={audience.audience_id.toString()}>
-                      {audience.audience_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+                </FormItem>
+            )}
+            />
 
-        <FormField
-          control={form.control}
-          name="class_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Target Class (Optional)</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-                disabled={fetchingAudiences}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Classes / General" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="all">All Classes / General</SelectItem>
-                  {classes.map((c) => (
-                    <SelectItem key={c.class_id} value={c.class_id.toString()}>
-                      {c.class_name}{c.section_name ? ` - ${c.section_name}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+            control={form.control}
+            name="post_date"
+            render={({ field }) => (
+                <FormItem className="flex flex-col space-y-2">
+                <FormLabel className="text-sm font-semibold text-slate-700">Date</FormLabel>
+                <Popover>
+                    <PopoverTrigger asChild>
+                    <FormControl>
+                        <Button
+                        variant={"outline"}
+                        className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                        )}
+                        >
+                        {field.value ? (
+                            format(field.value, "MMM d, yyyy")
+                        ) : (
+                            <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                    </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                    />
+                    </PopoverContent>
+                </Popover>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
 
-        <FormField
-          control={form.control}
-          name="post_date"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Date</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit" className="w-full" loading={loading}>
-          {notice ? "Update Notice" : "Post Notice"}
-        </Button>
+        <div className="grid grid-cols-2 gap-4">
+            <FormField
+            control={form.control}
+            name="audience_id"
+            render={({ field }) => (
+                <FormItem className="space-y-2">
+                <FormLabel className="text-sm font-semibold text-slate-700">Audience</FormLabel>
+                <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    disabled={fetchingAudiences}
+                >
+                    <FormControl>
+                    <SelectTrigger>
+                        <SelectValue placeholder={fetchingAudiences ? "Loading..." : "Select"} />
+                    </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                    {audiences.map((audience) => (
+                        <SelectItem key={audience.audience_id} value={audience.audience_id.toString()}>
+                        {audience.audience_name}
+                        </SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+
+            <FormField
+            control={form.control}
+            name="class_id"
+            render={({ field }) => (
+                <FormItem className="space-y-2">
+                <FormLabel className="text-sm font-semibold text-slate-700">Class</FormLabel>
+                <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    disabled={fetchingAudiences}
+                >
+                    <FormControl>
+                    <SelectTrigger>
+                        <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {classes.map((c) => (
+                        <SelectItem key={c.class_id} value={c.class_id.toString()}>
+                        {c.class_name}{c.section_name ? ` - ${c.section_name}` : ""}
+                        </SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
+
+        <div className="pt-2 flex flex-col sm:flex-row gap-2">
+            {onCancel && (
+                <Button type="button" variant="outline" onClick={onCancel} className="order-2 sm:order-1">
+                    Cancel
+                </Button>
+            )}
+            <Button type="submit" className="flex-1 order-1 sm:order-2" loading={loading}>
+                {notice ? "Update Notice" : "Post Notice"}
+            </Button>
+        </div>
       </form>
     </Form>
   );

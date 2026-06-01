@@ -6,7 +6,7 @@ import {
   Undo2, Redo2, ZoomIn, ZoomOut, Eye, Save, ChevronLeft,
   RotateCcw, Lock, Unlock, Trash2, Copy, ArrowUp, ArrowDown,
   AlignLeft, AlignCenter, AlignRight, Bold, Italic, Grid, SwitchCamera,
-  Maximize2, Minimize2
+  Maximize2, Minimize2, PanelLeft, Settings2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,8 +51,33 @@ export function IdCardCanvasEditor({ template, branding, onSave, onBack }: Edito
   const [isSaving, setIsSaving] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [dragging, setDragging] = useState<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [activeSidebar, setActiveSidebar] = useState<'none' | 'elements' | 'properties'>('none');
 
   const canvasRef = useRef<HTMLDivElement>(null);
+
+  const isPortrait = layout.orientation === "portrait";
+  const { width: cardW, height: cardH } = DIMENSIONS[layout.paperSize || "CR80"][layout.orientation];
+
+  // Detect mobile and handle resize
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Auto-zoom on mobile to fit screen
+  useEffect(() => {
+    if (isMobile && cardW) {
+      const containerW = window.innerWidth - 48; // 24px padding on each side
+      const fitZoom = containerW / cardW;
+      setZoom(Math.min(1.2, fitZoom));
+    }
+  }, [isMobile, cardW]);
 
   // Handle escape key for full screen
   useEffect(() => {
@@ -64,8 +89,6 @@ export function IdCardCanvasEditor({ template, branding, onSave, onBack }: Edito
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isFullScreen]);
-  const isPortrait = layout.orientation === "portrait";
-  const { width: cardW, height: cardH } = DIMENSIONS[layout.paperSize || "CR80"][layout.orientation];
 
   const selectedEl = layout.elements.find(e => e.id === selectedId);
 
@@ -194,19 +217,29 @@ export function IdCardCanvasEditor({ template, branding, onSave, onBack }: Edito
   };
 
   // Drag on canvas
-  const handleMouseDown = (e: React.MouseEvent, id: string) => {
+  const handleStart = (clientX: number, clientY: number, id: string) => {
     const el = layout.elements.find(el => el.id === id);
     if (!el || el.locked) return;
-    e.stopPropagation();
     setSelectedId(id);
-    setDragging({ id, startX: e.clientX, startY: e.clientY, origX: el.x, origY: el.y });
+    setDragging({ id, startX: clientX, startY: clientY, origX: el.x, origY: el.y });
+  };
+
+  const handleMouseDown = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    handleStart(e.clientX, e.clientY, id);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent, id: string) => {
+    e.stopPropagation();
+    const touch = e.touches[0];
+    handleStart(touch.clientX, touch.clientY, id);
   };
 
   useEffect(() => {
     if (!dragging) return;
-    const onMove = (e: MouseEvent) => {
-      const dx = (e.clientX - dragging.startX) / zoom;
-      const dy = (e.clientY - dragging.startY) / zoom;
+    const onMove = (clientX: number, clientY: number) => {
+      const dx = (clientX - dragging.startX) / zoom;
+      const dy = (clientY - dragging.startY) / zoom;
       const el = layout.elements.find(el => el.id === dragging.id);
       if (!el) return;
       const newX = Math.max(0, Math.min(cardW - el.width, dragging.origX + dx));
@@ -216,15 +249,28 @@ export function IdCardCanvasEditor({ template, branding, onSave, onBack }: Edito
         elements: prev.elements.map(e => e.id === dragging.id ? { ...e, x: Math.round(newX), y: Math.round(newY) } : e)
       }));
     };
+
+    const handleMouseMove = (e: MouseEvent) => onMove(e.clientX, e.clientY);
+    const handleTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      onMove(touch.clientX, touch.clientY);
+    };
+
     const onUp = () => {
       pushHistory(layout);
       setDragging(null);
     };
-    window.addEventListener("mousemove", onMove);
+
+    window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", onUp);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", onUp);
+
     return () => {
-      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", onUp);
     };
   }, [dragging, zoom, layout, cardW, cardH, pushHistory]);
 
@@ -238,120 +284,148 @@ export function IdCardCanvasEditor({ template, branding, onSave, onBack }: Edito
 
   return (
     <div className={`
-      flex flex-col bg-[#f1f5f9] overflow-hidden transition-all duration-500 ease-in-out
-      ${isFullScreen ? "fixed inset-0 z-[150] h-screen w-screen shadow-2xl" : "h-full rounded-[2.5rem] border border-slate-200/60 shadow-2xl shadow-slate-200/50"}
+      flex flex-col bg-slate-50 overflow-hidden transition-all duration-500 ease-in-out
+      ${isFullScreen ? "fixed inset-0 z-[150] h-screen w-screen shadow-2xl" : "h-full border-t border-slate-200"}
     `}>
       
       {/* ===== TOP TOOLBAR ===== */}
-      <div className="flex items-center h-16 px-6 bg-white/80 backdrop-blur-md border-b border-slate-200/60 gap-3 shrink-0 relative z-10">
-        <Button variant="ghost" size="sm" onClick={onBack} className="gap-2 h-10 px-4 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
+      <div className="flex items-center h-16 px-4 md:px-6 bg-white border-b border-slate-200 gap-2 md:gap-3 shrink-0 relative z-10">
+        <Button variant="ghost" size="sm" onClick={onBack} className="gap-2 h-10 px-2 md:px-3 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all">
           <ChevronLeft className="h-4 w-4" />
-          <div className="flex items-center gap-3">
-            <span className="font-black text-slate-800 tracking-tight text-lg">{template.name}</span>
-            <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-black uppercase">
-              {layout.paperSize} {layout.orientation}
-            </Badge>
-          </div>
+          {!isMobile && (
+            <div className="flex items-center gap-3">
+              <span className="font-bold text-slate-800 text-base">{template.name}</span>
+              <Badge variant="secondary" className="bg-slate-100 text-slate-500 border-none text-[10px] font-bold uppercase px-2 py-0">
+                {layout.paperSize} • {layout.orientation}
+              </Badge>
+            </div>
+          )}
         </Button>
-        <Separator orientation="vertical" className="h-6 mx-2 opacity-50" />
+
+        {isMobile && (
+          <Button 
+            variant="ghost" size="icon" 
+            className={`h-10 w-10 rounded-xl transition-all ${activeSidebar === 'elements' ? 'bg-primary/10 text-primary' : 'text-slate-500'}`}
+            onClick={() => setActiveSidebar(activeSidebar === 'elements' ? 'none' : 'elements')}
+          >
+            <PanelLeft className="h-5 w-5" />
+          </Button>
+        )}
+
+        <Separator orientation="vertical" className="h-6 mx-1 md:mx-2 opacity-50" />
         
         {/* Undo/Redo */}
-        <div className="flex items-center bg-slate-100/50 p-1 rounded-xl">
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-white hover:shadow-sm transition-all" onClick={undo} disabled={historyIndex <= 0} title="Undo">
+        <div className="flex items-center bg-slate-50 p-1 rounded-lg border border-slate-200">
+          <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-white hover:shadow-sm transition-all" onClick={undo} disabled={historyIndex <= 0} title="Undo">
             <Undo2 className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-white hover:shadow-sm transition-all" onClick={redo} disabled={historyIndex >= history.length - 1} title="Redo">
-            <Redo2 className="h-4 w-4" />
-          </Button>
+          {!isMobile && (
+            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-white hover:shadow-sm transition-all" onClick={redo} disabled={historyIndex >= history.length - 1} title="Redo">
+              <Redo2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
 
-        <Separator orientation="vertical" className="h-6 mx-2 opacity-50" />
-
-        {/* Zoom Controls */}
-        <div className="flex items-center bg-slate-100/50 p-1 rounded-xl">
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-white hover:shadow-sm transition-all" onClick={() => setZoom(z => Math.max(0.5, z - 0.25))} title="Zoom Out">
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          <span className="text-[10px] font-black text-slate-500 w-12 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-white hover:shadow-sm transition-all" onClick={() => setZoom(z => Math.min(3, z + 0.25))} title="Zoom In">
-            <ZoomIn className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <Separator orientation="vertical" className="h-6 mx-2 opacity-50" />
-
-        {/* Layout Context */}
-        <div className="hidden lg:flex items-center gap-3 px-4 py-2 bg-slate-900 rounded-xl shadow-lg shadow-slate-200">
-          <div className="flex flex-col items-start leading-none gap-1">
-             <span className="text-[8px] font-black text-primary uppercase tracking-[0.2em]">{layout.paperSize || "CR80"} STANDARD</span>
-             <span className="text-[10px] font-black text-white uppercase tracking-wider">{layout.documentType?.replace('_', ' ') || "DOCUMENT"}</span>
-          </div>
-          <Separator orientation="vertical" className="h-4 bg-white/20" />
-          <Button variant="ghost" size="sm" className="h-6 px-2 hover:bg-white/10 text-white/70 hover:text-white transition-all gap-1.5 text-[9px] font-black uppercase tracking-widest" onClick={toggleOrientation}>
-            <SwitchCamera className="h-3 w-3" />
-            {isPortrait ? "Portrait" : "Landscape"}
-          </Button>
-        </div>
+        {!isMobile && (
+          <>
+            <Separator orientation="vertical" className="h-6 mx-2 opacity-50" />
+            {/* Zoom Controls */}
+            <div className="flex items-center bg-slate-50 p-1 rounded-lg border border-slate-200">
+              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-white hover:shadow-sm transition-all" onClick={() => setZoom(z => Math.max(0.5, z - 0.25))} title="Zoom Out">
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <span className="text-[10px] font-bold text-slate-500 w-12 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
+              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-white hover:shadow-sm transition-all" onClick={() => setZoom(z => Math.min(3, z + 0.25))} title="Zoom In">
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+            </div>
+          </>
+        )}
 
         <div className="flex-1" />
 
         {/* Primary Actions */}
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className={`h-10 rounded-xl gap-2 font-bold text-xs transition-all ${showGrid ? "bg-slate-100 text-primary" : "text-slate-500"}`}
-            onClick={() => setShowGrid(!showGrid)}
-          >
-            <Grid className="h-4 w-4" /> 
-            {showGrid ? "Grid On" : "No Grid"}
-          </Button>
+        <div className="flex items-center gap-1.5 md:gap-2">
+          {isMobile && selectedId && (
+            <Button 
+              variant="ghost" size="icon" 
+              className={`h-10 w-10 rounded-xl transition-all ${activeSidebar === 'properties' ? 'bg-primary/10 text-primary' : 'text-slate-500'}`}
+              onClick={() => setActiveSidebar(activeSidebar === 'properties' ? 'none' : 'properties')}
+            >
+              <Settings2 className="h-5 w-5" />
+            </Button>
+          )}
 
-          <Button variant="outline" size="sm" className="h-10 px-6 rounded-xl border-slate-200 hover:bg-slate-50 font-bold text-xs gap-2 shadow-sm transition-all" onClick={() => setShowPreview(true)}>
+          {!isMobile && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className={`h-10 rounded-lg gap-2 font-bold text-xs transition-all ${showGrid ? "bg-primary/5 text-primary" : "text-slate-500"}`}
+              onClick={() => setShowGrid(!showGrid)}
+            >
+              <Grid className="h-4 w-4" /> 
+              {showGrid ? "Grid On" : "No Grid"}
+            </Button>
+          )}
+
+          <Button variant="outline" size="sm" className="h-10 px-2 md:px-4 rounded-lg border-slate-200 hover:bg-slate-50 font-bold text-xs gap-2 shadow-sm transition-all" onClick={() => setShowPreview(true)}>
             <Eye className="h-4 w-4" /> 
-            Live Preview
+            {!isMobile && "Preview"}
           </Button>
           
-          <Button size="sm" className="h-10 px-8 rounded-xl bg-slate-900 hover:bg-black text-white font-black text-xs gap-2 shadow-xl shadow-slate-200 transition-all active:scale-95" onClick={handleSave} disabled={isSaving}>
-            <Save className="h-4 w-4 text-primary" /> 
-            {isSaving ? "Saving..." : "Deploy Design"}
+          <Button size="sm" className="h-10 px-4 md:px-6 rounded-lg bg-primary hover:bg-primary/90 text-white font-bold text-xs gap-2 shadow-sm transition-all active:scale-95" onClick={handleSave} disabled={isSaving}>
+            <Save className="h-4 w-4" /> 
+            {!isMobile && (isSaving ? "Saving..." : "Deploy Design")}
           </Button>
 
-          <Separator orientation="vertical" className="h-8 mx-1 opacity-50" />
-
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-10 w-10 shrink-0 rounded-xl hover:bg-slate-100 transition-all"
-            onClick={() => setIsFullScreen(!isFullScreen)}
-          >
-            {isFullScreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
-          </Button>
+          {!isMobile && (
+            <>
+              <Separator orientation="vertical" className="h-8 mx-1 opacity-50" />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-10 w-10 shrink-0 rounded-xl hover:bg-slate-100 transition-all"
+                onClick={() => setIsFullScreen(!isFullScreen)}
+              >
+                {isFullScreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
       {/* ===== MAIN 3-COLUMN LAYOUT ===== */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
+        
+        {/* Mobile Sidebar Overlay */}
+        {isMobile && activeSidebar !== 'none' && (
+          <div 
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[90] transition-opacity"
+            onClick={() => setActiveSidebar('none')}
+          />
+        )}
 
         {/* ===== LEFT PANEL — ELEMENTS ===== */}
-        <div className="w-64 shrink-0 bg-white/40 backdrop-blur-xl border-r border-slate-200/60 overflow-y-auto flex flex-col custom-scrollbar">
-          <div className="p-6 border-b border-slate-200/40">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Component Library</h3>
+        <div className={`
+          ${isMobile ? "fixed inset-y-0 left-0 z-[100] w-[80%] max-w-[300px] shadow-2xl transition-transform duration-300 transform" : "w-64 shrink-0 border-r"}
+          ${isMobile && activeSidebar !== 'elements' ? "-translate-x-full" : "translate-x-0"}
+          bg-white border-slate-200 overflow-y-auto flex flex-col custom-scrollbar
+        `}>
+          <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Component Library</h3>
           </div>
           
-          <div className="flex-1 space-y-6 p-6">
+          <div className="flex-1 space-y-6 p-4">
             <div>
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
-                <span className="w-4 h-px bg-slate-200" /> DYNAMIC TOKENS
-              </p>
-              <div className="grid grid-cols-1 gap-1.5">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-2">Dynamic Tokens</p>
+              <div className="grid grid-cols-1 gap-1">
                 {DYNAMIC_FIELDS.map(f => (
                   <button
                     key={f.type}
                     onClick={() => addElement(f.type, f.label)}
-                    className="group w-full text-left px-3 py-2.5 rounded-xl text-[11px] font-bold text-slate-600 hover:bg-white hover:text-primary hover:shadow-md hover:shadow-slate-200/50 transition-all flex items-center gap-3 border border-transparent hover:border-slate-100"
+                    className="group w-full text-left px-3 py-2 rounded-lg text-[11px] font-bold text-slate-600 hover:bg-primary/5 hover:text-primary transition-all flex items-center gap-2 border border-transparent"
                   >
-                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-primary transition-colors shrink-0" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-slate-200 group-hover:bg-primary transition-colors shrink-0" />
                     {f.label}
                   </button>
                 ))}
@@ -359,15 +433,13 @@ export function IdCardCanvasEditor({ template, branding, onSave, onBack }: Edito
             </div>
 
             <div>
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
-                <span className="w-4 h-px bg-slate-200" /> STATICS & SHAPES
-              </p>
-              <div className="grid grid-cols-1 gap-1.5">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-2">Statics & Shapes</p>
+              <div className="grid grid-cols-1 gap-1">
                 {STATIC_FIELDS.map(f => (
                   <button
                     key={f.type}
                     onClick={() => addElement(f.type, f.label)}
-                    className="group w-full text-left px-3 py-2.5 rounded-xl text-[11px] font-bold text-slate-600 hover:bg-white hover:text-slate-900 hover:shadow-md hover:shadow-slate-200/50 transition-all flex items-center gap-3 border border-transparent hover:border-slate-100"
+                    className="group w-full text-left px-3 py-2 rounded-lg text-[11px] font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all flex items-center gap-2 border border-transparent"
                   >
                     <div className="w-1.5 h-1.5 rounded-full bg-slate-200 group-hover:bg-slate-800 transition-colors shrink-0" />
                     {f.label}
@@ -378,13 +450,13 @@ export function IdCardCanvasEditor({ template, branding, onSave, onBack }: Edito
           </div>
           
           {/* Canvas Styles */}
-          <div className="p-6 border-t border-slate-200/40 bg-white/40">
-            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-4">Canvas Aesthetics</Label>
-            <div className="space-y-4">
+          <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+            <Label className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-3">Canvas Aesthetics</Label>
+            <div className="space-y-3">
                <div>
                   <Label className="text-[10px] text-slate-500 font-bold mb-1.5 block">Background Base</Label>
-                  <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-slate-100 shadow-sm">
-                    <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200 shadow-inner shrink-0">
+                  <div className="flex items-center gap-2 bg-white p-1.5 rounded-lg border border-slate-200">
+                    <div className="relative w-6 h-6 rounded-md overflow-hidden border border-slate-200 shrink-0">
                       <input
                         type="color"
                         value={layout.bgColor}
@@ -392,7 +464,7 @@ export function IdCardCanvasEditor({ template, branding, onSave, onBack }: Edito
                         className="absolute inset-[-20%] w-[140%] h-[140%] cursor-pointer"
                       />
                     </div>
-                    <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">{layout.bgColor}</span>
+                    <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest flex-1">{layout.bgColor}</span>
                   </div>
                </div>
             </div>
@@ -401,7 +473,7 @@ export function IdCardCanvasEditor({ template, branding, onSave, onBack }: Edito
 
         {/* ===== CENTER CANVAS ===== */}
         <div
-          className="flex-1 overflow-auto bg-slate-200 flex items-center justify-center p-8"
+          className={`flex-1 overflow-auto bg-slate-200 flex items-center justify-center ${isMobile ? "p-4" : "p-8"}`}
           style={{ backgroundImage: showGrid ? "radial-gradient(circle, #94a3b8 1px, transparent 1px)" : "none", backgroundSize: "20px 20px" }}
           onClick={() => setSelectedId(null)}
         >
@@ -430,27 +502,32 @@ export function IdCardCanvasEditor({ template, branding, onSave, onBack }: Edito
                   isSelected={selectedId === el.id}
                   branding={branding}
                   onMouseDown={(e) => handleMouseDown(e, el.id)}
+                  onTouchStart={(e) => handleTouchStart(e, el.id)}
                 />
               ))}
           </div>
         </div>
 
         {/* ===== RIGHT PANEL — PROPERTIES ===== */}
-        <div className="w-72 shrink-0 bg-white/80 backdrop-blur-xl border-l border-slate-200/60 overflow-y-auto custom-scrollbar">
+        <div className={`
+          ${isMobile ? "fixed inset-y-0 right-0 z-[100] w-[80%] max-w-[300px] shadow-2xl transition-transform duration-300 transform" : "w-72 shrink-0 border-l"}
+          ${isMobile && activeSidebar !== 'properties' ? "translate-x-full" : "translate-x-0"}
+          bg-white border-slate-200 overflow-y-auto custom-scrollbar
+        `}>
           {selectedEl ? (
             <div className="flex flex-col">
               {/* Element header */}
-              <div className="p-6 border-b border-slate-200/40 flex items-center justify-between bg-white/30">
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div>
-                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 leading-none mb-1.5">Contextual Styling</p>
-                  <p className="text-sm font-black text-slate-900">{selectedEl.label || selectedEl.type}</p>
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 leading-none mb-1">Properties</p>
+                  <p className="text-xs font-bold text-slate-900">{selectedEl.label || selectedEl.type}</p>
                 </div>
-                <div className="flex gap-1.5">
-                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-white hover:shadow-md transition-all" onClick={duplicateSelected} title="Duplicate">
-                    <Copy className="h-4 w-4 text-slate-400" />
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-white hover:border-slate-200 border border-transparent transition-all" onClick={duplicateSelected} title="Duplicate">
+                    <Copy className="h-3.5 w-3.5 text-slate-400" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-rose-50 text-rose-500 hover:text-rose-600 transition-all" onClick={deleteSelected} title="Delete">
-                    <Trash2 className="h-4 w-4" />
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-rose-50 text-rose-500 hover:text-rose-600 transition-all" onClick={deleteSelected} title="Delete">
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
@@ -739,9 +816,10 @@ interface ElementRendererProps {
   isSelected: boolean;
   branding: EditorProps["branding"];
   onMouseDown: (e: React.MouseEvent) => void;
+  onTouchStart: (e: React.TouchEvent) => void;
 }
 
-function CanvasElementRenderer({ el, zoom, isSelected, branding, onMouseDown }: ElementRendererProps) {
+function CanvasElementRenderer({ el, zoom, isSelected, branding, onMouseDown, onTouchStart }: ElementRendererProps) {
   const s = el;
   const style: React.CSSProperties = {
     position: "absolute",
@@ -767,6 +845,7 @@ function CanvasElementRenderer({ el, zoom, isSelected, branding, onMouseDown }: 
     return (
       <div
         onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
         style={{
           ...style,
           ...selectionStyle,
@@ -782,6 +861,7 @@ function CanvasElementRenderer({ el, zoom, isSelected, branding, onMouseDown }: 
     return (
       <div
         onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
         style={{
           ...style,
           ...selectionStyle,
@@ -797,6 +877,7 @@ function CanvasElementRenderer({ el, zoom, isSelected, branding, onMouseDown }: 
     return (
       <div
         onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
         style={{
           ...style,
           ...selectionStyle,
@@ -822,6 +903,7 @@ function CanvasElementRenderer({ el, zoom, isSelected, branding, onMouseDown }: 
     return (
       <div
         onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
         style={{
           ...style,
           ...selectionStyle,
@@ -845,6 +927,7 @@ function CanvasElementRenderer({ el, zoom, isSelected, branding, onMouseDown }: 
     return (
       <div
         onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
         style={{ ...style, ...selectionStyle, display: "flex", alignItems: "center", justifyContent: "center" }}
       >
         {branding.signatureUrl ? (
@@ -858,7 +941,11 @@ function CanvasElementRenderer({ el, zoom, isSelected, branding, onMouseDown }: 
 
   if (s.type === "qr_code") {
     return (
-      <div onMouseDown={onMouseDown} style={{ ...style, ...selectionStyle, padding: 3, backgroundColor: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div 
+        onMouseDown={onMouseDown} 
+        onTouchStart={onTouchStart}
+        style={{ ...style, ...selectionStyle, padding: 3, backgroundColor: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}
+      >
         <QRCode value={MOCK_STUDENT.admission_number} size={Math.min(s.width, s.height) * zoom - 6} />
       </div>
     );
@@ -866,7 +953,11 @@ function CanvasElementRenderer({ el, zoom, isSelected, branding, onMouseDown }: 
 
   if (s.type === "barcode") {
     return (
-      <div onMouseDown={onMouseDown} style={{ ...style, ...selectionStyle, display: "flex", gap: 1, padding: 3, backgroundColor: "#fff", alignItems: "stretch" }}>
+      <div 
+        onMouseDown={onMouseDown} 
+        onTouchStart={onTouchStart}
+        style={{ ...style, ...selectionStyle, display: "flex", gap: 1, padding: 3, backgroundColor: "#fff", alignItems: "stretch" }}
+      >
         {Array.from({ length: 24 }).map((_, i) => (
           <div key={i} style={{ flex: i % 3 === 0 ? 2 : 1, backgroundColor: "#1e293b", height: "100%", borderRadius: 0.5 }} />
         ))}
@@ -912,6 +1003,7 @@ function CanvasElementRenderer({ el, zoom, isSelected, branding, onMouseDown }: 
   return (
     <div
       onMouseDown={onMouseDown}
+      onTouchStart={onTouchStart}
       style={{
         ...style,
         ...selectionStyle,

@@ -96,7 +96,7 @@ export const addToQuestionBank = async (payload: any) => {
 ═══════════════════════════════════════════ */
 export const generatePaperPDF = async (
   paperId: number | string,
-  options: { generate_answer_key?: boolean } = {}
+  options: { generate_answer_key?: boolean; html?: string } = {}
 ): Promise<string> => {
   // Returns a blob object URL for direct browser display
   const res = await axios.post(

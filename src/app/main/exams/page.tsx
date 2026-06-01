@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { cn, formatDate } from "@/lib/utils";
 import axios from "@/lib/axios";
 import { useRoleGuard } from "@/hooks/useRoleGuard";
 import { useSearch } from "@/components/campus-connect/search-provider";
@@ -15,7 +16,8 @@ import {
   BookOpen,
   Users,
 } from "lucide-react";
-import { PageSkeleton } from "@/components/ui/skeletons";
+import { PageSkeleton, TableSkeleton } from "@/components/ui/skeletons";
+import { useFeedback } from "@/components/campus-connect/feedback-provider";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,16 +58,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+
 
 import { ExamForm } from "@/components/campus-connect/exam-form";
 import { GradeEntryForm } from "@/components/campus-connect/grade-entry-form";
@@ -94,7 +87,7 @@ function formatDateTime(dateTime: string) {
   if (!dateTime) return { date: "—", time: "" };
   const d = new Date(dateTime);
   return {
-    date: d.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "2-digit" }),
+    date: formatDate(d),
     time: d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
   };
 }
@@ -106,6 +99,7 @@ export default function ExamsPage() {
   useRoleGuard(ALLOWED_ROLES);
   const router = useRouter();
   const { toast } = useToast();
+  const { showSuccess, showWarning } = useFeedback();
   const { searchQuery } = useSearch();
 
   const roleId =
@@ -123,6 +117,7 @@ export default function ExamsPage() {
   const [loading, setLoading] = React.useState(true);
   const [formLoading, setFormLoading] = React.useState(false);
   const [selectedStandard, setSelectedStandard] = React.useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = React.useState<string>("all");
 
   /* Dialog visibility */
   const [isScheduleOpen, setIsScheduleOpen] = React.useState(false);
@@ -170,6 +165,10 @@ export default function ExamsPage() {
       result = result.filter((e) => e.class_name === selectedStandard);
     }
 
+    if (selectedStatus !== "all") {
+      result = result.filter((e) => e.computed_status?.toLowerCase() === selectedStatus);
+    }
+
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
@@ -206,7 +205,7 @@ export default function ExamsPage() {
     });
 
     return Array.from(uniqueExamsMap.values());
-  }, [exams, searchQuery, selectedStandard]);
+  }, [exams, searchQuery, selectedStandard, selectedStatus]);
 
   /* ===== CREATE ===== */
   const handleCreate = async (values: any) => {
@@ -225,7 +224,7 @@ export default function ExamsPage() {
         max_marks: values.max_marks || null,
         exam_status_id: parseInt(values.exam_status_id),
       });
-      toast({ title: "Exam Scheduled", description: `${values.exam_name} has been created.` });
+      showSuccess("Exam Scheduled", `${values.exam_name} has been scheduled successfully.`);
       setIsScheduleOpen(false);
       handleActionSuccess();
     } catch (err: any) {
@@ -257,7 +256,7 @@ export default function ExamsPage() {
         max_marks: values.max_marks || null,
         exam_status_id: parseInt(values.exam_status_id),
       });
-      toast({ title: "Exam Updated", description: `${values.exam_name} has been updated.` });
+      showSuccess("Exam Updated", `${values.exam_name} has been updated successfully.`);
       setIsEditOpen(false);
       setSelectedExam(null);
       handleActionSuccess();
@@ -277,16 +276,26 @@ export default function ExamsPage() {
     if (!deleteTarget) return;
     try {
       await axios.delete(`/api/exams/${deleteTarget.exam_id}`);
-      toast({ title: "Deleted", description: `${deleteTarget.exam_name} has been removed.` });
+      toast({ title: "Exam Deleted", description: `${deleteTarget.exam_name} has been removed.`, variant: "destructive" });
       setDeleteTarget(null);
       handleActionSuccess();
     } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err?.response?.data?.message || "Failed to delete exam",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: err?.response?.data?.message || "Failed to delete exam", variant: "destructive" });
     }
+  };
+
+  const confirmDelete = (exam: any) => {
+    showWarning(
+      `Delete "${exam.exam_name}"?`,
+      "This will permanently delete the exam and all its grades. This action cannot be undone.",
+      async () => {
+        await axios.delete(`/api/exams/${exam.exam_id}`);
+        toast({ title: "Exam Deleted", description: `${exam.exam_name} has been removed.`, variant: "destructive" });
+        handleActionSuccess();
+      },
+      "Yes, Delete"
+    );
+    setDeleteTarget(null);
   };
 
   /* ===================================================================
@@ -303,9 +312,9 @@ export default function ExamsPage() {
             </CardDescription>
           </div>
           
-          <div className="flex flex-wrap items-center gap-2">
-            <Select value={selectedStandard} onValueChange={setSelectedStandard}>
-              <SelectTrigger className="w-[140px] h-9">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+             <Select value={selectedStandard} onValueChange={setSelectedStandard}>
+              <SelectTrigger className="w-full sm:w-[140px] h-9">
                 <SelectValue placeholder="Standard" />
               </SelectTrigger>
               <SelectContent>
@@ -318,24 +327,29 @@ export default function ExamsPage() {
               </SelectContent>
             </Select>
 
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger className="w-full sm:w-[140px] h-9">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="upcoming">Upcoming</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="scheduled">Scheduled</SelectItem>
+              </SelectContent>
+            </Select>
+
             {canManage && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => router.push("/main/exams/generate")}
-                >
-                  <FilePenLine className="mr-2 h-4 w-4" />
-                  Generate Paper
-                </Button>
+              <div className="flex flex-col xs:flex-row gap-2">
                 <Button
                   size="sm"
+                  className="w-full xs:w-auto"
                   onClick={() => setIsScheduleOpen(true)}
                 >
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Schedule Exam
                 </Button>
-              </>
+              </div>
             )}
           </div>
         </CardHeader>
@@ -357,11 +371,7 @@ export default function ExamsPage() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="p-0">
-                      <PageSkeleton rows={4} />
-                    </TableCell>
-                  </TableRow>
+                  <TableSkeleton cols={7} rows={4} />
                 ) : filtered.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
@@ -411,7 +421,7 @@ export default function ExamsPage() {
                                 setIsGradeOpen(true); 
                               }}
                               onResults={() => { setSelectedExam(exam); setIsResultsOpen(true); }}
-                              onDelete={() => setDeleteTarget(exam)}
+                              onDelete={() => confirmDelete(exam)}
                             />
                           </TableCell>
                         )}
@@ -424,9 +434,9 @@ export default function ExamsPage() {
           </div>
 
           {/* Mobile Card List */}
-          <div className="sm:hidden divide-y">
+          <div className="sm:hidden flex flex-col gap-3 p-4 bg-muted/10">
             {loading ? (
-              <div className="py-4 px-2">
+              <div className="py-4">
                 <PageSkeleton rows={3} />
               </div>
             ) : filtered.length === 0 ? (
@@ -438,7 +448,7 @@ export default function ExamsPage() {
                 const dt = formatDateTime(exam.date_time);
                 const isCompleted = exam.computed_status?.toLowerCase() === "completed" || exam.exam_status_name?.toLowerCase() === "completed";
                 return (
-                  <div key={exam.exam_id} className="p-4 space-y-2">
+                  <div key={exam.exam_id} className="bg-background border rounded-xl p-4 shadow-sm space-y-3 relative">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="font-semibold text-sm">{exam.exam_name}</p>
@@ -459,30 +469,30 @@ export default function ExamsPage() {
                             setIsGradeOpen(true); 
                           }}
                           onResults={() => { setSelectedExam(exam); setIsResultsOpen(true); }}
-                          onDelete={() => setDeleteTarget(exam)}
+                          onDelete={() => confirmDelete(exam)}
                         />
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground bg-muted/30 p-2 rounded-md">
                       <span className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
+                        <Users className="h-3 w-3 text-primary/60" />
                         Standard {exam.class_name}
                       </span>
                       <span className="flex items-center gap-1">
-                        <BookOpen className="h-3 w-3" />
+                        <BookOpen className="h-3 w-3 text-primary/60" />
                         {exam.subject_name}
                       </span>
                       <span className="flex items-center gap-1">
-                        <CalendarClock className="h-3 w-3" />
+                        <CalendarClock className="h-3 w-3 text-primary/60" />
                         {dt.date} {dt.time}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between pt-1">
                       <Badge variant={getStatusVariant(exam.computed_status)}>
                         {exam.computed_status ? exam.computed_status.charAt(0).toUpperCase() + exam.computed_status.slice(1) : "Unknown"}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        Total: <strong>{exam.total_score}</strong>
+                      <span className="text-xs text-muted-foreground bg-primary/5 px-2 py-1 rounded-md">
+                        Total: <strong className="text-primary">{exam.total_score}</strong>
                       </span>
                     </div>
                   </div>
@@ -559,26 +569,7 @@ export default function ExamsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ===== DELETE CONFIRM DIALOG ===== */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Exam?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete <strong>{deleteTarget?.exam_name}</strong> and all its grades. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={handleDelete}
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Delete confirmation handled by global showWarning modal */}
     </>
   );
 }

@@ -81,3 +81,8 @@ export const uploadEventPhotos = async (eventId: string | number, files: File[])
     });
     return res.data.data;
 };
+
+export const deleteEventPhoto = async (photoId: string | number) => {
+    const res = await axios.delete(`/api/events/photos/${photoId}`);
+    return res.data;
+};

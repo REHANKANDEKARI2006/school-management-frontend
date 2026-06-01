@@ -102,7 +102,7 @@ export function ManageScheduleModal({ onSubmit }: ManageScheduleModalProps) {
                                 <SelectContent>
                                     {classes.map((c) => (
                                         <SelectItem key={c.class_id} value={c.class_id.toString()}>
-                                            {c.class_name} {c.section_name ? `(${c.section_name})` : ''}
+                                            {c.class_name}{c.section_name ? ` - ${c.section_name}` : ''}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>

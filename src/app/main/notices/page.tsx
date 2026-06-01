@@ -4,7 +4,8 @@
 import * as React from "react";
 import axios from "@/lib/axios";
 import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, User } from "lucide-react";
-import { PageSkeleton } from "@/components/ui/skeletons";
+import { PageSkeleton, TableSkeleton } from "@/components/ui/skeletons";
+import { useFeedback } from "@/components/campus-connect/feedback-provider";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -35,16 +36,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { NoticeForm } from "@/components/campus-connect/notice-form";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -57,6 +48,7 @@ import { ROLE } from "@/config/roles";
 
 export default function NoticesPage() {
   const { toast } = useToast();
+  const { showSuccess, showError, showWarning } = useFeedback();
   const { searchQuery } = useSearch();
   const [notices, setNotices] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -106,20 +98,16 @@ export default function NoticesPage() {
     try {
       if (selectedNotice) {
         await updateNotice(selectedNotice.notice_id, noticeData);
-        toast({ title: "Notice Updated", description: `"${noticeData.title}" has been updated.` });
+        showSuccess("Notice Updated", `"${noticeData.title}" has been updated successfully.`);
       } else {
         await createNotice(noticeData);
-        toast({ title: "Notice Posted", description: `"${noticeData.title}" has been published.` });
+        showSuccess("Notice Published", `"${noticeData.title}" has been posted to the notice board.`);
       }
       setIsFormOpen(false);
       setSelectedNotice(undefined);
       fetchNoticesData();
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "Operation failed",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: error.response?.data?.message || "Operation failed", variant: "destructive" });
     } finally {
       setFormLoading(false);
     }
@@ -129,16 +117,25 @@ export default function NoticesPage() {
     if (!deleteTarget) return;
     try {
       await deleteNotice(deleteTarget.notice_id);
-      toast({ title: "Notice Deleted", description: `"${deleteTarget.title}" has been removed.` });
+      toast({ title: "Notice Deleted", description: `"${deleteTarget.title}" has been removed.`, variant: "destructive" });
       setDeleteTarget(null);
       fetchNoticesData();
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "Deletion failed",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: error.response?.data?.message || "Deletion failed", variant: "destructive" });
     }
+  };
+
+  const confirmDelete = (notice: any) => {
+    showWarning(
+      `Delete "${notice.title}"?`,
+      "This will permanently remove the notice and cannot be undone.",
+      async () => {
+        await deleteNotice(notice.notice_id);
+        toast({ title: "Notice Deleted", description: `"${notice.title}" has been removed.`, variant: "destructive" });
+        fetchNoticesData();
+      },
+      "Yes, Delete"
+    );
   };
 
   const openEditDialog = (notice: any) => {
@@ -174,25 +171,22 @@ export default function NoticesPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* DESKTOP TABLE VIEW */}
+          <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Notice Details</TableHead>
-                  <TableHead className="hidden md:table-cell">Audience</TableHead>
-                  <TableHead className="hidden md:table-cell">Author</TableHead>
-                  <TableHead className="hidden sm:table-cell">Date</TableHead>
+                  <TableHead>Audience</TableHead>
+                  <TableHead>Author</TableHead>
+                  <TableHead>Date</TableHead>
                   {!isStudent && <TableHead className="w-12 text-right pr-6">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="p-0">
-                      <PageSkeleton rows={4} />
-                    </TableCell>
-                  </TableRow>
-                ) : filteredNotices.length === 0 ? (
+                  {loading ? (
+                    <TableSkeleton cols={5} rows={4} />
+                  ) : filteredNotices.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
                       No notices found.
@@ -207,10 +201,10 @@ export default function NoticesPage() {
                           {notice.content}
                         </div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell>
                         <Badge variant="outline">{notice.audience_name || "General"}</Badge>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-9 w-9 border border-slate-100 shadow-sm">
                             <AvatarImage src={notice.author_img || ""} alt={notice.author_name} />
@@ -224,7 +218,7 @@ export default function NoticesPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                      <TableCell className="text-sm text-muted-foreground">
                         <div className="flex items-center gap-1.5">
                           <CalendarIcon className="h-3.5 w-3.5" />
                           {notice.post_date ? format(new Date(notice.post_date), "PPP") : "No date"}
@@ -245,7 +239,7 @@ export default function NoticesPage() {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   className="text-destructive focus:text-destructive"
-                                  onClick={() => setDeleteTarget(notice)}
+                                  onClick={() => confirmDelete(notice)}
                                 >
                                   Delete Notice
                                 </DropdownMenuItem>
@@ -259,11 +253,65 @@ export default function NoticesPage() {
               </TableBody>
             </Table>
           </div>
+
+          {/* MOBILE CARD VIEW */}
+          <div className="md:hidden flex flex-col divide-y divide-border">
+            {loading ? (
+              <div className="p-4"><PageSkeleton rows={3} /></div>
+            ) : filteredNotices.length === 0 ? (
+              <div className="p-12 text-center text-muted-foreground">No notices found.</div>
+            ) : (
+              filteredNotices.map((notice) => (
+                <div key={notice.notice_id} className="p-4 bg-background hover:bg-muted/10 transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                      <div className="font-bold text-lg leading-tight mb-1">{notice.title}</div>
+                      <Badge variant="outline" className="text-[10px] h-5 mb-2">
+                        {notice.audience_name || "General"}
+                      </Badge>
+                    </div>
+                    {!isStudent && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="icon" variant="ghost" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEditDialog(notice)}>Edit</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => confirmDelete(notice)}>Delete</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
+                  
+                  <div className="text-sm text-muted-foreground mb-4 leading-relaxed line-clamp-3">
+                    {notice.content}
+                  </div>
+
+                  <div className="flex items-center justify-between mt-auto">
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-6 w-6 border">
+                        <AvatarFallback className="text-[8px] font-black bg-muted">
+                          {getFallback(notice.author_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs font-medium text-slate-600">{notice.author_name}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                      <CalendarIcon className="h-3 w-3" />
+                      {notice.post_date ? format(new Date(notice.post_date), "MMM d, yyyy") : "N/A"}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[450px]">
+        <DialogContent className="w-[94vw] sm:max-w-[450px] rounded-2xl left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%]">
           <DialogHeader>
             <DialogTitle>{selectedNotice ? "Edit Notice" : "Post New Notice"}</DialogTitle>
             <DialogDescription>
@@ -272,32 +320,14 @@ export default function NoticesPage() {
           </DialogHeader>
           <NoticeForm
             onSubmit={handleFormSubmit}
+            onCancel={() => setIsFormOpen(false)}
             notice={selectedNotice}
             loading={formLoading}
           />
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the notice
-              <strong> "{deleteTarget?.title}"</strong>.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Feedback modals handled by global FeedbackProvider */}
     </>
   );
 }

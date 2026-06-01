@@ -22,13 +22,14 @@ import { useToast } from "@/hooks/use-toast";
 import { getClasses } from "@/lib/api/classes";
 import { getFeeStatusByClass } from "@/lib/api/fees";
 import { StudentFeeLedger } from "@/components/campus-connect/student-fee-ledger";
-import { User, Search, School } from "lucide-react";
+import { User, Search, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 export default function FeeCollectionPage() {
   const { toast } = useToast();
+  const router = useRouter();
 
   const [classes, setClasses] = React.useState<any[]>([]);
   const [students, setStudents] = React.useState<any[]>([]);
@@ -77,22 +78,45 @@ export default function FeeCollectionPage() {
     }
   }, [selectedClassId]);
 
-  const filteredStudents = students.filter(s => 
-    `${s.stu_first_name} ${s.stu_last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (s.roll_no && String(s.roll_no).includes(searchQuery))
-  );
+  const [statusFilter, setStatusFilter] = React.useState<"all" | "complete" | "pending">("all");
+
+  const filteredStudents = students.filter(s => {
+    const matchesSearch = `${s.stu_first_name} ${s.stu_last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (s.roll_no && String(s.roll_no).includes(searchQuery));
+    
+    if (!matchesSearch) return false;
+    
+    const balance = Number(s.total_fees) - Number(s.total_paid);
+    if (statusFilter === "complete") {
+      return balance <= 0;
+    } else if (statusFilter === "pending") {
+      return balance > 0;
+    }
+    return true;
+  });
 
   if (loading) return <PageSkeleton rows={5} />;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] gap-6">
-      <Card className="flex-shrink-0 shadow-sm border-none bg-blue-50/30">
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-6 items-end">
-            <div className="w-full md:w-1/3">
-              <Label className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2 block">Select Class & Section</Label>
+    <div className="flex flex-col gap-6 pb-10">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <div 
+                className="flex items-center gap-2 text-sm text-muted-foreground mb-3 cursor-pointer hover:text-primary transition-colors w-fit" 
+                onClick={() => router.push('/main/fees')}
+              >
+                <ArrowLeft className="h-4 w-4" /> Back to Fees
+              </div>
+              <CardTitle>Fee Collection</CardTitle>
+              <CardDescription>Manage student fees and issue receipts</CardDescription>
+            </div>
+            
+            <div className="w-full sm:w-64">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Select Class & Section</Label>
               <Select onValueChange={setSelectedClassId}>
-                <SelectTrigger className="bg-white border-2 border-blue-100 hover:border-blue-200 transition-colors">
+                <SelectTrigger>
                   <SelectValue placeholder="Choose a class..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -104,36 +128,38 @@ export default function FeeCollectionPage() {
                 </SelectContent>
               </Select>
             </div>
-            
-            <div className="flex-grow">
-               <div className="flex items-center gap-4 text-blue-800">
-                    <School className="h-10 w-10 p-2 bg-blue-100 rounded-lg" />
-                    <div>
-                        <h2 className="text-2xl font-black tracking-tight">Fee Collection Center</h2>
-                        <p className="text-sm text-blue-600 font-medium">Manage student fees and issue receipts</p>
-                    </div>
-               </div>
-            </div>
           </div>
-        </CardContent>
+        </CardHeader>
       </Card>
 
-      <div className="flex flex-1 gap-6 overflow-hidden">
+      <div className="flex flex-col lg:flex-row gap-6 min-h-[600px]">
         {/* SIDEBAR: Student List */}
-        <Card className="w-full md:w-80 flex flex-col shadow-md border-gray-100 overflow-hidden">
-          <CardHeader className="pb-4 bg-gray-50/50">
+        <Card className="w-full lg:w-80 flex flex-col shadow-sm h-[400px] lg:h-auto lg:max-h-[800px] flex-shrink-0">
+          <CardHeader className="pb-4 bg-muted/30 border-b">
             <CardTitle className="text-sm flex items-center justify-between">
               <span>Students</span>
               <Badge variant="secondary" className="font-mono">{filteredStudents.length}</Badge>
             </CardTitle>
-            <div className="relative mt-2">
-              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Search name/roll..."
-                className="pl-8 h-9 text-xs border-gray-200"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
+            <div className="flex flex-col gap-2 mt-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Search name/roll..."
+                  className="pl-8 h-9 text-xs border-gray-200"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={(val: any) => setStatusFilter(val)}>
+                <SelectTrigger className="h-9 text-xs border-gray-200 bg-white">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="complete">Complete (Fully Paid)</SelectItem>
+                  <SelectItem value="pending">Pending (Has Balance)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardHeader>
           <ScrollArea className="flex-grow">
@@ -154,26 +180,26 @@ export default function FeeCollectionPage() {
                     <button
                       key={s.student_id}
                       onClick={() => setSelectedStudent(s)}
-                      className={`w-full text-left p-3 rounded-lg transition-all group relative ${
+                      className={`w-full text-left p-3 rounded-lg transition-all group relative border ${
                         isSelected 
-                        ? "bg-blue-600 shadow-blue-200 shadow-lg translate-x-1" 
-                        : "hover:bg-gray-50"
+                        ? "bg-primary/10 border-primary/20" 
+                        : "border-transparent hover:bg-muted/50"
                       }`}
                     >
                       <div className="flex justify-between items-start mb-1">
-                        <span className={`text-xs font-bold truncate ${isSelected ? "text-white" : "text-gray-900"}`}>
+                        <span className={`text-xs font-bold truncate ${isSelected ? "text-primary" : "text-foreground"}`}>
                           {s.stu_first_name} {s.stu_last_name}
                         </span>
-                        <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${isSelected ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"}`}>
+                        <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${isSelected ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
                           #{s.roll_no || 'N/A'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className={`text-[10px] font-medium ${isSelected ? "text-blue-100" : "text-gray-500"}`}>
+                        <span className={`text-[10px] font-medium ${isSelected ? "text-primary/80" : "text-muted-foreground"}`}>
                             {balance <= 0 ? "Fully Paid" : `Bal: ₹${balance.toLocaleString()}`}
                         </span>
                         {balance > 0 && (
-                            <div className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-white" : "bg-red-500"}`} />
+                            <div className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-primary" : "bg-destructive"}`} />
                         )}
                       </div>
                     </button>
@@ -185,23 +211,16 @@ export default function FeeCollectionPage() {
         </Card>
 
         {/* MAIN AREA: Ledger */}
-        <Card className="flex-grow shadow-md border-gray-100 overflow-hidden bg-dot-pattern">
+        <Card className="flex-grow shadow-sm">
              <ScrollArea className="h-full">
-                <CardContent className="p-6">
-                    <AnimatePresence mode="wait">
+                <CardContent className="p-4 sm:p-6">
                         {selectedStudent ? (
-                            <motion.div
-                                key={selectedStudent.student_id}
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                transition={{ duration: 0.2 }}
-                            >
+                            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                                 <StudentFeeLedger 
                                     studentId={selectedStudent.student_id} 
                                     studentName={`${selectedStudent.stu_first_name} ${selectedStudent.stu_last_name}`} 
                                 />
-                            </motion.div>
+                            </div>
                         ) : (
                             <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
                                 <User className="h-20 w-20 mb-4 stroke-1" />
@@ -209,7 +228,6 @@ export default function FeeCollectionPage() {
                                 <p className="text-sm">Payments are instantly recorded in the system</p>
                             </div>
                         )}
-                    </AnimatePresence>
                 </CardContent>
              </ScrollArea>
         </Card>

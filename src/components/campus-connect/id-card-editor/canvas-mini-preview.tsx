@@ -63,29 +63,35 @@ export function CanvasMiniPreview({ layout, branding, scale = 1 }: MiniPreviewPr
   const isLandscape = layout.orientation === "landscape";
   const { width: cardW, height: cardH } = DIMENSIONS[layout.paperSize || "CR80"][layout.orientation];
   
-  // Calculate display scale based on container size (approx 200x300 in gallery)
-  // For A4 (595x842) we need much smaller scale than CR80 (204x324)
+  // Calculate display scale based on container size
   const isA4 = layout.paperSize === "A4";
-  const displayScale = scale * (isA4 ? (isLandscape ? 0.28 : 0.28) : (isLandscape ? 0.55 : 0.62));
+  const displayScale = scale * (isA4 ? (isLandscape ? 0.22 : 0.25) : (isLandscape ? 0.65 : 0.75));
 
   return (
-    <div
+    <div 
+      className="relative overflow-hidden shadow-sm"
       style={{
-        width: cardW,
-        height: cardH,
-        backgroundColor: layout.bgColor,
-        position: "relative",
-        overflow: "hidden",
-        borderRadius: 8,
-        boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-        transform: `scale(${displayScale})`,
-        transformOrigin: "top center",
-        flexShrink: 0,
+        width: cardW * displayScale,
+        height: cardH * displayScale,
+        backgroundColor: layout.bgColor || "#ffffff",
       }}
     >
-      {[...layout.elements]
-        .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
-        .map((el) => renderElement(el, branding))}
+      <div
+        style={{
+          width: cardW,
+          height: cardH,
+          position: "absolute",
+          top: 0,
+          left: 0,
+          transform: `scale(${displayScale})`,
+          transformOrigin: "top left",
+          backgroundColor: layout.bgColor || "#ffffff",
+        }}
+      >
+        {(layout.elements || [])
+          .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
+          .map((el) => renderElement(el, branding))}
+      </div>
     </div>
   );
 }

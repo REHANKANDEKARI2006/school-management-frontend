@@ -42,6 +42,9 @@ export default function AttendanceSummaryPage() {
   const subjectId = params.subjectId as string;
   const dateQueryParam = searchParams.get('date');
 
+  const roleId = typeof window !== 'undefined' ? Number(localStorage.getItem('role_id')) : null;
+  const isTeacher = roleId === 3 || roleId === 4 || roleId === 5; // ROLE.TEACHER, ROLE.CLASS_TEACHER, ROLE.MENTOR
+
   const [currentClass, setCurrentClass] = useState<any>(null);
   const [currentSubject, setCurrentSubject] = useState<any>(null);
   const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
@@ -267,6 +270,20 @@ export default function AttendanceSummaryPage() {
   const handleStatusToggle = async (studentId: string, currentStatus: string) => {
     if (!sessionId) return;
 
+    // Strict deny for previous day attendance edits by teachers
+    const roleId = typeof window !== 'undefined' ? Number(localStorage.getItem('role_id')) : null;
+    const isTeacher = roleId === 3 || roleId === 4 || roleId === 5; // ROLE.TEACHER, ROLE.CLASS_TEACHER, ROLE.MENTOR
+    const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+
+    if (isTeacher && !isToday) {
+      toast({
+        title: "Access Denied",
+        description: "Teachers are not permitted to modify attendance records from previous days.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const newStatusId = (currentStatus === 'Present' || currentStatus === 'present') ? 2 : 1;
       const res = await axios.put('/api/attendance/record', {
@@ -322,7 +339,7 @@ export default function AttendanceSummaryPage() {
               </div>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="h-10 rounded-lg text-slate-700 w-full md:w-auto">
+                  <Button variant="outline" className="h-10 rounded-lg text-slate-700 w-full sm:w-auto mt-4 md:mt-0">
                     <CalendarDays className="mr-2 h-4 w-4" />
                     {format(selectedDate, "PPP")}
                   </Button>
@@ -333,20 +350,20 @@ export default function AttendanceSummaryPage() {
               </Popover>
             </div>
 
-            <div className="mt-6 flex flex-wrap items-center gap-4 bg-white border border-slate-200 rounded-lg px-6 py-3 text-sm font-medium text-slate-700 w-fit">
+            <div className="mt-6 flex flex-col sm:flex-row flex-wrap sm:items-center gap-3 sm:gap-4 bg-white border border-slate-200 rounded-lg p-4 sm:px-6 sm:py-3 text-sm font-medium text-slate-700 w-full sm:w-fit">
               <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-indigo-500" />
-                <span>Class: <strong>{currentClass.class_name}{currentClass.section_name ? ` - ${currentClass.section_name}` : ''}</strong></span>
+                <Users className="h-4 w-4 text-indigo-500 shrink-0" />
+                <span className="truncate">Class: <strong>{currentClass.class_name}{currentClass.section_name ? ` - ${currentClass.section_name}` : ''}</strong></span>
               </div>
-              <div className="w-px h-4 bg-slate-300 hidden md:block"></div>
+              <div className="w-full h-px sm:w-px sm:h-4 bg-slate-200 block"></div>
               <div className="flex items-center gap-2">
-                <Library className="h-4 w-4 text-indigo-500" />
-                <span>Subject: <strong>{currentSubject.subject_name}</strong></span>
+                <Library className="h-4 w-4 text-indigo-500 shrink-0" />
+                <span className="truncate">Subject: <strong>{currentSubject.subject_name}</strong></span>
               </div>
-              <div className="w-px h-4 bg-slate-300 hidden md:block"></div>
+              <div className="w-full h-px sm:w-px sm:h-4 bg-slate-200 block"></div>
               <div className="flex items-center gap-2">
-                <CalendarDays className="h-4 w-4 text-indigo-500" />
-                <span>Date: <strong>{format(selectedDate, "PPP")}</strong></span>
+                <CalendarDays className="h-4 w-4 text-indigo-500 shrink-0" />
+                <span className="truncate">Date: <strong>{format(selectedDate, "PPP")}</strong></span>
               </div>
             </div>
 
@@ -362,13 +379,13 @@ export default function AttendanceSummaryPage() {
                 No records found for this date.
               </div>
             ) : (
-              <div className="px-6 pb-6">
-                <Table>
+              <div className="px-0 sm:px-6 pb-6 overflow-x-auto w-full">
+                <Table className="w-full min-w-[300px]">
                   <TableHeader>
                     <TableRow className="border-b-slate-200 hover:bg-transparent">
-                      <TableHead className="w-[150px] text-slate-500 font-medium">Roll No.</TableHead>
-                      <TableHead className="text-slate-500 font-medium">Student Name</TableHead>
-                      <TableHead className="text-center w-[200px] text-slate-500 font-medium">Status (Click to Edit)</TableHead>
+                      <TableHead className="hidden sm:table-cell w-[100px] text-slate-500 font-medium pl-4 sm:pl-0">Roll No.</TableHead>
+                      <TableHead className="text-slate-500 font-medium pl-4 sm:pl-0">Student Name</TableHead>
+                      <TableHead className="text-right sm:text-center w-[120px] sm:w-[160px] text-slate-500 font-medium pr-4 sm:pr-0">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -376,14 +393,17 @@ export default function AttendanceSummaryPage() {
                       const isPresent = record.status?.toLowerCase() === 'present';
                       return (
                         <TableRow key={record.student_id} className="border-b-slate-100 border-b last:border-0 hover:bg-slate-50/50">
-                          <TableCell className="text-slate-600 font-mono text-sm">{record.roll_number}</TableCell>
-                          <TableCell className="font-medium text-slate-900">{record.name}</TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className="hidden sm:table-cell text-slate-600 font-mono text-sm pl-4 sm:pl-0">{record.roll_number}</TableCell>
+                          <TableCell className="font-medium text-slate-900 pl-4 sm:pl-0">
+                            {record.name}
+                            <div className="sm:hidden text-xs text-slate-400 mt-0.5 font-mono">Roll: {record.roll_number}</div>
+                          </TableCell>
+                          <TableCell className="text-right sm:text-center pr-4 sm:pr-0">
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleStatusToggle(record.student_id, record.status)}
-                              className={`rounded-full px-4 h-8 text-xs font-semibold ${isPresent ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-red-50 text-red-500 hover:bg-red-100'
+                              className={`rounded-full px-3 sm:px-4 h-8 text-[11px] sm:text-xs font-semibold ${isPresent ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-red-50 text-red-500 hover:bg-red-100'
                                 }`}
                             >
                               {isPresent ? <Check className="h-3 w-3 mr-1" /> : <X className="h-3 w-3 mr-1" />}
@@ -399,21 +419,23 @@ export default function AttendanceSummaryPage() {
             )}
           </CardContent>
 
-          <div className="bg-slate-50/50 p-6 border-t border-slate-100 flex flex-wrap gap-4 items-center justify-between">
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={() => handleExport('excel')} variant="outline" className="rounded-lg bg-white" disabled={attendanceRecords.length === 0}>
+          <div className="bg-slate-50/50 p-4 sm:p-6 border-t border-slate-100 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <Button onClick={() => handleExport('excel')} variant="outline" className="rounded-lg bg-white w-full sm:w-auto" disabled={attendanceRecords.length === 0}>
                 <FileSpreadsheet className="mr-2 h-4 w-4 text-slate-500" /> Export to Excel
               </Button>
-              <Button onClick={() => handleExport('pdf')} variant="outline" className="rounded-lg bg-white" disabled={attendanceRecords.length === 0}>
+              <Button onClick={() => handleExport('pdf')} variant="outline" className="rounded-lg bg-white w-full sm:w-auto" disabled={attendanceRecords.length === 0}>
                 <FileText className="mr-2 h-4 w-4 text-slate-500" /> Export to PDF
               </Button>
-              <Button onClick={handleShareToWhatsApp} variant="outline" className="rounded-lg bg-white" disabled={attendanceRecords.length === 0}>
+              <Button onClick={handleShareToWhatsApp} variant="outline" className="rounded-lg bg-white w-full sm:w-auto" disabled={attendanceRecords.length === 0}>
                 <WhatsAppIcon /> Share to WhatsApp
               </Button>
             </div>
-            <Button onClick={() => router.push('/main/attendance/new')} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">
-              <PlusCircle className="mr-2 h-4 w-4" /> New Attendance Session
-            </Button>
+            {!isTeacher && (
+              <Button onClick={() => router.push('/main/attendance/new')} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg w-full sm:w-auto mt-2 sm:mt-0">
+                <PlusCircle className="mr-2 h-4 w-4" /> New Attendance Session
+              </Button>
+            )}
           </div>
         </Card>
       </div>

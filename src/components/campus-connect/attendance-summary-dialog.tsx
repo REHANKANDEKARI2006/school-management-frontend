@@ -6,7 +6,6 @@ import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/c
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getStudentsForSubjectInClass, getStudentsByClass as getAllStudentsInClass, getClassById, getSubjectById } from '@/lib/mock-data';
 import { Check, X, Users, Library, CalendarDays, AlertTriangle } from 'lucide-react';
 import { format } from "date-fns";
 import { useRouter } from 'next/navigation';

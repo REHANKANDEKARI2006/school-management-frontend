@@ -50,6 +50,7 @@ export default function StudentEditPage() {
         parentEmail: data.parent_email,
         dob: data.date_of_birth,
         date: data.joined_date,
+        gender_id: data.gender_id ? String(data.gender_id) : "",
       };
 
       setStudent(mappedStudent);
@@ -89,6 +90,7 @@ export default function StudentEditPage() {
         parentEmail: values.parentEmail,
         class_id: values.class_id,
         profile_url: values.avatar,
+        gender_id: values.gender_id ? Number(values.gender_id) : null,
       };
 
       await axios.put(`/api/students/${id}`, backendValues);

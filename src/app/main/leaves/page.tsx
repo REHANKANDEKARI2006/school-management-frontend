@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { cn, formatDate } from "@/lib/utils";
 import axios from "@/lib/axios";
 import {
   Calendar, Clock, CheckCircle2, XCircle, AlertCircle, Plus,
   FileCheck, RefreshCw, Upload, Eye, X, ArrowRight, Briefcase,
   Shield, Loader2
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -33,12 +34,11 @@ function isAdminRole(roleId: number | null): boolean {
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
-function fmtDate(d: string | Date) {
+const formatDateStr = (d: any) => {
   if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-GB", {
-    weekday: "short", day: "numeric", month: "short", year: "numeric",
-  });
-}
+  return formatDate(d);
+};
+const fmtDate = formatDateStr;
 function fmtTime(t: string) {
   return t ? t.slice(0, 5) : "";
 }
@@ -55,16 +55,16 @@ function calcDays(from: string, to: string): number {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; class: string }> = {
-  pending:   { label: "Pending",   class: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
-  approved:  { label: "Approved",  class: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
-  rejected:  { label: "Rejected",  class: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
-  cancelled: { label: "Cancelled", class: "bg-slate-400/15 text-slate-500 border-slate-400/30" },
+  pending:   { label: "Pending",   class: "status-pending" },
+  approved:  { label: "Approved",  class: "status-approved" },
+  rejected:  { label: "Rejected",  class: "status-rejected" },
+  cancelled: { label: "Cancelled", class: "status-cancelled" },
 };
 
 const DUTY_STATUS: Record<string, { label: string; class: string }> = {
-  pending_acceptance: { label: "Awaiting Response", class: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
-  accepted:           { label: "Accepted",          class: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
-  declined:           { label: "Declined",          class: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
+  pending_acceptance: { label: "Awaiting Response", class: "status-pending" },
+  accepted:           { label: "Accepted",          class: "status-approved" },
+  declined:           { label: "Declined",          class: "status-rejected" },
 };
 
 const BALANCE_COLORS = [
@@ -317,83 +317,101 @@ export default function TeacherLeavePage() {
       {/* ═══════════════════════════════════════════════════════════════
           SECTION 1 — Leave Balance Cards
       ═══════════════════════════════════════════════════════════════ */}
-      <section>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Briefcase className="w-5 h-5 text-blue-500" /> Leave Balance
-        </h2>
-
-        {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {Array(6).fill(0).map((_, i) => (
-              <div key={i} className="h-36 rounded-2xl animate-pulse bg-secondary/40" />
-            ))}
+      <Card className="shadow-sm border-slate-100 rounded-xl overflow-hidden">
+        <CardHeader className="bg-slate-50/50 border-b p-6">
+          <div className="flex items-center gap-4">
+            <div className="p-2.5 bg-blue-500/10 rounded-xl shrink-0">
+              <Briefcase className="h-5 w-5 text-blue-500" />
+            </div>
+            <div>
+              <CardTitle className="text-lg font-bold text-slate-800">Leave Balance</CardTitle>
+              <CardDescription className="text-sm text-slate-500">Your allocated leave quota per category.</CardDescription>
+            </div>
           </div>
-        ) : balances.length === 0 ? (
-          <Card className="border-none bg-secondary/20 py-10 text-center">
-            <p className="text-muted-foreground text-sm">
-              No leave balance found. Contact admin to initialize your balance.
-            </p>
-            <Button
-              size="sm" variant="outline" className="mt-3 gap-2"
-              onClick={fetchAll}
-            >
-              <RefreshCw className="w-3 h-3" /> Refresh
-            </Button>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {balances.map((b, i) => {
-              const pct   = b.total_days > 0 ? Math.round((b.remaining_days / b.total_days) * 100) : 0;
-              const color = BALANCE_COLORS[i % BALANCE_COLORS.length];
-              return (
-                <Card key={b.id} className="border-none bg-background/60 shadow-sm hover:shadow-md transition-all overflow-hidden relative">
-                  <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${color}`} />
-                  <CardContent className="p-4 space-y-3">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">{b.leave_type_name}</p>
-                    <div className="space-y-1">
-                      <div className="flex items-end justify-between">
-                        <span className={`text-2xl font-extrabold bg-gradient-to-br ${color} bg-clip-text text-transparent`}>
-                          {b.remaining_days ?? 0}
-                        </span>
-                        <span className="text-xs text-muted-foreground">/ {b.total_days}</span>
+        </CardHeader>
+        <CardContent className="p-6">
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {Array(6).fill(0).map((_, i) => (
+                <div key={i} className="h-36 rounded-2xl animate-pulse bg-secondary/40" />
+              ))}
+            </div>
+          ) : balances.length === 0 ? (
+            <div className="py-10 text-center">
+              <p className="text-muted-foreground text-sm">
+                No leave balance found. Contact admin to initialize your balance.
+              </p>
+              <Button
+                size="sm" variant="outline" className="mt-3 gap-2"
+                onClick={fetchAll}
+              >
+                <RefreshCw className="w-3 h-3" /> Refresh
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {balances.map((b, i) => {
+                const pct   = b.total_days > 0 ? Math.round((b.remaining_days / b.total_days) * 100) : 0;
+                const color = BALANCE_COLORS[i % BALANCE_COLORS.length];
+                return (
+                  <Card key={b.id} className="shadow-sm border-slate-100 hover:shadow-md transition-all overflow-hidden relative">
+                    <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${color}`} />
+                    <CardContent className="p-4 space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">{b.leave_type_name}</p>
+                      <div className="space-y-1">
+                        <div className="flex items-end justify-between">
+                          <span className={`text-2xl font-extrabold bg-gradient-to-br ${color} bg-clip-text text-transparent`}>
+                            {b.remaining_days ?? 0}
+                          </span>
+                          <span className="text-xs text-muted-foreground">/ {b.total_days}</span>
+                        </div>
+                        <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                          <div className={`h-full bg-gradient-to-r ${color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                        </div>
                       </div>
-                      <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-                        <div className={`h-full bg-gradient-to-r ${color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                    <div className="text-xs text-muted-foreground">{b.used_days ?? 0} used</div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </section>
+                      <div className="text-xs text-muted-foreground">{b.used_days ?? 0} used</div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* ═══════════════════════════════════════════════════════════════
           SECTION 2 — My Substitute Duties
       ═══════════════════════════════════════════════════════════════ */}
-      <section>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Shield className="w-5 h-5 text-violet-500" /> My Substitute Duties
-          {duties.filter(d => d.status === "pending_acceptance").length > 0 && (
-            <Badge className="bg-amber-500/15 text-amber-600 border border-amber-300/50 ml-1">
-              {duties.filter(d => d.status === "pending_acceptance").length} pending
-            </Badge>
-          )}
-        </h2>
-
-        {loading ? (
-          <div className="h-32 rounded-2xl animate-pulse bg-secondary/30" />
-        ) : duties.length === 0 ? (
-          <Card className="border-none bg-secondary/10 py-10 text-center">
-            <div className="flex flex-col items-center gap-2 text-muted-foreground">
-              <CheckCircle2 className="w-8 h-8 opacity-40" />
-              <p className="text-sm">No upcoming substitute duties assigned.</p>
+      <Card className="shadow-sm border-slate-100 rounded-xl overflow-hidden">
+        <CardHeader className="bg-slate-50/50 border-b p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-2.5 bg-violet-500/10 rounded-xl shrink-0">
+                <Shield className="h-5 w-5 text-violet-500" />
+              </div>
+              <div>
+                <CardTitle className="text-lg font-bold text-slate-800">My Substitute Duties</CardTitle>
+                <CardDescription className="text-sm text-slate-500">Classes you are covering while a colleague is on leave.</CardDescription>
+              </div>
             </div>
-          </Card>
-        ) : (
-          <Card className="border-none bg-background/60 shadow-sm overflow-hidden">
+            {duties.filter(d => d.status === "pending_acceptance").length > 0 && (
+              <Badge className="bg-amber-500/15 text-amber-600 border border-amber-300/50">
+                {duties.filter(d => d.status === "pending_acceptance").length} pending
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="h-32 m-6 rounded-2xl animate-pulse bg-secondary/30" />
+          ) : duties.length === 0 ? (
+            <div className="py-10 text-center">
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <CheckCircle2 className="w-8 h-8 opacity-40" />
+                <p className="text-sm">No upcoming substitute duties assigned.</p>
+              </div>
+            </div>
+          ) : (
             <Table>
               <TableHeader className="bg-secondary/20">
                 <TableRow>
@@ -454,37 +472,44 @@ export default function TeacherLeavePage() {
                 })}
               </TableBody>
             </Table>
-          </Card>
-        )}
-      </section>
+          )}
+        </CardContent>
+      </Card>
 
       {/* ═══════════════════════════════════════════════════════════════
           SECTION 3 — My Leave Applications
       ═══════════════════════════════════════════════════════════════ */}
-      <section>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <FileCheck className="w-5 h-5 text-emerald-500" /> My Leave Applications
-        </h2>
-
-        {loading ? (
-          <div className="h-40 rounded-2xl animate-pulse bg-secondary/30" />
-        ) : applications.length === 0 ? (
-          <Card className="border-none bg-secondary/10 py-12 text-center">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-14 h-14 rounded-full bg-secondary/50 flex items-center justify-center">
-                <Calendar className="w-7 h-7 text-muted-foreground/60" />
-              </div>
-              <div>
-                <p className="font-medium">No Leave Applications Yet</p>
-                <p className="text-sm text-muted-foreground mt-1">Your submitted applications will appear here.</p>
-              </div>
-              <Button onClick={() => setApplyOpen(true)} variant="outline" size="sm" className="gap-2 mt-2">
-                <Plus className="w-4 h-4" /> Apply for Leave
-              </Button>
+      <Card className="shadow-sm border-slate-100 rounded-xl overflow-hidden">
+        <CardHeader className="bg-slate-50/50 border-b p-6">
+          <div className="flex items-center gap-4">
+            <div className="p-2.5 bg-emerald-500/10 rounded-xl shrink-0">
+              <FileCheck className="h-5 w-5 text-emerald-500" />
             </div>
-          </Card>
-        ) : (
-          <Card className="border-none bg-background/60 shadow-sm overflow-hidden">
+            <div>
+              <CardTitle className="text-lg font-bold text-slate-800">My Leave Applications</CardTitle>
+              <CardDescription className="text-sm text-slate-500">Track all your submitted leave requests and their status.</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="h-40 m-6 rounded-2xl animate-pulse bg-secondary/30" />
+          ) : applications.length === 0 ? (
+            <div className="py-12 text-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-14 h-14 rounded-full bg-secondary/50 flex items-center justify-center">
+                  <Calendar className="w-7 h-7 text-muted-foreground/60" />
+                </div>
+                <div>
+                  <p className="font-medium">No Leave Applications Yet</p>
+                  <p className="text-sm text-muted-foreground mt-1">Your submitted applications will appear here.</p>
+                </div>
+                <Button onClick={() => setApplyOpen(true)} variant="outline" size="sm" className="gap-2 mt-2">
+                  <Plus className="w-4 h-4" /> Apply for Leave
+                </Button>
+              </div>
+            </div>
+          ) : (
             <Table>
               <TableHeader className="bg-secondary/20">
                 <TableRow>
@@ -536,9 +561,9 @@ export default function TeacherLeavePage() {
                 })}
               </TableBody>
             </Table>
-          </Card>
-        )}
-      </section>
+          )}
+        </CardContent>
+      </Card>
 
       {/* ═══════════════════════════════════════════════════════════════
           MODAL — Apply for Leave

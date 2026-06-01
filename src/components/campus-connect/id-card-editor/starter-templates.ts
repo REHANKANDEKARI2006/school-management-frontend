@@ -109,7 +109,7 @@ export function getTemplate1(primaryColor: string = PRIMARY): CanvasLayout {
         fontFamily: "Inter",
         fontWeight: "bold",
         textAlign: "center",
-        textColor: primaryColor,
+        textColor: "#1e293b",
         zIndex: 4,
         label: "Class Info"
       },
@@ -189,7 +189,7 @@ export function getTemplate2(primaryColor: string = PRIMARY): CanvasLayout {
       { id: "photo", type: "student_photo", x: 25, y: 65, width: 60, height: 60, borderRadius: 6, borderWidth: 3, borderColor: "#fff", zIndex: 2 },
       { id: "inst-name", type: "text_box", text: "{{school_name}}", x: 5, y: 130, width: 100, height: 40, fontSize: 8, fontWeight: "bold", textAlign: "center", textColor: "#fff", zIndex: 2 },
       
-      { id: "name", type: "student_name", x: 125, y: 20, width: 180, height: 24, fontSize: 16, fontWeight: "bold", textColor: primaryColor, zIndex: 2 },
+      { id: "name", type: "student_name", x: 125, y: 20, width: 180, height: 24, fontSize: 16, fontWeight: "bold", textColor: "#1e293b", zIndex: 2 },
       { id: "class", type: "class_section", x: 125, y: 45, width: 180, height: 14, fontSize: 9, fontWeight: "bold", textColor: "#64748b", zIndex: 2 },
       { id: "div", type: "line", x: 125, y: 65, width: 180, height: 1, bgColor: "#f1f5f9", zIndex: 2 },
       
@@ -223,7 +223,7 @@ export function getTemplate3(primaryColor: string = "#3b82f6"): CanvasLayout {
        { id: "sn", type: "text_box", text: "{{school_name}}", x: 50, y: 15, width: 140, height: 30, fontSize: 8, fontWeight: "bold", textAlign: "left", textColor: "#fff", zIndex: 2 },
        { id: "p", type: "student_photo", x: 52, y: 60, width: 100, height: 100, borderRadius: 50, borderWidth: 4, borderColor: primaryColor, zIndex: 10 },
        { id: "n", type: "student_name", x: 10, y: 170, width: 184, height: 20, fontSize: 14, fontWeight: "bold", textAlign: "center", textColor: "#fff", zIndex: 2 },
-       { id: "c", type: "class_section", x: 10, y: 190, width: 184, height: 12, fontSize: 9, fontWeight: "bold", textAlign: "center", textColor: primaryColor, zIndex: 2 },
+       { id: "c", type: "class_section", x: 10, y: 190, width: 184, height: 12, fontSize: 9, fontWeight: "bold", textAlign: "center", textColor: "#e2e8f0", zIndex: 2 },
        { id: "ft", type: "rectangle", x: 0, y: 300, width: 204, height: 24, bgColor: "#1e293b", zIndex: 1 },
        { id: "ft-t", type: "text_box", text: "ACADEMIC YEAR {{academic_year}}", x: 0, y: 306, width: 204, height: 10, fontSize: 7, fontWeight: "bold", textAlign: "center", textColor: "#94a3b8", zIndex: 2 }
     ]

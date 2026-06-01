@@ -21,7 +21,10 @@ interface StudentDetailsProps {
   student: Student;
   onGenerateIdCard: (student: Student) => void;
   onGenerateBonafide: (student: Student) => void;
+  onGenerateLeavingCertificate?: (student: Student) => void;
+  onGenerateAchievement?: (student: Student) => void;
   canGenerateBonafide?: boolean;
+  canGenerateIdCard?: boolean;
 }
 
 const getStatusVariant = (status?: string) => {
@@ -52,7 +55,10 @@ export function StudentDetails({
   student,
   onGenerateIdCard,
   onGenerateBonafide,
+  onGenerateLeavingCertificate,
+  onGenerateAchievement,
   canGenerateBonafide = true,
+  canGenerateIdCard = true,
 }: StudentDetailsProps) {
   
   // Format Date helpers
@@ -68,7 +74,7 @@ export function StudentDetails({
   return (
     <div className="space-y-8 pb-8 bg-slate-50/20 dark:bg-slate-900/10 min-h-screen">
       {/* HEADER INFO (Always Visible) */}
-      <div className="flex flex-col md:flex-row items-center text-center md:text-left gap-8 pt-8 px-8 pb-4">
+      <div className="flex flex-col md:flex-row items-center text-center md:text-left gap-8 pt-8 px-4 sm:px-8 pb-4">
         <div className="relative">
           <Avatar className="h-32 w-32 ring-4 ring-white dark:ring-slate-800 shadow-xl bg-background">
             <AvatarImage src={student.avatar} alt={student.name} className="object-cover" />
@@ -98,10 +104,12 @@ export function StudentDetails({
               <KeyRound className="h-3.5 w-3.5 opacity-60" />
               <span className="tracking-tight">{student.id ? `#STU-${student.id.padStart(4, "0")}` : "No ID Assigned"}</span>
             </div>
-            {student.email && (
+            {student.parentEmail && student.parentEmail !== "N/A" && (
               <div className="flex items-center gap-1.5 hover:text-indigo-600 transition-colors">
                 <Mail className="h-3.5 w-3.5 opacity-60" />
-                <span>{student.email}</span>
+                <a href={`mailto:${student.parentEmail}`} className="hover:underline hover:text-indigo-600 transition-colors">
+                  {student.parentEmail}
+                </a>
               </div>
             )}
             <div className="flex items-center gap-1.5">
@@ -113,33 +121,47 @@ export function StudentDetails({
 
         {/* QUICK ACTIONS ROW */}
         <div className="flex flex-wrap justify-center gap-2.5">
-          <Button variant="outline" size="sm" onClick={() => onGenerateIdCard(student)} className="h-9 px-3.5 border-slate-200 shadow-sm hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all">
-            <CreditCard className="mr-2 h-4 w-4" />
-            ID Card
-          </Button>
+          {canGenerateIdCard && (
+            <Button variant="outline" size="sm" onClick={() => onGenerateIdCard(student)} className="h-9 px-3.5 border-slate-200 shadow-sm hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all">
+              <CreditCard className="mr-2 h-4 w-4" />
+              ID Card
+            </Button>
+          )}
           {canGenerateBonafide && (
             <Button variant="outline" size="sm" onClick={() => onGenerateBonafide(student)} className="h-9 px-3.5 border-slate-200 shadow-sm hover:border-amber-400 hover:text-amber-600 hover:bg-amber-50/50 transition-all">
                <Award className="mr-2 h-4 w-4" />
               Bonafide
             </Button>
           )}
+          {canGenerateBonafide && onGenerateLeavingCertificate && (
+            <Button variant="outline" size="sm" onClick={() => onGenerateLeavingCertificate(student)} className="h-9 px-3.5 border-slate-200 shadow-sm hover:border-rose-400 hover:text-rose-600 hover:bg-rose-50/50 transition-all">
+              <FileText className="mr-2 h-4 w-4" />
+              Leaving Cert
+            </Button>
+          )}
+          {canGenerateBonafide && onGenerateAchievement && (
+            <Button variant="outline" size="sm" onClick={() => onGenerateAchievement(student)} className="h-9 px-3.5 border-slate-200 shadow-sm hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50/50 transition-all">
+              <Award className="mr-2 h-4 w-4" />
+              Achievement
+            </Button>
+          )}
         </div>
       </div>
 
-      <div className="px-8 pb-8">
+      <div className="px-4 sm:px-8 pb-8">
         <Tabs defaultValue="overview" className="w-full space-y-8">
           <TabsList className="bg-slate-200/50 dark:bg-slate-800/50 p-1.5 h-12 w-full justify-start md:w-auto rounded-xl backdrop-blur-sm shadow-inner">
-            <TabsTrigger value="overview" className="rounded-md px-5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm transition-all h-9 gap-2">
+            <TabsTrigger value="overview" className="rounded-md px-3 sm:px-5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm transition-all h-9 gap-2">
               <Info className="h-4 w-4" />
               <span className="hidden sm:inline">Profile Overview</span>
               <span className="sm:hidden text-[11px]">Overview</span>
             </TabsTrigger>
-            <TabsTrigger value="attendance" className="rounded-md px-5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm transition-all h-9 gap-2">
+            <TabsTrigger value="attendance" className="rounded-md px-3 sm:px-5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm transition-all h-9 gap-2">
               <ClipboardCheck className="h-4 w-4" />
               <span className="hidden sm:inline">Attendance & Schedule</span>
               <span className="sm:hidden text-[11px]">Schedule</span>
             </TabsTrigger>
-            <TabsTrigger value="documents" className="rounded-md px-5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm transition-all h-9 gap-2">
+            <TabsTrigger value="documents" className="rounded-md px-3 sm:px-5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm transition-all h-9 gap-2">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Document History</span>
               <span className="sm:hidden text-[11px]">History</span>
@@ -157,7 +179,7 @@ export function StudentDetails({
                     Academic & Personal Details
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-y-6 gap-x-6 p-6 text-sm">
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-6 p-4 sm:p-6 text-sm">
                   <div className="space-y-1.5">
                     <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5">
                        Standard
@@ -194,7 +216,7 @@ export function StudentDetails({
                     </span>
                   </div>
                   
-                  <div className="space-y-2 col-span-2 pt-4 border-t border-slate-50 dark:border-slate-800">
+                  <div className="space-y-2 sm:col-span-2 pt-4 border-t border-slate-50 dark:border-slate-800">
                     <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5">
                       <MapPin className="h-3.5 w-3.5 text-rose-400" /> Current Residential Address
                     </span>
@@ -213,8 +235,8 @@ export function StudentDetails({
                     Parent / Guardian Details
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6 text-sm space-y-6">
-                  <div className="grid grid-cols-2 gap-6">
+                <CardContent className="p-4 sm:p-6 text-sm space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                      <div className="space-y-1.5">
                         <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider block">Father's Name</span>
                         <span className="font-bold text-slate-900 dark:text-slate-100 text-base">{student.fatherName || "John Doe"}</span>
@@ -228,19 +250,33 @@ export function StudentDetails({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-50 dark:border-slate-800">
                     <div className="space-y-2">
                       <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider block flex items-center gap-1.5"><Phone className="h-3 w-3 text-emerald-500" /> Primary Contact</span>
-                      <span className="font-bold text-slate-900 dark:text-slate-200 text-lg tabular-nums">{student.primaryContact || "N/A"}</span>
+                      {student.primaryContact ? (
+                        <a href={`tel:${student.primaryContact}`} className="font-bold text-slate-900 dark:text-slate-200 text-lg tabular-nums hover:underline hover:text-indigo-600 transition-colors">
+                          {student.primaryContact}
+                        </a>
+                      ) : (
+                        <span className="font-bold text-slate-900 dark:text-slate-200 text-lg tabular-nums">N/A</span>
+                      )}
                     </div>
                     {student.secondaryContact && (
                       <div className="space-y-2">
                         <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider block flex items-center gap-1.5"><Phone className="h-3 w-3 text-emerald-400" /> WhatsApp / Alt</span>
-                        <span className="font-bold text-slate-900 dark:text-secondary-foreground text-lg tabular-nums">{student.secondaryContact}</span>
+                        <a href={`tel:${student.secondaryContact}`} className="font-bold text-slate-900 dark:text-secondary-foreground text-lg tabular-nums hover:underline hover:text-indigo-600 transition-colors">
+                          {student.secondaryContact}
+                        </a>
                       </div>
                     )}
                   </div>
 
                   <div className="space-y-2 pt-4 border-t border-slate-50 dark:border-slate-800">
                     <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider block flex items-center gap-1.5"><Mail className="h-3 w-3 text-emerald-500" /> Guardian Email</span>
-                    <span className="font-bold text-slate-900 dark:text-slate-100">{student.parentEmail || "N/A"}</span>
+                    {student.parentEmail ? (
+                      <a href={`mailto:${student.parentEmail}`} className="font-bold text-slate-900 dark:text-slate-100 hover:underline hover:text-indigo-600 transition-colors">
+                        {student.parentEmail}
+                      </a>
+                    ) : (
+                      <span className="font-bold text-slate-900 dark:text-slate-100">N/A</span>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -307,7 +343,7 @@ function DocumentHistoryList({ studentId }: { studentId: string }) {
              <p className="text-sm font-bold text-slate-800 dark:text-slate-200">No History Available</p>
           </div>
         ) : (
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full overflow-x-auto">
             <Table>
               <TableHeader className="bg-slate-50/50 dark:bg-slate-800/20">
                 <TableRow className="hover:bg-transparent border-slate-100 dark:border-slate-800">

@@ -104,14 +104,20 @@ export function EventForm({ onSubmit, event, loading }: EventFormProps) {
   const form = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
     defaultValues: event ? {
-      ...event,
-      event_start_date: new Date(event.event_start_date || event.event_date),
-      event_end_date: new Date(event.event_end_date || event.event_date),
+      event_id: event.event_id,
+      event_name: event.event_name ?? "",
+      event_type: event.event_type ?? "School Event",
+      description: event.description ?? "",
+      event_start_date: new Date(event.event_start_date || event.event_date || new Date()),
+      event_end_date: new Date(event.event_end_date || event.event_date || new Date()),
+      start_time: event.start_time?.substring(0, 5) ?? "09:00",
+      end_time: event.end_time?.substring(0, 5) ?? "15:00",
+      venue: event.venue ?? "",
       event_status_id: (event.event_status_id || "2").toString(),
       displaced_period_action: event.displaced_period_action || "cancel",
       class_assignments: event.class_assignments?.map((ca: any) => ({
         class_id: ca.class_id,
-        coordinator_teacher_id: ca.coordinator_teacher_id?.toString() || ""
+        coordinator_teacher_id: ca.coordinator_teacher_id?.toString() ?? ""
       })) || [],
     } : {
       event_name: "",
@@ -174,73 +180,157 @@ export function EventForm({ onSubmit, event, loading }: EventFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8 p-1">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         
-        {/* Basic Info Group */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100">
-          <div className="md:col-span-2 space-y-4">
-             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Basic Information</h3>
-             <FormField
-               control={form.control}
-               name="event_name"
-               render={({ field }) => (
-                 <FormItem>
-                   <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-500">Event Name</FormLabel>
-                   <FormControl>
-                     <Input placeholder="e.g. Annual Sports Day 2026" {...field} className="h-12 rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 shadow-sm transition-all" />
-                   </FormControl>
-                   <FormMessage />
-                 </FormItem>
-               )}
-             />
-          </div>
+        {/* Basic Information */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold text-slate-900">Basic Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+               <FormField
+                 control={form.control}
+                 name="event_name"
+                 render={({ field }) => (
+                   <FormItem>
+                     <FormLabel>Event Name</FormLabel>
+                     <FormControl>
+                       <Input placeholder="e.g. Annual Sports Day" {...field} />
+                     </FormControl>
+                     <FormMessage />
+                   </FormItem>
+                 )}
+               />
+            </div>
 
-          <FormField
-            control={form.control}
-            name="event_type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-500">Event Type</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="h-12 rounded-xl border-slate-200 shadow-sm focus:ring-blue-500">
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="rounded-xl">
-                    {EVENT_TYPES.map(type => (
-                      <SelectItem key={type} value={type} className="rounded-lg">{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="venue"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-500">Venue / Location</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g. Main Playground" {...field} className="h-12 rounded-xl border-slate-200 shadow-sm focus:ring-blue-500" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className="md:col-span-2">
             <FormField
               control={form.control}
-              name="description"
+              name="event_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-500">Description</FormLabel>
+                  <FormLabel>Event Type</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {EVENT_TYPES.map(type => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="venue"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Venue</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Details about specific activities, requirements, etc." {...field} className="min-h-[100px] rounded-2xl border-slate-200 shadow-sm focus:ring-blue-500 resize-none" />
+                    <Input placeholder="e.g. School Hall" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="md:col-span-2">
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Details about the event..." {...field} className="min-h-[100px] resize-none" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Schedule */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold text-slate-900">Schedule & Timing</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="event_start_date"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Start Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="event_end_date"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>End Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="start_time"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Start Time</FormLabel>
+                  <FormControl>
+                    <Input type="time" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="end_time"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>End Time</FormLabel>
+                  <FormControl>
+                    <Input type="time" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -249,217 +339,123 @@ export function EventForm({ onSubmit, event, loading }: EventFormProps) {
           </div>
         </div>
 
-        {/* Date & Time Group */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-blue-50/30 p-6 rounded-[2rem] border border-blue-100">
-          <div className="md:col-span-2">
-            <h3 className="text-[10px] font-black text-blue-500/70 uppercase tracking-[0.2em] px-1">Schedule & Timing</h3>
-          </div>
-          
-          <FormField
-            control={form.control}
-            name="event_start_date"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-500">From Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button variant="outline" className={cn("h-12 rounded-xl border-slate-200 pl-3 text-left font-medium shadow-sm transition-all hover:bg-white hover:border-blue-500", !field.value && "text-muted-foreground")}>
-                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                        <CalendarIcon className="ml-auto h-4 w-4 text-blue-500" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 rounded-2xl border-blue-100" align="start">
-                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus className="rounded-2xl" />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="event_end_date"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-500">To Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button variant="outline" className={cn("h-12 rounded-xl border-slate-200 pl-3 text-left font-medium shadow-sm transition-all hover:bg-white hover:border-blue-500", !field.value && "text-muted-foreground")}>
-                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                        <CalendarIcon className="ml-auto h-4 w-4 text-blue-500" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 rounded-2xl border-blue-100" align="start">
-                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus className="rounded-2xl" />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="start_time"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-500">Start Time</FormLabel>
-                <FormControl>
-                  <Input type="time" {...field} className="h-12 rounded-xl border-slate-200 shadow-sm focus:ring-blue-500 cursor-pointer" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="end_time"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-500">End Time</FormLabel>
-                <FormControl>
-                  <Input type="time" {...field} className="h-12 rounded-xl border-slate-200 shadow-sm focus:ring-blue-500 cursor-pointer" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        {/* Classes Selection Group */}
-        <div className="space-y-6 bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-            <div>
-              <h3 className="text-lg font-bold text-slate-800">Target Classes</h3>
-              <p className="text-xs text-slate-400 font-medium">Select classes participating in this event</p>
-            </div>
+        {/* Classes Selection */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h3 className="text-sm font-semibold text-slate-900">Participating Classes</h3>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input 
                 placeholder="Search classes..." 
-                className="pl-9 h-10 rounded-full bg-slate-50 border-none focus:ring-blue-500" 
+                className="pl-9 h-9 text-xs" 
                 value={classSearch}
                 onChange={(e) => setClassSearch(e.target.value)}
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-             {filteredClasses.map((c) => {
-               const isSelected = selectedClassIds.includes(c.class_id);
-               return (
-                 <div 
-                   key={c.class_id}
-                   onClick={() => toggleClass(c.class_id)}
-                   className={cn(
-                     "cursor-pointer p-4 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 group relative overflow-hidden",
-                     isSelected 
-                       ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200" 
-                       : "bg-white border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 text-slate-600"
-                   )}
-                 >
-                   {isSelected && <Check className="absolute top-1 right-1 h-3 w-3" />}
-                   <span className={cn("text-xs font-black tracking-tighter", isSelected ? "text-blue-100" : "text-slate-400 uppercase tracking-widest")}>CLASS</span>
-                   <span className="text-lg font-black leading-none">{c.class_name}</span>
-                   <span className={cn("text-[10px] font-bold opacity-70 truncate mw-full", isSelected ? "text-white" : "text-slate-500")}>
-                     {c.section_name || "General"}
-                   </span>
-                 </div>
-               );
-             })}
-          </div>
+          <ScrollArea className="h-[200px] sm:h-[250px] pr-4 border rounded-lg p-2 bg-slate-50/30">
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
+               {filteredClasses.map((c) => {
+                 const isSelected = selectedClassIds.includes(c.class_id);
+                 return (
+                   <div 
+                     key={c.class_id}
+                     onClick={() => toggleClass(c.class_id)}
+                     className={cn(
+                       "cursor-pointer p-2 sm:p-3 rounded-lg border text-center transition-all",
+                       isSelected 
+                         ? "bg-primary border-primary text-primary-foreground shadow-sm" 
+                         : "bg-background border-input hover:border-primary/50 text-muted-foreground shadow-sm"
+                     )}
+                   >
+                     <div className="text-xs sm:text-sm font-medium">{c.class_name}</div>
+                     <div className={cn("text-[9px] sm:text-[10px] truncate", isSelected ? "text-primary-foreground/80" : "text-slate-400")}>
+                       {c.section_name || "General"}
+                     </div>
+                   </div>
+                 );
+               })}
+            </div>
+          </ScrollArea>
 
           {fields.length > 0 && (
-            <div className="pt-8 space-y-6">
-              <div className="flex items-center gap-3">
-                 <div className="h-px bg-slate-100 flex-1" />
-                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">Event Coordinators & Management</span>
-                 <div className="h-px bg-slate-100 flex-1" />
+            <div className="pt-4 space-y-6">
+              <div className="space-y-4">
+                 <h3 className="text-sm font-semibold text-slate-900">Staff Coordinators</h3>
+                 <ScrollArea className="h-[150px] pr-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {fields.map((field, index) => {
+                        const classInfo = classes.find(c => c.class_id === field.class_id);
+                        return (
+                          <div key={field.id} className="p-2 sm:p-3 rounded-lg border bg-muted/30 flex items-center justify-between gap-4">
+                             <div className="text-xs font-medium text-slate-700 truncate">
+                                {classInfo?.class_name}{classInfo?.section_name ? ` - ${classInfo?.section_name}` : ""}
+                             </div>
+                            
+                             <FormField
+                               control={form.control}
+                               name={`class_assignments.${index}.coordinator_teacher_id`}
+                               render={({ field: subField }) => (
+                                 <FormItem className="flex-1 max-w-[140px] sm:max-w-[180px] mb-0 space-y-0">
+                                   <Select onValueChange={subField.onChange} value={subField.value || undefined}>
+                                     <FormControl>
+                                       <SelectTrigger className="h-7 sm:h-8 text-[10px] sm:text-xs bg-background">
+                                         <SelectValue placeholder="Assign" />
+                                       </SelectTrigger>
+                                     </FormControl>
+                                     <SelectContent>
+                                       {teachers.map(t => (
+                                         <SelectItem key={t.staff_id} value={t.staff_id.toString()} className="text-xs">
+                                           {t.staff_first_name} {t.staff_last_name}
+                                         </SelectItem>
+                                       ))}
+                                     </SelectContent>
+                                   </Select>
+                                 </FormItem>
+                               )}
+                             />
+                          </div>
+                        );
+                      })}
+                    </div>
+                 </ScrollArea>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {fields.map((field, index) => {
-                  const classInfo = classes.find(c => c.class_id === field.class_id);
-                  return (
-                    <div key={field.id} className="p-5 rounded-[2rem] border border-slate-100 bg-slate-50/30 flex items-center justify-between gap-4 group">
-                      <div className="shrink-0 space-y-1">
-                        <Badge variant="outline" className="bg-white border-slate-200 text-slate-600 font-bold px-3">
-                          {classInfo?.class_name} {classInfo?.section_name}
-                        </Badge>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Assign Coordinator</p>
-                      </div>
-                      
-                      <FormField
-                        control={form.control}
-                        name={`class_assignments.${index}.coordinator_teacher_id`}
-                        render={({ field: subField }) => (
-                          <FormItem className="flex-1 max-w-[200px] mb-0 space-y-0">
-                            <Select onValueChange={subField.onChange} value={subField.value || undefined}>
-                              <FormControl>
-                                <SelectTrigger className="h-10 rounded-xl border-slate-200 bg-white shadow-sm ring-0 focus:ring-blue-500">
-                                  <SelectValue placeholder="Select teacher" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent className="rounded-xl">
-                                {teachers.map(t => (
-                                  <SelectItem key={t.staff_id} value={t.staff_id.toString()} className="rounded-lg">
-                                    {t.staff_first_name} {t.staff_last_name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="bg-amber-50/50 p-6 rounded-[2rem] border border-amber-100/50 space-y-4">
-                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-amber-100 rounded-xl text-amber-600">
-                       <CalendarIcon className="h-5 w-5" />
-                    </div>
-                    <div>
-                       <h4 className="text-sm font-bold text-amber-900">Period Exchange Management</h4>
-                       <p className="text-[11px] text-amber-700/70 font-medium">How should we handle regular classes occurring during this time?</p>
-                    </div>
+              <div className="p-6 rounded-xl border bg-muted/10 space-y-4">
+                 <div>
+                    <h4 className="text-sm font-bold text-slate-800">Period Exchange Policy</h4>
+                    <p className="text-xs text-slate-500">Determine how regular classes are handled during this event.</p>
                  </div>
 
                  <FormField
                     control={form.control}
                     name="displaced_period_action"
                     render={({ field }) => (
-                      <FormItem className="space-y-3">
+                      <FormItem className="space-y-4">
                         <FormControl>
                           <RadioGroup
                             onValueChange={field.onChange}
                             defaultValue={field.value}
                             className="flex flex-col sm:flex-row gap-4"
                           >
-                            <FormItem className="flex items-center space-x-3 space-y-0 bg-white px-5 py-4 rounded-2xl border border-amber-100/50 flex-1 cursor-pointer hover:border-amber-300 transition-colors">
+                            <FormItem className="flex items-center space-x-3 space-y-0 bg-background p-4 rounded-lg border flex-1 cursor-pointer transition-all hover:border-primary/30">
                               <FormControl>
-                                <RadioGroupItem value="cancel" className="text-amber-600 border-amber-300" />
+                                <RadioGroupItem value="cancel" />
                               </FormControl>
-                              <FormLabel className="font-bold text-amber-900 cursor-pointer">
-                                Mark as Displaced (Cancel)
-                                <span className="block text-[10px] font-medium text-amber-600/70 mt-0.5">Affected periods will be replaced by this event in the timetable. No action required later.</span>
+                              <FormLabel className="font-medium text-slate-700 cursor-pointer text-xs">
+                                Mark as Displaced
+                                <span className="block text-[10px] text-slate-400 mt-1">Periods are automatically cancelled.</span>
                               </FormLabel>
                             </FormItem>
-                            <FormItem className="flex items-center space-x-3 space-y-0 bg-white px-5 py-4 rounded-2xl border border-amber-100/50 flex-1 cursor-pointer hover:border-amber-300 transition-colors">
+                            
+                            <FormItem className="flex items-center space-x-3 space-y-0 bg-background p-4 rounded-lg border flex-1 cursor-pointer transition-all hover:border-primary/30">
                               <FormControl>
-                                <RadioGroupItem value="reschedule" className="text-amber-600 border-amber-300" />
+                                <RadioGroupItem value="reschedule" />
                               </FormControl>
-                              <FormLabel className="font-bold text-amber-900 cursor-pointer">
+                              <FormLabel className="font-medium text-slate-700 cursor-pointer text-xs">
                                 Mark for Rescheduling
-                                <span className="block text-[10px] font-medium text-amber-600/70 mt-0.5">Periods will be marked as 'pending reschedule'. Use for educational labs or tests needing makeup.</span>
+                                <span className="block text-[10px] text-slate-400 mt-1">Periods will require makeup action.</span>
                               </FormLabel>
                             </FormItem>
                           </RadioGroup>
@@ -473,12 +469,14 @@ export function EventForm({ onSubmit, event, loading }: EventFormProps) {
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-4 pt-4 sticky bottom-0 bg-white/80 backdrop-blur-md p-4 border-t border-slate-100 -mx-1 z-20">
-          <Button type="submit" className="h-14 px-10 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest shadow-lg shadow-blue-200 transition-all active:scale-95 disabled:opacity-70" disabled={loading}>
-            {loading ? (
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
-            ) : null}
-            {event ? "Update Configuration" : "Finalize & Launch Event"}
+        <div className="flex items-center justify-end gap-3 pt-6 border-t">
+          <Button 
+            type="submit" 
+            className="w-full sm:w-auto" 
+            disabled={loading}
+          >
+            {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+            {event ? "Update Event" : "Create Event"}
           </Button>
         </div>
       </form>

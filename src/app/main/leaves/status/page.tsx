@@ -29,6 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import axios from "@/lib/axios";
+import { cn, formatDate } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,29 +72,29 @@ export default function LeaveStatusPage() {
 
     if (leave.status_id === 3 || leave.hod_status === 3 || leave.principal_status === 3) {
       return (
-        <div className="flex flex-col gap-0.5">
-          <Badge className="bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border-rose-500/20 w-fit">Rejected</Badge>
+        <div className="flex flex-col gap-0.5 w-fit">
+          <Badge variant="rejected">Rejected</Badge>
           {approverText && <span className="text-[9px] text-muted-foreground font-medium">{approverText}</span>}
         </div>
       );
     }
     if (leave.status_id === 2 || leave.principal_status === 2) {
       return (
-        <div className="flex flex-col gap-0.5">
-          <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20 w-fit">Approved</Badge>
+        <div className="flex flex-col gap-0.5 w-fit">
+          <Badge variant="approved">Approved</Badge>
           {approverText && <span className="text-[9px] text-emerald-600/70 font-medium">{approverText}</span>}
         </div>
       );
     }
     if (leave.hod_status === 2) {
       return (
-        <div className="flex flex-col gap-0.5">
-          <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-blue-500/20 w-fit">Partially Approved</Badge>
+        <div className="flex flex-col gap-0.5 w-fit">
+          <Badge variant="processing">Partially Approved</Badge>
           {approverText && <span className="text-[9px] text-blue-600/70 font-medium">{approverText}</span>}
         </div>
       );
     }
-    return <Badge className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-500/20">Pending</Badge>;
+    return <Badge variant="pending">Pending</Badge>;
   };
 
   return (
@@ -148,14 +149,14 @@ export default function LeaveStatusPage() {
                   <TableCell className="font-medium">{leave.type_name}</TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      {new Date(leave.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} - {new Date(leave.end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      {formatDate(leave.start_date)} - {formatDate(leave.end_date)}
                     </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-normal">{leave.total_days} Days</Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {new Date(leave.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {formatDate(leave.created_at)}
                   </TableCell>
                   <TableCell>{getStatusBadge(leave)}</TableCell>
                   <TableCell className="text-right">
@@ -212,13 +213,11 @@ export default function LeaveStatusPage() {
                 <span className="text-muted-foreground font-medium text-sm">Leave Type</span>
                 <span className="font-semibold">{selectedLeave.type_name}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-border">
-                <span className="text-muted-foreground font-medium text-sm">Duration</span>
-                <span className="font-semibold">
-                  {new Date(selectedLeave.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} 
-                  {' to '} 
-                  {new Date(selectedLeave.end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </span>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex-1">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Duration</p>
+                <p className="font-bold text-slate-700">
+                  {formatDate(selectedLeave.start_date)} — {formatDate(selectedLeave.end_date)}
+                </p>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-border">
                 <span className="text-muted-foreground font-medium text-sm">Total Days</span>

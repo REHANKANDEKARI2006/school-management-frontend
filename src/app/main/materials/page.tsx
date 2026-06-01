@@ -318,12 +318,15 @@ export default function MaterialsPage() {
         </Card>
 
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <DialogContent>
+          <DialogContent className="w-[94vw] sm:max-w-[425px] rounded-2xl left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%]">
             <DialogHeader>
               <DialogTitle>Upload Material</DialogTitle>
               <DialogDescription>Add study material</DialogDescription>
             </DialogHeader>
-            <MaterialForm onSubmit={handleCreateMaterial} />
+            <MaterialForm 
+              onSubmit={handleCreateMaterial} 
+              onCancel={() => setIsFormOpen(false)} 
+            />
           </DialogContent>
         </Dialog>
       </>

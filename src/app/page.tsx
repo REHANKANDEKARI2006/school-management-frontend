@@ -24,12 +24,14 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  // Load remembered identifier on mount
   useEffect(() => {
-    const savedId = localStorage.getItem("rememberedId");
-    if (savedId) {
-      setIdentifier(savedId);
-      setRememberMe(true);
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("deactivated") === "true") {
+        alert("Your account is deactivated!");
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }
     }
   }, []);
 
@@ -37,9 +39,11 @@ export default function LoginPage() {
     (image) => image.id === "login-background"
   );
 
-  const handleLogin = async () => {
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
     if (!identifier || !password) {
-      alert("Student ID/Email and password are required.");
+      alert("Please enter your credentials.");
       return;
     }
 
@@ -47,7 +51,7 @@ export default function LoginPage() {
       setLoading(true);
 
       const res = await axios.post("/api/auth/login", {
-        email: identifier, // Backend expects 'email'
+        email: identifier,
         password,
       });
 
@@ -56,227 +60,171 @@ export default function LoginPage() {
         return;
       }
 
-      // Handle Remember Me
       if (rememberMe) {
         localStorage.setItem("rememberedId", identifier);
       } else {
         localStorage.removeItem("rememberedId");
       }
 
-      // Save tokens and session data
       localStorage.setItem("isAuthenticated", "true");
       sessionStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("accessToken", res.data.accessToken);
       localStorage.setItem("refreshToken", res.data.refreshToken);
       localStorage.setItem("role_id", String(res.data.role_id));
       localStorage.setItem("user_email", res.data.email || identifier);
-      localStorage.setItem(
-        "user_name",
-        res.data.name || res.data.full_name || "User"
-      );
+      localStorage.setItem("user_name", res.data.name || res.data.full_name || "User");
 
       if (res.data.student_details) {
         localStorage.setItem("student_id", String(res.data.student_details.student_id));
         localStorage.setItem("class_id", String(res.data.student_details.class_id));
-        if (res.data.student_details.section_id) {
-          localStorage.setItem("section_id", String(res.data.student_details.section_id));
-        }
       }
 
       router.push("/main/dashboard");
     } catch (error: any) {
-      alert(
-        error?.response?.data?.message ||
-          "Invalid credentials. Please try again."
-      );
+      alert(error?.response?.data?.message || "Invalid credentials. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="w-full lg:grid lg:min-h-[100vh] lg:grid-cols-2 xl:min-h-[100vh] bg-background selection:bg-primary/20">
-      <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 bg-background">
+      {/* Left side: Form */}
+      <div className="flex items-center justify-center py-12 px-6 lg:px-12 bg-slate-50/50">
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="mx-auto grid w-full max-w-[400px] gap-8"
+          transition={{ duration: 0.5 }}
+          className="mx-auto w-full max-w-[420px] space-y-8"
         >
-          <div className="grid gap-2 text-center">
-            <motion.div 
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-              className="flex justify-center items-center gap-2 mb-2"
-            >
-              <Logo className="h-12 w-12" />
-            </motion.div>
-            <h1 className="text-4xl font-black font-headline tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 sm:text-5xl">
-              Welcome Back
+          <div className="text-left">
+            <Logo className="h-10 w-10 mb-6" />
+            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2">
+              Welcome back
             </h1>
-            <p className="text-muted-foreground text-sm font-medium">
-              Access your digital campus experience
+            <p className="text-slate-500 font-medium">
+              Access your digital campus management system
             </p>
           </div>
 
-          <div className="grid gap-5">
-            {/* Identity Field */}
-            <div className="grid gap-2 relative">
-              <Label htmlFor="identifier" className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 ml-1">
-                Student ID / Email
-              </Label>
-              <div className="relative group">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
-                  <User size={18} />
-                </div>
-                <Input
-                  id="identifier"
-                  type="text"
-                  placeholder="STU001 or rehan@example.com"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  className="h-12 pl-10 bg-muted/40 border-muted-foreground/10 shadow-sm transition-all focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                />
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between ml-1">
-                <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                  Password
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-5">
+              {/* Identity Field */}
+              <div className="space-y-2">
+                <Label htmlFor="identifier" className="text-sm font-semibold text-slate-700 ml-0.5">
+                  ID or Email
                 </Label>
-                <Link
-                  href="/auth/forgot-password"
-                  className="text-xs font-semibold text-muted-foreground/60 hover:text-primary transition-colors"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              <div className="relative group">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
-                  <Lock size={18} />
+                <div className="relative">
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                    <User size={18} />
+                  </div>
+                  <Input
+                    id="identifier"
+                    type="text"
+                    placeholder="Enter your student ID or email"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    className="h-12 pl-11 bg-white border-slate-200 shadow-sm focus:border-primary focus:ring-primary/10 transition-all rounded-xl"
+                  />
                 </div>
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 px-10 bg-muted/40 border-muted-foreground/10 shadow-sm transition-all focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  <AnimatePresence mode="wait">
-                    {showPassword ? (
-                      <motion.div
-                        key="eye-off"
-                        initial={{ opacity: 0, scale: 0.5, rotate: -45 }}
-                        animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                        exit={{ opacity: 0, scale: 0.5, rotate: 45 }}
-                        transition={{ duration: 0.15 }}
-                      >
-                        <EyeOff size={18} />
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="eye"
-                        initial={{ opacity: 0, scale: 0.5, rotate: 45 }}
-                        animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                        exit={{ opacity: 0, scale: 0.5, rotate: -45 }}
-                        transition={{ duration: 0.15 }}
-                      >
-                        <Eye size={18} />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </button>
+              </div>
+
+              {/* Password Field */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between ml-0.5">
+                  <Label htmlFor="password" className="text-sm font-semibold text-slate-700">
+                    Password
+                  </Label>
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <div className="relative group">
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Lock size={18} />
+                  </div>
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-12 pl-11 pr-11 bg-white border-slate-200 shadow-sm focus:border-primary focus:ring-primary/10 transition-all rounded-xl"
+                    placeholder="Enter your password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Remember Me */}
-            <motion.div 
-              whileTap={{ scale: 0.98 }}
-              className="flex items-center space-x-2 py-1 select-none"
-            >
+            <div className="flex items-center select-none ml-0.5">
               <Checkbox
                 id="remember"
                 checked={rememberMe}
                 onCheckedChange={(checked) => setRememberMe(checked === true)}
-                className="data-[state=checked]:bg-primary rounded-[4px]"
+                className="rounded border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
               />
               <Label
                 htmlFor="remember"
-                className="text-sm font-semibold text-muted-foreground/80 cursor-pointer"
+                className="text-sm font-medium text-slate-600 ml-2.5 cursor-pointer"
               >
                 Keep me signed in
               </Label>
-            </motion.div>
-
-            {/* Login Button */}
-            {/* Forgot Password */}
-            <div className="flex items-center justify-end">
-              <Link
-                href="/auth/forgot-password"
-                className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
-              >
-                Forgot your password?
-              </Link>
             </div>
 
-            {/* Login Button */}
-            <div className="grid gap-3 pt-2">
-              <Button
-                type="button"
-                className="w-full h-14 text-lg font-bold shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] bg-primary hover:bg-primary/90 rounded-xl group relative overflow-hidden"
-                onClick={handleLogin}
-                loading={loading}
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent transition-transform duration-500 -translate-x-full group-hover:translate-x-full" />
-                <span className="relative z-10">
-                  {loading ? "Authenticating..." : "Sign In"}
-                </span>
-              </Button>
-            </div>
-          </div>
+            <Button
+              type="submit"
+              className="w-full h-12 text-base font-bold bg-primary hover:bg-primary/90 text-white rounded-xl shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
+              disabled={loading}
+            >
+              {loading ? "Logging in..." : "Login"}
+            </Button>
+          </form>
+
+          <p className="text-center text-sm text-slate-500">
+            Having trouble logging in? <Link href="#" className="text-primary font-semibold hover:underline">Contact Support</Link>
+          </p>
         </motion.div>
       </div>
 
-      <div className="hidden bg-muted lg:block relative overflow-hidden group">
-        <AnimatePresence>
-          {loginImage && (
-            <motion.div
-              initial={{ scale: 1.1, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 1.5 }}
-              className="absolute inset-0"
-            >
-              <Image
-                src={loginImage.imageUrl}
-                alt="School Campus"
-                fill
-                className="object-cover transition-transform duration-[10s] group-hover:scale-110"
-                priority
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <div className="absolute inset-0 bg-gradient-to-t from-primary/40 via-background/20 to-transparent mix-blend-multiply" />
-        <div className="absolute inset-0 backdrop-blur-[2px] backdrop-saturate-150" />
+      {/* Right side: Branding/Visual */}
+      <div className="hidden lg:block relative overflow-hidden">
+        {loginImage && (
+          <motion.div
+            initial={{ scale: 1.05 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 1.5 }}
+            className="absolute inset-0"
+          >
+            <Image
+              src={loginImage.imageUrl}
+              alt="Campus"
+              fill
+              className="object-cover"
+              priority
+            />
+          </motion.div>
+        )}
+        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" />
         
-        <div className="absolute bottom-12 left-12 right-12 z-10 text-white">
+        <div className="absolute bottom-16 left-16 right-16 z-10 text-white">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.8 }}
+            transition={{ delay: 0.5, duration: 0.8 }}
           >
-            <h2 className="text-4xl font-extrabold tracking-tight mb-2">Campus Connect</h2>
-            <p className="text-xl font-medium text-white/80 max-w-md">
-              Your gateway to academic excellence and seamless school management.
+            <h2 className="text-5xl font-black tracking-tight mb-4">Campus Connect</h2>
+            <div className="h-1 w-24 bg-primary mb-6" />
+            <p className="text-xl font-medium text-white/90 leading-relaxed max-w-lg">
+              Streamlining educational workflows and fostering academic success through unified management tools.
             </p>
           </motion.div>
         </div>

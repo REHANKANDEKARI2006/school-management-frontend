@@ -11,7 +11,8 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useIdCardSettings } from "@/components/campus-connect/id-card-settings-provider";
 import { Progress } from "@/components/ui/progress";
-import { PageSkeleton } from "@/components/ui/skeletons";
+import { TableSkeleton } from "@/components/ui/skeletons";
+import { useFeedback } from "@/components/campus-connect/feedback-provider";
 import { FileText, Award, CreditCard, FileCheck, CheckCircle2 } from "lucide-react";
 
 import {
@@ -125,6 +126,7 @@ export default function StudentsPage() {
   useRoleGuard(ALLOWED_ROLES as number[]);
 
   const { toast } = useToast();
+  const { showSuccess, showError, showWarning } = useFeedback();
   const { searchQuery } = useSearch();
 
   const roleId =
@@ -140,15 +142,16 @@ export default function StudentsPage() {
 
   const [detailsOpen, setDetailsOpen] = React.useState(false);
   const [selectedStudent, setSelectedStudent] = React.useState<any>(null);
+  const [editingStudent, setEditingStudent] = React.useState<any>(null);
+  const [docLoadingId, setDocLoadingId] = React.useState<string | null>(null);
 
   const [addOpen, setAddOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [addLoading, setAddLoading] = React.useState(false);
 
-  const [editingStudent, setEditingStudent] = React.useState<any>(null);
-
   const [selectedStandard, setSelectedStandard] = React.useState<string>("all");
   const [selectedSection, setSelectedSection] = React.useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = React.useState<string>("all");
 
   /* =========================
      FETCH
@@ -161,7 +164,7 @@ export default function StudentsPage() {
       const mapped = res.data.data.map((s: any) => ({
         id: s.student_id,
         name: `${s.stu_first_name} ${s.stu_last_name}`,
-        email: s.email,
+        email: s.parent_email || "",
         status: s.status_name || (s.user_status_id === 1 ? "Active" : "Inactive"),
         class: s.class_name
           ? `${s.class_name}${
@@ -226,13 +229,11 @@ export default function StudentsPage() {
         primaryContact: form.primaryContact,
         parentEmail: form.parentEmail || null,
         profile_url: form.avatar || null,
+        gender_id: form.gender_id ? Number(form.gender_id) : null,
       });
 
 
-      toast({
-        title: "Success",
-        description: "Student added successfully",
-      });
+      showSuccess("Student Added", "The student has been enrolled successfully.");
 
       setAddOpen(false);
       fetchStudents();
@@ -277,6 +278,7 @@ export default function StudentsPage() {
       primaryContact: s.primary_contact || "",
       parentEmail: s.parent_email || "",
       avatar: s.profile_url || "",
+      gender_id: s.gender_id ? String(s.gender_id) : "",
     });
 
 
@@ -300,12 +302,10 @@ export default function StudentsPage() {
       parentEmail: form.parentEmail || null,
       class_id: form.class_id,
       profile_url: form.avatar || null,
+      gender_id: form.gender_id ? Number(form.gender_id) : null,
     });
 
-    toast({
-      title: "Updated",
-      description: "Student updated successfully",
-    });
+    showSuccess("Student Updated", "Student record has been updated successfully.");
 
     setEditOpen(false);
     fetchStudents();
@@ -315,10 +315,17 @@ export default function StudentsPage() {
      DELETE
   ========================= */
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Delete this student?")) return;
-    await axios.delete(`/api/students/${id}`);
-    fetchStudents();
+  const handleDelete = (id: number) => {
+    showWarning(
+      "Delete Student?",
+      "This will permanently remove the student record. This action cannot be undone.",
+      async () => {
+        await axios.delete(`/api/students/${id}`);
+        fetchStudents();
+        toast({ title: "Student Deleted", description: "The student has been removed.", variant: "destructive" });
+      },
+      "Yes, Delete"
+    );
   };
 
   /* =========================
@@ -362,13 +369,14 @@ export default function StudentsPage() {
         toast({ title: "Error", description: "Student ID missing.", variant: "destructive" });
         return;
       }
+      setDocLoadingId(`${student.id}_idcard`);
       
       const token = localStorage.getItem("accessToken");
       if (!token) throw new Error("Authentication missing");
 
       // Open in new tab or trigger download blob
       // Using fetch to pass Auth Headers and handle the PDF stream
-      const res = await fetch(`http://localhost:5000/api/documents/id-card/${student.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/id-card/${student.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -393,6 +401,8 @@ export default function StudentsPage() {
     } catch (err) {
       console.error(err);
       toast({ title: "Error", description: "An error occurred.", variant: "destructive" });
+    } finally {
+      setDocLoadingId(null);
     }
   };
 
@@ -402,13 +412,14 @@ export default function StudentsPage() {
         toast({ title: "Error", description: "Student ID missing.", variant: "destructive" });
         return;
       }
+      setDocLoadingId(`${student.id}_bonafide`);
       
       const token = localStorage.getItem("accessToken");
       if (!token) throw new Error("Authentication missing");
 
       // Open in new tab or trigger download blob
       // Using fetch to pass Auth Headers and handle the PDF stream
-      const res = await fetch(`http://localhost:5000/api/documents/bonafide/${student.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/bonafide/${student.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -433,13 +444,16 @@ export default function StudentsPage() {
     } catch (err) {
       console.error(err);
       toast({ title: "Error", description: "An error occurred.", variant: "destructive" });
+    } finally {
+      setDocLoadingId(null);
     }
   };
 
   const generateMarkSheet = async (student: any) => {
     try {
+      setDocLoadingId(`${student.id}_marksheet`);
       const token = localStorage.getItem("accessToken");
-      const res = await fetch(`http://localhost:5000/api/documents/mark-sheet/${student.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/mark-sheet/${student.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) throw new Error("Failed");
@@ -452,13 +466,16 @@ export default function StudentsPage() {
       toast({ title: "Success", description: "Mark Sheet generated." });
     } catch (err) {
       toast({ title: "Error", description: "Failed to generate mark sheet", variant: "destructive" });
+    } finally {
+      setDocLoadingId(null);
     }
   };
 
   const generateGeneralCertificate = async (student: any) => {
     try {
+      setDocLoadingId(`${student.id}_gc`);
       const token = localStorage.getItem("accessToken");
-      const res = await fetch(`http://localhost:5000/api/documents/general-certificate/${student.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/general-certificate/${student.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) throw new Error("Failed");
@@ -471,64 +488,12 @@ export default function StudentsPage() {
       toast({ title: "Success", description: "Certificate generated." });
     } catch (err) {
       toast({ title: "Error", description: "Failed to generate certificate", variant: "destructive" });
-    }
-  };
-
-  const [bulkLoading, setBulkLoading] = React.useState(false);
-  const [bulkProgress, setBulkProgress] = React.useState(0);
-
-  const generateBulkDocuments = async (type: 'id-card' | 'bonafide') => {
-    try {
-      if (filtered.length === 0) {
-        toast({ title: "Warning", description: "No students to generate documents for.", variant: "default" });
-        return;
-      }
-      
-      setBulkLoading(true);
-      setBulkProgress(10);
-      const studentIds = filtered.map(s => s.id);
-      
-      const token = localStorage.getItem("accessToken");
-      if (!token) throw new Error("Authentication missing");
-
-      setBulkProgress(30);
-      const res = await fetch(`http://localhost:5000/api/documents/${type}/bulk`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ studentIds })
-      });
-
-      setBulkProgress(70);
-      if (!res.ok) {
-        toast({ title: "Error", description: `Failed to generate bulk ${type}`, variant: "destructive" });
-        return;
-      }
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      setBulkProgress(90);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Bulk_${type === 'id-card' ? 'ID_Cards' : 'Bonafide'}_${new Date().getTime()}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      setBulkProgress(100);
-
-      toast({ title: "Success", description: `Bulk ${type === 'id-card' ? 'ID Cards' : 'Bonafide Certificates'} generated successfully.` });
-      setTimeout(() => setBulkProgress(0), 3000);
-    } catch (err) {
-      console.error(err);
-      toast({ title: "Error", description: "An error occurred.", variant: "destructive" });
-      setBulkProgress(0);
     } finally {
-      setBulkLoading(false);
+      setDocLoadingId(null);
     }
   };
+
+
 
   const filtered = React.useMemo(() => {
     let result = students;
@@ -538,6 +503,9 @@ export default function StudentsPage() {
     }
     if (selectedSection !== "all") {
       result = result.filter((s) => s.section === selectedSection);
+    }
+    if (selectedStatus !== "all") {
+      result = result.filter((s) => s.status === selectedStatus);
     }
     
     if (searchQuery) {
@@ -549,7 +517,12 @@ export default function StudentsPage() {
       );
     }
     return result;
-  }, [students, searchQuery, selectedStandard, selectedSection]);
+  }, [students, searchQuery, selectedStandard, selectedSection, selectedStatus]);
+
+  const uniqueStatuses = React.useMemo(() => {
+    const statuses = Array.from(new Set(students.map((s) => s.status).filter(Boolean)));
+    return statuses.sort();
+  }, [students]);
 
   const uniqueStandards = React.useMemo(() => {
     const stands = Array.from(new Set(students.map((s) => s.standard).filter((s) => s !== "-")));
@@ -580,22 +553,22 @@ export default function StudentsPage() {
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row justify-between">
-          <div>
-            <CardTitle>Students</CardTitle>
-            <CardDescription>Manage your students</CardDescription>
+      <Card className="border-none shadow-sm overflow-hidden">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-6 border-b">
+          <div className="space-y-1">
+            <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight">Students</CardTitle>
+            <CardDescription className="text-sm">Manage and monitor student records</CardDescription>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
             <Select value={selectedStandard} onValueChange={setSelectedStandard}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[140px] h-9">
                 <SelectValue placeholder="Standard" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Standards</SelectItem>
                 {uniqueStandards.map((std) => (
                   <SelectItem key={std} value={std}>
-                    Standard {std}
+                    Std {std}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -606,81 +579,82 @@ export default function StudentsPage() {
               onValueChange={setSelectedSection}
               disabled={selectedStandard === "all"}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[130px] h-9">
                 <SelectValue placeholder="Section" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Sections</SelectItem>
                 {uniqueSectionsForStandard.map((sec) => (
                   <SelectItem key={sec} value={sec}>
-                    Section {sec}
+                    Sec {sec}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger className="w-full sm:w-[130px] h-9">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                {uniqueStatuses.map((st) => (
+                  <SelectItem key={st} value={st}>
+                    {st}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
             {canManage && (
-              <>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" loading={bulkLoading}>
-                      Bulk Generate
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>For {filtered.length} Students</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => generateBulkDocuments('id-card')}>
-                      ID Cards
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => generateBulkDocuments('bonafide')}>
-                      Bonafide Certificates
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                <Button size="sm" onClick={() => setAddOpen(true)} loading={addLoading}>
-                  Add Student
-                </Button>
-              </>
+              <Button size="sm" onClick={() => setAddOpen(true)} loading={addLoading} className="w-full sm:w-auto h-9 font-semibold">
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Add Student
+              </Button>
             )}
           </div>
         </CardHeader>
-        {bulkLoading && (
-          <div className="px-6 pb-4">
-            <div className="flex items-center justify-between text-xs mb-2 text-primary font-medium">
-              <span>Generating Documents...</span>
-              <span>{bulkProgress}%</span>
-            </div>
-            <Progress value={bulkProgress} className="h-1.5" />
-          </div>
-        )}
 
-        <CardContent>
-          <Table>
+        <CardContent className="p-0">
+          <div className="w-full overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
+                <TableHead className="pl-4 sm:pl-6 min-w-[200px]">Name</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Class</TableHead>
-                <TableHead>Joined At</TableHead>
-                <TableHead />
+                <TableHead className="hidden md:table-cell">Class</TableHead>
+                <TableHead className="hidden md:table-cell">Joined At</TableHead>
+                <TableHead className="text-right pr-4 sm:pr-6" />
               </TableRow>
             </TableHeader>
 
             <TableBody>
-              {filtered.map((s) => (
+              {loading ? (
+                <TableSkeleton cols={5} rows={6} />
+              ) : filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-sm">No students found.</TableCell>
+                </TableRow>
+              ) : (
+                filtered.map((s) => (
                 <TableRow key={`${s.id}-${s.class}`}>
-                  <TableCell className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
+                  <TableCell className="flex items-center gap-3 pl-4 sm:pl-6">
+                    <Avatar className="h-10 w-10 shrink-0">
                       <AvatarImage src={s.avatar} className="object-cover" />
                       <AvatarFallback className="bg-primary/10 text-primary">
                         {s.initials}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex flex-col">
-                      <span className="font-medium text-slate-900 dark:text-slate-100">{s.name}</span>
-                      <span className="text-sm text-slate-500 dark:text-slate-400">
-                        {s.email || "No email"}
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-medium text-slate-900 dark:text-slate-100 truncate">{s.name}</span>
+                      <span className="text-sm text-slate-500 dark:text-slate-400 truncate">
+                        {s.email ? (
+                          <a href={`mailto:${s.email}`} className="hover:underline hover:text-blue-600 transition-colors">
+                            {s.email}
+                          </a>
+                        ) : (
+                          "No email"
+                        )}
                       </span>
                     </div>
                   </TableCell>
@@ -691,14 +665,14 @@ export default function StudentsPage() {
                     </Badge>
                   </TableCell>
 
-                  <TableCell>{s.class}</TableCell>
-                  <TableCell>{s.joined}</TableCell>
+                  <TableCell className="hidden md:table-cell">{s.class}</TableCell>
+                  <TableCell className="hidden md:table-cell">{s.joined}</TableCell>
 
-                  <TableCell className="text-right">
+                  <TableCell className="text-right pr-4 sm:pr-6">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal />
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -729,24 +703,16 @@ export default function StudentsPage() {
                             </DropdownMenuItem>
                           )}
 
-                          <DropdownMenuLabel className="border-t mt-1 pt-2">Documents</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => generateIdCard(s)}>
-                            <CreditCard className="h-4 w-4 mr-2" />
-                            ID Card
-                          </DropdownMenuItem>
                           {canManage && (
                             <>
-                              <DropdownMenuItem onClick={() => generateBonafide(s)}>
+                              <DropdownMenuLabel className="border-t mt-1 pt-2">Documents</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => generateIdCard(s)} disabled={docLoadingId === `${s.id}_idcard`}>
+                                <CreditCard className="h-4 w-4 mr-2" />
+                                {docLoadingId === `${s.id}_idcard` ? "Generating..." : "ID Card"}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => generateBonafide(s)} disabled={docLoadingId === `${s.id}_bonafide`}>
                                 <FileCheck className="h-4 w-4 mr-2" />
-                                Bonafide
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => generateMarkSheet(s)}>
-                                <FileText className="h-4 w-4 mr-2" />
-                                Mark Sheet
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => generateGeneralCertificate(s)}>
-                                <Award className="h-4 w-4 mr-2" />
-                                General Certificate
+                                {docLoadingId === `${s.id}_bonafide` ? "Generating..." : "Bonafide"}
                               </DropdownMenuItem>
                             </>
                           )}
@@ -754,32 +720,26 @@ export default function StudentsPage() {
                       </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))}
+              )))}
             </TableBody>
           </Table>
-
-          {loading && (
-            <div className="px-2 pb-4">
-              <PageSkeleton rows={5} />
-            </div>
-          )}
+          </div>
         </CardContent>
       </Card>
 
       {/* ADD */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Add Student</DialogTitle>
+            <DialogTitle>Add New Student</DialogTitle>
           </DialogHeader>
-          <StudentForm onSubmit={handleAddStudent} />
-          {addLoading && <p>Saving...</p>}
+          <StudentForm mode="add" onSubmit={handleAddStudent} />
         </DialogContent>
       </Dialog>
 
       {/* EDIT */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Edit Student</DialogTitle>
           </DialogHeader>
@@ -787,6 +747,7 @@ export default function StudentsPage() {
           {editingStudent && (
           <StudentForm
             key={editingStudent.id}   
+            mode="edit"
             student={editingStudent}
             onSubmit={handleUpdateStudent}
           />
@@ -796,7 +757,7 @@ export default function StudentsPage() {
       </Dialog>
 
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:max-w-5xl max-h-[95vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-slate-900 border-b pb-4 mb-2">Student Details</DialogTitle>
           </DialogHeader>
@@ -807,6 +768,7 @@ export default function StudentsPage() {
               onGenerateIdCard={generateIdCard}
               onGenerateBonafide={generateBonafide}
               canGenerateBonafide={canManage}
+              canGenerateIdCard={canManage}
             />
           )}
         </DialogContent>

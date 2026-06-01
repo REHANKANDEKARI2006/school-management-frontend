@@ -7,6 +7,7 @@ import {
   ChevronRight, Search, Zap, BookOpen, GraduationCap, Calendar
 } from "lucide-react";
 import { listPapers, duplicatePaper, deletePaper } from "@/lib/api/question-paper";
+import { cn, formatDate } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,9 +36,10 @@ const QUICK_TEMPLATES = [
   { key: "annual",      label: "Annual Exam",    icon: GraduationCap, marks: "80 M",    desc: "Comprehensive" },
 ];
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-}
+const formatDateStr = (dateStr: string) => {
+  if (!dateStr) return "—";
+  return formatDate(dateStr);
+};
 
 export default function PaperGeneratorLandingPage() {
   const router = useRouter();
@@ -130,26 +132,26 @@ export default function PaperGeneratorLandingPage() {
 
       {/* ── Saved Papers ── */}
       <Card>
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
+        <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4">
           <div>
             <CardTitle>Saved Papers</CardTitle>
             <CardDescription>
               {filtered.length} paper{filtered.length !== 1 ? "s" : ""} found
             </CardDescription>
           </div>
-          <div className="flex gap-2">
-            <div className="relative">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+            <div className="relative w-full sm:w-[200px]">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 id="paper-search-input"
-                placeholder="Search by subject, class…"
+                placeholder="Search by subject…"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-8 h-9 w-[200px]"
+                className="pl-8 h-9 w-full"
               />
             </div>
             <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-[140px] h-9">
+              <SelectTrigger className="w-full sm:w-[140px] h-9">
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
@@ -178,54 +180,59 @@ export default function PaperGeneratorLandingPage() {
                   key={p.paper_id}
                   id={`paper-row-${p.paper_id}`}
                   onClick={() => handleOpen(p.paper_id)}
-                  className="flex items-center gap-4 px-6 py-4 hover:bg-muted/50 cursor-pointer group transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center gap-4 px-4 sm:px-6 py-4 hover:bg-muted/50 cursor-pointer group transition-colors"
                 >
-                  <Layers className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-sm truncate">
-                        {p.title || `Class ${p.class_name} — ${p.subject}`}
-                      </span>
-                      <Badge variant="outline" className="text-xs">
-                        {EXAM_TYPE_LABELS[p.exam_type] || p.exam_type}
-                      </Badge>
-                      {p.status === "draft" && (
-                        <Badge variant="secondary" className="text-xs">Draft</Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                      <span>Std {p.class_name}{p.section ? `-${p.section}` : ""}</span>
-                      <span>·</span>
-                      <span>{p.total_marks} Marks</span>
-                      {p.exam_date && <><span>·</span><span>{formatDate(p.exam_date)}</span></>}
-                      <span>·</span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />{formatDate(p.updated_at)}
-                      </span>
+                  <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
+                    <Layers className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5 sm:mt-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-sm truncate">
+                          {p.title || `Class ${p.class_name} — ${p.subject}`}
+                        </span>
+                        <Badge variant="outline" className="text-xs">
+                          {EXAM_TYPE_LABELS[p.exam_type] || p.exam_type}
+                        </Badge>
+                        {p.status === "draft" && (
+                          <Badge variant="secondary" className="text-xs">Draft</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
+                        <span>Std {p.class_name}{p.section ? `-${p.section}` : ""}</span>
+                        <span className="hidden sm:inline">·</span>
+                        <span>{p.total_marks} Marks</span>
+                        {p.exam_date && <><span className="hidden sm:inline">·</span><span>{formatDate(p.exam_date)}</span></>}
+                        <span className="hidden sm:inline">·</span>
+                        <span className="flex items-center gap-1 w-full sm:w-auto mt-1 sm:mt-0">
+                          <Clock className="h-3 w-3" />{formatDate(p.updated_at)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                    <Button
-                      size="icon" variant="ghost"
-                      id={`reuse-paper-${p.paper_id}`}
-                      disabled={dupeId === p.paper_id}
-                      onClick={e => handleDuplicate(p.paper_id, e)}
-                      title="Duplicate"
-                      className="h-8 w-8"
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="icon" variant="ghost"
-                      id={`delete-paper-${p.paper_id}`}
-                      onClick={e => handleDelete(p.paper_id, e)}
-                      title="Delete"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                  
+                  <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 mt-2 sm:mt-0 pl-9 sm:pl-0">
+                    <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                      <Button
+                        size="icon" variant="ghost"
+                        id={`reuse-paper-${p.paper_id}`}
+                        disabled={dupeId === p.paper_id}
+                        onClick={e => handleDuplicate(p.paper_id, e)}
+                        title="Duplicate"
+                        className="h-8 w-8"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="icon" variant="ghost"
+                        id={`delete-paper-${p.paper_id}`}
+                        onClick={e => handleDelete(p.paper_id, e)}
+                        title="Delete"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 </div>
               ))}
             </div>

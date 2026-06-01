@@ -19,6 +19,12 @@ export default function StudentProfilePage() {
   const [loading, setLoading] = useState(true);
   const [student, setStudent] = useState<Student | null>(null);
 
+  const roleId =
+    typeof window !== "undefined"
+      ? Number(localStorage.getItem("role_id"))
+      : null;
+  const canManage = roleId ? ADMIN_GROUP.includes(roleId) || roleId === 15 : false;
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -94,6 +100,38 @@ export default function StudentProfilePage() {
     }
   };
 
+  const handleGenerateAchievement = async (s: Student) => {
+    try {
+      toast({ title: "Generating Achievement Certificate", description: "Please wait..." });
+      const res = await axios.get(`/api/documents/general-certificate/${s.id}`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Achievement_${s.name}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to generate Achievement Certificate", variant: "destructive" });
+    }
+  };
+
+  const handleGenerateLeavingCertificate = async (s: Student) => {
+    try {
+      toast({ title: "Generating Leaving Certificate", description: "Please wait..." });
+      const res = await axios.get(`/api/documents/leaving-certificate/${s.id}`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Leaving_Certificate_${s.name}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to generate Leaving Certificate", variant: "destructive" });
+    }
+  };
+
   if (loading) return <PageSkeleton rows={15} />;
   if (!student) return <div className="p-8 text-center text-slate-500 font-bold">Student not found</div>;
 
@@ -125,6 +163,10 @@ export default function StudentProfilePage() {
           student={student}
           onGenerateIdCard={handleGenerateIdCard}
           onGenerateBonafide={handleGenerateBonafide}
+          onGenerateLeavingCertificate={handleGenerateLeavingCertificate}
+          onGenerateAchievement={handleGenerateAchievement}
+          canGenerateIdCard={canManage}
+          canGenerateBonafide={canManage}
         />
       </div>
     </RouteGuard>

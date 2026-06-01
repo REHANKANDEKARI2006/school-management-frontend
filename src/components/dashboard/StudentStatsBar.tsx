@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { formatDate } from "@/lib/utils";
 
 interface TimetableEntry {
   start_time: string;
@@ -49,7 +50,16 @@ export const StudentStatsBar = ({ profile, stats, timetable }: StudentStatsBarPr
   };
 
   const getNextClassInfo = () => {
-    if (!timetable || timetable.length === 0) return { status: 'none', value: 'No Classes', label: 'No classes scheduled today', iconColor: 'text-slate-400', iconBg: 'bg-slate-50' };
+    const isSunday = new Date().getDay() === 0;
+    if (!timetable || timetable.length === 0) {
+      return { 
+        status: 'none', 
+        value: isSunday ? 'Sunday Off' : 'No Classes', 
+        label: isSunday ? 'Weekend break' : 'No classes scheduled today', 
+        iconColor: isSunday ? 'text-orange-600' : 'text-slate-400', 
+        iconBg: isSunday ? 'bg-orange-50' : 'bg-slate-50' 
+      };
+    }
 
     const now = new Date();
     const currentTimeStr = format(now, "HH:mm:ss");
@@ -72,7 +82,6 @@ export const StudentStatsBar = ({ profile, stats, timetable }: StudentStatsBarPr
     if (next) {
       const startTime = new Date(`2000-01-01T${next.start_time}`);
       
-      // Calculate diff
       const todayStartTime = new Date();
       todayStartTime.setHours(startTime.getHours(), startTime.getMinutes(), 0);
       const diffMins = Math.round((todayStartTime.getTime() - now.getTime()) / (1000 * 60));
@@ -90,7 +99,7 @@ export const StudentStatsBar = ({ profile, stats, timetable }: StudentStatsBarPr
       return {
         status: 'next',
         value: countdown,
-        label: `${next.subject_name} | ${next.teacher_name} | ${format(startTime, "h:mm aa")} | P${next.period_number} | Room: ${profile.section}`,
+        label: `${next.subject_name} | ${next.teacher_name} | ${format(startTime, "h:mm aa")}`,
         iconColor: isUrgent ? 'text-amber-600' : 'text-blue-600',
         iconBg: isUrgent ? 'bg-amber-50' : 'bg-blue-50'
       };
@@ -103,37 +112,34 @@ export const StudentStatsBar = ({ profile, stats, timetable }: StudentStatsBarPr
 
   return (
     <div className="space-y-6">
-      {/* ... WELCOME HEADER ... */}
-      <div className="bg-white p-6 rounded-[2.5rem] border border-blue-50 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-full -mr-16 -mt-16 blur-3xl opacity-50" />
-        <div className="flex items-center gap-6 relative z-10 w-full md:w-auto">
-          <Avatar className="h-20 w-20 border-4 border-blue-50 shadow-sm ring-2 ring-white flex-shrink-0">
+      {/* WELCOME HEADER */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-100/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+        <div className="flex items-center gap-5 relative z-10 w-full md:w-auto">
+          <Avatar className="h-16 w-16 border-2 border-slate-100 shadow-sm flex-shrink-0 rounded-full">
             <AvatarImage src={profile.photo} />
-            <AvatarFallback className="bg-blue-600 text-white text-xl font-bold">
+            <AvatarFallback className="bg-blue-600 text-white text-lg font-bold">
               {profile.name?.split(" ").map((n: any) => n[0]).join("")}
             </AvatarFallback>
           </Avatar>
-          <div className="text-center md:text-left flex-1 min-w-0">
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight truncate">
-              Welcome back, {profile.name}! 👋
+          <div className="text-left flex-1 min-w-0">
+            <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight leading-tight">
+              Welcome back, {profile.name}!
             </h1>
-            <p className="text-slate-500 font-medium text-sm md:text-base mt-1">
-              Class: <span className="text-blue-600 font-bold">{profile.class}</span> | 
-              Section: <span className="text-blue-600 font-bold">{profile.section}</span> | 
-              Roll No: <span className="text-blue-600 font-bold">{profile.rollNo}</span>
+            <p className="text-slate-400 font-bold text-xs mt-1">
+              {profile.class} - {profile.section} | Roll No: {profile.rollNo}
             </p>
           </div>
         </div>
-        <div className="hidden md:flex flex-col items-end relative z-10">
-           <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Today's Date</div>
-           <div className="text-lg font-bold text-slate-800 leading-none">
-             {format(new Date(), "EEEE, MMMM dd, yyyy")}
+        <div className="hidden md:flex flex-col items-end relative z-10 select-none">
+           <div className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Today's Date</div>
+           <div className="text-lg font-extrabold text-slate-850 tracking-tight">
+             {formatDate(new Date())}
            </div>
         </div>
       </div>
 
       {/* QUICK STATS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Next Class"
           value={nextClass.value}
@@ -141,31 +147,30 @@ export const StudentStatsBar = ({ profile, stats, timetable }: StudentStatsBarPr
           icon={Clock}
           iconColor={nextClass.iconColor}
           iconBg={nextClass.iconBg}
-          className="font-bold"
         />
         <StatsCard
-          title="Attendance Status"
-          value={stats.todayAttendance}
-          secondaryLabel={stats.todayAttendance === 'Present' ? "You're marked for today" : "Attendance not yet marked"}
+          title="Attendance"
+          value={new Date().getDay() === 0 ? "Sunday Off" : (stats?.todayAttendance ?? "Pending")}
+          secondaryLabel={new Date().getDay() === 0 ? "No attendance required" : (stats?.todayAttendance === 'Present' ? "Marked Present" : "Not yet marked")}
           icon={CheckCircle2}
-          iconColor={stats.todayAttendance === 'Present' ? "text-emerald-600" : "text-amber-600"}
-          iconBg={stats.todayAttendance === 'Present' ? "bg-emerald-50" : "bg-amber-50"}
+          iconColor={new Date().getDay() === 0 ? "text-orange-600" : (stats?.todayAttendance === 'Present' ? "text-emerald-600" : "text-amber-600")}
+          iconBg={new Date().getDay() === 0 ? "bg-orange-50" : (stats?.todayAttendance === 'Present' ? "bg-emerald-50" : "bg-amber-50")}
         />
         <StatsCard
           title="Upcoming Exam"
-          value={getExamCountdown(stats.nextExamDate)}
-          secondaryLabel={stats.nextExam !== 'None' ? `Subject: ${stats.nextExam}` : "No exams scheduled"}
+          value={getExamCountdown(stats?.nextExamDate)}
+          secondaryLabel={stats?.nextExam && stats?.nextExam !== 'None' ? stats?.nextExam : "No exams scheduled"}
           icon={CalendarClock}
-          iconColor={stats.nextExamDate ? "text-indigo-600" : "text-slate-400"}
-          iconBg={stats.nextExamDate ? "bg-indigo-50" : "bg-slate-50"}
+          iconColor={stats?.nextExamDate ? "text-indigo-600" : "text-slate-400"}
+          iconBg={stats?.nextExamDate ? "bg-indigo-50" : "bg-slate-50"}
         />
         <StatsCard
-          title="Pending Fees"
-          value={`₹${stats.pendingFees.toLocaleString()}`}
-          secondaryLabel={stats.pendingFees > 0 ? "Outstanding balance" : "All fees paid"}
+          title="Fees Due"
+          value={`₹${(stats?.pendingFees ?? 0).toLocaleString()}`}
+          secondaryLabel={stats?.pendingFees > 0 ? "Outstanding" : "All clear"}
           icon={CreditCard}
-          iconColor={stats.pendingFees > 0 ? "text-rose-600" : "text-emerald-600"}
-          iconBg={stats.pendingFees > 0 ? "bg-rose-50" : "bg-emerald-50"}
+          iconColor={stats?.pendingFees > 0 ? "text-rose-600" : "text-emerald-600"}
+          iconBg={stats?.pendingFees > 0 ? "bg-rose-50" : "bg-emerald-50"}
         />
       </div>
     </div>

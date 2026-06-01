@@ -58,9 +58,9 @@ const studentSchema = z.object({
   rollNumber: z.string().optional(),
 
   class_id: z.string().min(1, "Class is required"),
+  gender_id: z.string().min(1, "Gender is required"),
 
   name: z.string().min(1, "Student name is required"),
-  email: z.string().email("Invalid email address"),
   user_status_id: z.string().min(1, "Status is required"),
   address: z.string().min(1, "Address is required"),
   bloodGroup: z.string().min(1, "Blood group is required"),
@@ -69,34 +69,39 @@ const studentSchema = z.object({
   primaryContact: z.string().min(1, "Primary contact is required"),
   dob: z.string().min(1, "Date of birth is required"),
   secondaryContact: z.string().optional(),
-  parentEmail: z.string().email().optional().or(z.literal("")),
+  parentEmail: z.string().min(1, "Guardian email is required").email("Invalid email address"),
   avatar: z.string().optional(),
 });
 
 export type Student = z.infer<typeof studentSchema>;
 
-interface StudentFormProps {
+/* =========================
+   COMPONENT
+ ========================= */
+interface Props {
+  mode: "add" | "edit";
+  student?: any; // initial data
   onSubmit: (data: Student) => void;
-  student?: StudentType;
 }
 
-export function StudentForm({ onSubmit, student }: StudentFormProps) {
+export function StudentForm({ mode, student, onSubmit }: Props) {
   const form = useForm<Student>({
     resolver: zodResolver(studentSchema),
-    defaultValues: student || {
-      name: "",
-      email: "",
-      class_id: "",
-      user_status_id: "1",
-      address: "",
-      bloodGroup: "",
-      fatherName: "",
-      motherName: "",
-      primaryContact: "",
-      secondaryContact: "",
-      parentEmail: "",
-      dob: "",
-      avatar: "",
+    defaultValues: {
+      id: student?.id ? String(student.id) : "",
+      name: student?.name || "",
+      class_id: student?.class_id ? String(student.class_id) : "",
+      user_status_id: student?.user_status_id ? String(student.user_status_id) : "1",
+      address: student?.address || "",
+      bloodGroup: student?.bloodGroup || "",
+      fatherName: student?.fatherName || "",
+      motherName: student?.motherName || "",
+      primaryContact: student?.primaryContact || "",
+      secondaryContact: student?.secondaryContact || "",
+      parentEmail: student?.parentEmail || "",
+      dob: student?.dob ? student.dob.split("T")[0] : "",
+      avatar: student?.avatar || "",
+      gender_id: student?.gender_id ? String(student.gender_id) : "",
     },
   });
 
@@ -120,25 +125,17 @@ export function StudentForm({ onSubmit, student }: StudentFormProps) {
   const imgRef = React.useRef<HTMLImageElement>(null);
 
   React.useEffect(() => {
-    axios
-      .get("/api/classes/admin/list")
-      .then((res) => {
-        // res.data.data has { class_id, class_name, section_name, ... }
-        const mapped = res.data.data.map((c: any) => ({
-          id: String(c.class_id),
-          name: c.class_name,
-          section: c.section_name || "-",
-        }));
-        setClassOptions(mapped);
-      });
+    axios.get("/api/classes/admin/list").then((res) => {
+      const mapped = res.data.data.map((c: any) => ({
+        id: String(c.class_id),
+        name: c.class_name,
+        section: c.section_name || "-",
+      }));
+      setClassOptions(mapped);
+    });
 
-    axios
-      .get("/api/blood-groups")
-      .then((res) => setBloodGroups(res.data.data));
-
-    axios
-      .get("/api/user-status")
-      .then((res) => setUserStatuses(res.data.data));
+    axios.get("/api/blood-groups").then((res) => setBloodGroups(res.data.data));
+    axios.get("/api/user-status").then((res) => setUserStatuses(res.data.data));
   }, []);
 
   const uniqueStandards = React.useMemo(() => {
@@ -161,7 +158,7 @@ export function StudentForm({ onSubmit, student }: StudentFormProps) {
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
-      setCrop(undefined); // Reset crop
+      setCrop(undefined); 
       const reader = new FileReader();
       reader.addEventListener('load', () => setImgSrc(reader.result?.toString() || ''));
       reader.readAsDataURL(event.target.files[0]);
@@ -174,8 +171,10 @@ export function StudentForm({ onSubmit, student }: StudentFormProps) {
     const canvas = document.createElement('canvas');
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
-    canvas.width = completedCrop.width;
-    canvas.height = completedCrop.height;
+    
+    const OUTPUT_SIZE = 300;
+    canvas.width = OUTPUT_SIZE;
+    canvas.height = OUTPUT_SIZE;
     
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -186,10 +185,7 @@ export function StudentForm({ onSubmit, student }: StudentFormProps) {
       completedCrop.y * scaleY,
       completedCrop.width * scaleX,
       completedCrop.height * scaleY,
-      0,
-      0,
-      completedCrop.width,
-      completedCrop.height
+      0, 0, OUTPUT_SIZE, OUTPUT_SIZE
     );
 
     canvas.toBlob(async (blob) => {
@@ -204,210 +200,119 @@ export function StudentForm({ onSubmit, student }: StudentFormProps) {
         if (res.data.success) {
           form.setValue("avatar", res.data.data.url, { shouldValidate: true });
           setPreviewUrl(res.data.data.url);
-          setImgSrc(""); // Close cropper
+          setImgSrc("");
         }
       } catch (err) {
         console.error("Photo upload failed:", err);
       } finally {
         setIsUploading(false);
       }
-    }, 'image/jpeg');
+    }, 'image/jpeg', 0.92);
   };
 
   const handleSubmit = async (values: Student) => {
     await onSubmit(values);
   };
 
-  /* =========================
-     PREFILL (EDIT MODE)
-  ========================= */
-  React.useEffect(() => {
-    if (student) {
-      form.reset({
-        ...student,
-        class_id: student.class_id ? String(student.class_id) : "",
-        dob: student.dob ? student.dob.split("T")[0] : "",
-        bloodGroup: student.bloodGroup ?? "",
-        user_status_id: student.user_status_id ? String(student.user_status_id) : "1",
-        avatar: student.avatar ?? "",
-      });
-      setPreviewUrl(student.avatar || null);
-    } else {
-      form.reset({
-        name: "",
-        email: "",
-        class_id: "",
-        user_status_id: "1",
-        address: "",
-        bloodGroup: "",
-        fatherName: "",
-        motherName: "",
-        primaryContact: "",
-        secondaryContact: "",
-        parentEmail: "",
-        dob: "",
-        avatar: "",
-      });
-      setSelectedStandard("");
-      setSelectedSection("");
-      setPreviewUrl(null);
-      setImgSrc("");
-    }
-  }, [student, form]);
+  const watchedName = form.watch("name");
 
   React.useEffect(() => {
     if (student?.class_id && classOptions.length > 0) {
-      form.setValue("class_id", String(student.class_id), {
-        shouldValidate: true,
-      });
-      // Delay the standard/section setting slightly to let the UI options mount,
-      // or simply set them directly if we found the class.
-      const cls = classOptions.find(
-        (c) => String(c.id) === String(student.class_id)
-      );
+      const cls = classOptions.find(c => String(c.id) === String(student.class_id));
       if (cls) {
         setSelectedStandard(cls.name);
-        // We use a small timeout to let the Standard select render the disabled Section Select
-        setTimeout(() => {
-          setSelectedSection(cls.section);
-        }, 50);
+        setTimeout(() => setSelectedSection(cls.section), 50);
       }
     }
-  }, [student, classOptions, form]);
+  }, [student, classOptions]);
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         
         {/* PHOTO UPLOAD */}
-        <div className="flex flex-col items-center gap-3 pb-2">
-          {imgSrc ? (
-            <div className="flex flex-col items-center gap-2 mt-2 w-full border border-dashed p-4 rounded-md">
+        {imgSrc ? (
+          <div className="flex flex-col items-center gap-3 border border-dashed border-primary/30 bg-muted/30 rounded-xl p-4">
+            <p className="text-xs font-medium text-muted-foreground">Drag to reposition • Scroll to zoom</p>
+            <div className="w-[280px] h-[280px] flex items-center justify-center overflow-hidden rounded-md">
               <ReactCrop
                 crop={crop}
-                onChange={(_, percentCrop) => setCrop(percentCrop)}
+                onChange={(_, pct) => setCrop(pct)}
                 onComplete={(c) => setCompletedCrop(c)}
                 aspect={1}
                 circularCrop
+                className="max-w-[280px]"
               >
                 <img
                   ref={imgRef}
-                  alt="Crop me"
+                  alt="Crop preview"
                   src={imgSrc}
-                  className="max-h-[300px] w-auto mx-auto"
+                  className="max-h-[280px] w-auto mx-auto"
                   onLoad={(e) => {
                     const { width, height } = e.currentTarget;
                     setCrop(centerAspectCrop(width, height, 1));
                   }}
                 />
               </ReactCrop>
-              <div className="flex gap-2">
-                <Button type="button" onClick={handleConfirmCrop} loading={isUploading}>
-                  Confirm & Upload
-                </Button>
-                <Button type="button" variant="outline" onClick={() => {
-                  setImgSrc("");
-                }} disabled={isUploading}>
-                  Cancel
-                </Button>
-              </div>
             </div>
-          ) : (
-            <>
-              <Avatar className="h-24 w-24">
-                <AvatarImage src={previewUrl || undefined} className="object-cover" />
-                <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                  {form.getValues("name")?.charAt(0) || <UploadCloud className="h-8 w-8 opacity-50" />}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  loading={isUploading}
-                >
-                  {isUploading ? "Uploading..." : "Upload Photo"}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    onChange={handleFileUpload}
-                    disabled={isUploading}
-                    onClick={(e) => e.currentTarget.value = ""}
-                  />
-                </Button>
-                {previewUrl && !isUploading && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive h-8 px-2"
-                    onClick={() => {
-                      setPreviewUrl(null);
-                      form.setValue("avatar", "");
-                    }}
-                  >
+            <div className="flex gap-2">
+              <Button type="button" size="sm" onClick={handleConfirmCrop} disabled={isUploading}>
+                {isUploading ? "Uploading…" : "✓ Confirm & Upload"}
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => setImgSrc("")} disabled={isUploading}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-4 py-1">
+            <Avatar className="h-16 w-16 ring-2 ring-offset-2 ring-border flex-shrink-0">
+              <AvatarImage src={previewUrl || undefined} className="object-cover" />
+              <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
+                {watchedName?.charAt(0)?.toUpperCase() || <UploadCloud className="h-6 w-6 opacity-40" />}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col gap-1.5">
+              <p className="text-sm font-medium text-foreground">{previewUrl ? "Photo uploaded" : "Profile photo"}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-semibold border border-input bg-background hover:bg-accent hover:text-accent-foreground h-7 px-3 rounded-md transition-colors">
+                  <UploadCloud className="h-3.5 w-3.5" />
+                  {previewUrl ? "Change" : "Upload Photo"}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+                </label>
+                {previewUrl && (
+                  <Button variant="ghost" size="sm" className="text-destructive h-7 px-2 text-xs" onClick={() => { setPreviewUrl(null); form.setValue("avatar", ""); }}>
                     Remove
                   </Button>
                 )}
               </div>
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
+
         <Separator />
 
-        <h3 className="text-lg font-medium">Student Information</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem className="md:col-span-2">
+                <FormLabel>Full Name <span className="text-destructive">*</span></FormLabel>
+                <FormControl><Input placeholder="e.g. Rahul Patil" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Full Name</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email Address</FormLabel>
-              <FormControl>
-                <Input type="email" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
-        {/* ✅ FIXED CLASS SELECT (INDUSTRY STANDARD) */}
-        <div className="grid grid-cols-2 gap-4">
           <FormItem>
-            <FormLabel>Standard</FormLabel>
-            <Select
-              value={selectedStandard}
-              onValueChange={(val) => {
-                setSelectedStandard(val);
-                setSelectedSection("");
-                form.setValue("class_id", "", { shouldValidate: true });
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Standard" />
-              </SelectTrigger>
+            <FormLabel>Standard <span className="text-destructive">*</span></FormLabel>
+            <Select value={selectedStandard} onValueChange={(val) => { setSelectedStandard(val); setSelectedSection(""); form.setValue("class_id", ""); }}>
+              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
               <SelectContent>
-                {uniqueStandards.map((std) => (
-                  <SelectItem key={std} value={std}>
-                    Standard {std}
-                  </SelectItem>
-                ))}
+                {uniqueStandards.map((std) => <SelectItem key={std} value={std}>Standard {std}</SelectItem>)}
               </SelectContent>
             </Select>
           </FormItem>
@@ -417,187 +322,183 @@ export function StudentForm({ onSubmit, student }: StudentFormProps) {
             name="class_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Section</FormLabel>
+                <FormLabel>Section <span className="text-destructive">*</span></FormLabel>
                 <Select
                   value={selectedSection}
                   onValueChange={(val) => {
                     setSelectedSection(val);
-                    const match = classOptions.find(
-                      (c) => c.name === selectedStandard && c.section === val
-                    );
-                    if (match) {
-                      field.onChange(String(match.id));
-                    }
+                    const match = classOptions.find(c => c.name === selectedStandard && c.section === val);
+                    if (match) field.onChange(String(match.id));
                   }}
                   disabled={!selectedStandard}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Section" />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
-                    {uniqueSectionsForStandard.map((sec) => (
-                      <SelectItem key={sec.id} value={sec.section}>
-                        Section {sec.section}
-                      </SelectItem>
-                    ))}
+                    {uniqueSectionsForStandard.map((sec) => <SelectItem key={sec.id} value={sec.section}>Section {sec.section}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="gender_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Gender <span className="text-destructive">*</span></FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Boy (Male)</SelectItem>
+                    <SelectItem value="2">Girl (Female)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="dob"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Date of Birth <span className="text-destructive">*</span></FormLabel>
+                <FormControl><Input type="date" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="bloodGroup"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Blood Group <span className="text-destructive">*</span></FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    {bloodGroups.map((bg) => <SelectItem key={bg.bg_id} value={bg.blood_group}>{bg.blood_group}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="user_status_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status <span className="text-destructive">*</span></FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    {userStatuses
+                      .filter(s => [
+                        'Active', 
+                        'Inactive', 
+                        'Suspended', 
+                        'Rusticated', 
+                        'Alumni', 
+                        'Transferred', 
+                        'Banned', 
+                        'Pending Approval'
+                      ].includes(s.status_name))
+                      .map((s) => (
+                        <SelectItem key={s.user_status_id} value={String(s.user_status_id)}>
+                          {s.status_name}
+                        </SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="address"
+            render={({ field }) => (
+              <FormItem className="md:col-span-2">
+                <FormLabel>Address <span className="text-destructive">*</span></FormLabel>
+                <FormControl><Textarea placeholder="Current residential address" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Separator className="md:col-span-2 my-2" />
+          <h3 className="md:col-span-2 text-sm font-semibold text-slate-500 uppercase tracking-wider">Guardian Information</h3>
+
+          <FormField
+            control={form.control}
+            name="fatherName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Father's Name <span className="text-destructive">*</span></FormLabel>
+                <FormControl><Input placeholder="Father's name" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="motherName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mother's Name <span className="text-destructive">*</span></FormLabel>
+                <FormControl><Input placeholder="Mother's name" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="primaryContact"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Primary Contact <span className="text-destructive">*</span></FormLabel>
+                <FormControl>
+                  <Input 
+                    type="tel"
+                    pattern="[0-9]{10}"
+                    maxLength={10}
+                    minLength={10}
+                    title="Phone number must be exactly 10 digits"
+                    placeholder="Guardian phone" 
+                    {...field} 
+                    onChange={e => field.onChange(e.target.value.replace(/\D/g, ''))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="parentEmail"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Guardian Email <span className="text-destructive">*</span></FormLabel>
+                <FormControl><Input type="email" placeholder="guardian@example.com" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
-        <FormField
-          control={form.control}
-          name="dob"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Date of Birth</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="address"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Address</FormLabel>
-              <FormControl>
-                <Textarea {...field} />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
-        {/* ✅ FIXED BLOOD GROUP */}
-        <FormField
-          control={form.control}
-          name="bloodGroup"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Blood Group</FormLabel>
-              <Select
-                value={field.value || ""}
-                onValueChange={field.onChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select blood group" />
-                </SelectTrigger>
-                <SelectContent>
-                  {bloodGroups.map((bg) => (
-                    <SelectItem key={bg.bg_id} value={bg.blood_group}>
-                      {bg.blood_group}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="user_status_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Status</FormLabel>
-              <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {userStatuses.map((s) => (
-                    <SelectItem key={s.user_status_id} value={String(s.user_status_id)}>
-                      {s.status_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <Separator />
-
-        <h3 className="text-lg font-medium">Guardian Information</h3>
-
-        <FormField
-          control={form.control}
-          name="fatherName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Father's Name</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="motherName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Mother's Name</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="primaryContact"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Primary Contact</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="secondaryContact"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Secondary Contact (Optional)</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="parentEmail"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Guardian Email (Optional)</FormLabel>
-              <FormControl>
-                <Input type="email" {...field} />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
-        <Button type="submit" className="w-full" loading={form.formState.isSubmitting}>
-          {student ? "Update Student" : "Add Student"}
+        <Button type="submit" className="w-full mt-4" loading={form.formState.isSubmitting}>
+          {mode === "add" ? "Add Student & Register" : "Update Student Details"}
         </Button>
       </form>
     </Form>

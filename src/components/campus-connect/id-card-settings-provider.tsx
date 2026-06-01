@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import axios from "@/lib/axios";
 
 export type IdCardConfig = {
   template_style: string;
@@ -31,6 +32,7 @@ export type IdCardSettings = {
   schoolAddress: string;
   recognition: string;
   schoolPhone: string;
+  organizationName?: string;
   primaryColor?: string;
   signatureUrl?: string;
   academicYear?: string;
@@ -53,6 +55,7 @@ const defaultSettings: IdCardSettings = {
   schoolAddress: "123 University Drive, Knowledge City, ED 54321",
   recognition: "(Govt. Recognised)",
   schoolPhone: "+1-202-555-0123",
+  organizationName: "",
   idCardConfig: {
     template_style: "template1",
     photo_style: "circle",
@@ -85,15 +88,52 @@ export function IdCardSettingsProvider({ children }: { children: React.ReactNode
     return defaultSettings;
   });
 
-  const handleSetSettings = (newSettings: IdCardSettings) => {
+  // 🔄 Sync with Backend on Mount
+  React.useEffect(() => {
+    const syncWithBackend = async () => {
+      try {
+        const res = await axios.get("/api/school-profile");
+        if (res.data.success && res.data.data) {
+          const profile = res.data.data;
+          setSettings(prev => {
+             const mapped = {
+                ...prev,
+                schoolName: profile.school_name || prev.schoolName,
+                schoolAddress: profile.address || prev.schoolAddress,
+                schoolPhone: profile.phone || prev.schoolPhone,
+                logoUrl: profile.logo_url || prev.logoUrl,
+                slogan: profile.slogan || prev.slogan,
+                organizationName: profile.organization_name || prev.organizationName,
+                academicYear: profile.academic_year || prev.academicYear,
+                signatureUrl: profile.signature_url || prev.signatureUrl,
+                primaryColor: profile.primary_color || prev.primaryColor,
+              };
+              localStorage.setItem("idCardSettings", JSON.stringify(mapped));
+              return mapped;
+          });
+        }
+      } catch (error) {
+        console.error("Failed to sync settings with backend:", error);
+      }
+    };
+
+    syncWithBackend();
+  }, []);
+
+  const handleSetSettings = React.useCallback((newSettings: IdCardSettings) => {
     setSettings(newSettings);
     if (typeof window !== "undefined") {
       localStorage.setItem("idCardSettings", JSON.stringify(newSettings));
     }
-  };
+  }, []);
+
+  const contextValue = React.useMemo(() => ({
+    settings,
+    setSettings: handleSetSettings
+  }), [settings, handleSetSettings]);
 
   return (
-    <IdCardSettingsContext.Provider value={{ settings, setSettings: handleSetSettings }}>
+    <IdCardSettingsContext.Provider value={contextValue}>
       {children}
     </IdCardSettingsContext.Provider>
   );

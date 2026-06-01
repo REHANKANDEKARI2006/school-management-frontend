@@ -43,10 +43,11 @@ export type Material = z.infer<typeof materialSchema>;
 
 interface MaterialFormProps {
   onSubmit: (data: Material) => void;
+  onCancel?: () => void;
   material?: Material;
 }
 
-export function MaterialForm({ onSubmit, material }: MaterialFormProps) {
+export function MaterialForm({ onSubmit, onCancel, material }: MaterialFormProps) {
   const { toast } = useToast();
   const [classes, setClasses] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
@@ -128,13 +129,13 @@ export function MaterialForm({ onSubmit, material }: MaterialFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 pt-4">
         <FormField
           control={form.control}
           name="name"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Material Name</FormLabel>
+            <FormItem className="space-y-2">
+              <FormLabel className="text-sm font-semibold text-slate-700">Material Name</FormLabel>
               <FormControl>
                 <Input placeholder="e.g. Introduction to Algebra" {...field} />
               </FormControl>
@@ -142,54 +143,58 @@ export function MaterialForm({ onSubmit, material }: MaterialFormProps) {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="subject_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Subject</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a subject" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {subjects.map(s => (
-                    <SelectItem key={s.subject_id} value={String(s.subject_id)}>{s.subject_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="class_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Class</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a class" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {classes.map(c => (
-                    <SelectItem key={c.class_id} value={String(c.class_id)}>
-                      {c.class_name}{c.section_name ? ` - ${c.section_name}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormItem>
-          <FormLabel>File</FormLabel>
+        
+        <div className="grid grid-cols-2 gap-4">
+            <FormField
+            control={form.control}
+            name="subject_id"
+            render={({ field }) => (
+                <FormItem className="space-y-2">
+                <FormLabel className="text-sm font-semibold text-slate-700">Subject</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                    {subjects.map(s => (
+                        <SelectItem key={s.subject_id} value={String(s.subject_id)}>{s.subject_name}</SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="class_id"
+            render={({ field }) => (
+                <FormItem className="space-y-2">
+                <FormLabel className="text-sm font-semibold text-slate-700">Class</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                    {classes.map(c => (
+                        <SelectItem key={c.class_id} value={String(c.class_id)}>
+                        {c.class_name}{c.section_name ? ` - ${c.section_name}` : ""}
+                        </SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
+
+        <FormItem className="space-y-2">
+          <FormLabel className="text-sm font-semibold text-slate-700">File</FormLabel>
           <FormControl>
             <div className="relative">
               <Input
@@ -200,12 +205,13 @@ export function MaterialForm({ onSubmit, material }: MaterialFormProps) {
             </div>
           </FormControl>
         </FormItem>
+
         <FormField
           control={form.control}
           name="date"
           render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Upload Date</FormLabel>
+            <FormItem className="flex flex-col space-y-2">
+              <FormLabel className="text-sm font-semibold text-slate-700">Upload Date</FormLabel>
               <Popover>
                 <PopoverTrigger asChild>
                   <FormControl>
@@ -238,9 +244,17 @@ export function MaterialForm({ onSubmit, material }: MaterialFormProps) {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" loading={isUploading}>
-          {material ? "Update Material" : "Upload Material"}
-        </Button>
+        
+        <div className="pt-2 flex flex-col sm:flex-row gap-2">
+            {onCancel && (
+                <Button type="button" variant="outline" onClick={onCancel} className="order-2 sm:order-1">
+                    Cancel
+                </Button>
+            )}
+            <Button type="submit" className="flex-1 order-1 sm:order-2" loading={isUploading}>
+                {material ? "Update Material" : "Upload Material"}
+            </Button>
+        </div>
       </form>
     </Form>
   );

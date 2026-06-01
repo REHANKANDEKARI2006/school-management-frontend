@@ -26,18 +26,8 @@ interface DocumentEditorProps {
 export function DocumentEditor({ documentType, branding, savedLayout, onSave, onBack }: DocumentEditorProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<CanvasTemplate | null>(null);
 
-  // Auto-select if we have a saved layout to jump straight into editing
-  useEffect(() => {
-    if (savedLayout && !selectedTemplate) {
-      // In this system, if we have a saved layout, we treat it as a specialized "Template" 
-      // containing the current canvas state.
-      setSelectedTemplate({
-        id: "custom-current",
-        name: "Current Design",
-        layout: savedLayout
-      });
-    }
-  }, [savedLayout]);
+  // Removed auto-select useEffect to allow users to see the template gallery first.
+  // The gallery already displays the "Saved Design" as the primary option.
 
   if (!selectedTemplate) {
     return (

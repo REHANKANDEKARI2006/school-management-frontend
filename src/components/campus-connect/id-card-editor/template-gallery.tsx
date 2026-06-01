@@ -57,9 +57,10 @@ export function DocumentTemplateGallery({ documentType, branding, savedLayout, o
   };
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto p-6">
-      {/* Top Bar for Gallery */}
-      {onBack && (
+    <div className="h-full overflow-y-auto custom-scrollbar pb-12">
+      <div className="space-y-6 max-w-6xl mx-auto p-6 md:p-10 pt-4 md:pt-6">
+        {/* Top Bar for Gallery */}
+        {onBack && (
         <div className="flex items-center justify-between">
            <Button variant="ghost" size="sm" onClick={onBack} className="gap-2 text-slate-500 hover:text-slate-900">
              <ChevronLeft className="h-4 w-4" /> Back to Documents
@@ -69,11 +70,11 @@ export function DocumentTemplateGallery({ documentType, branding, savedLayout, o
 
       {/* Hero Header */}
       <div className="text-center py-6 space-y-2">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider mb-2">
+        <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/5 text-primary text-[10px] font-bold uppercase mb-2 border border-primary/10">
           {getIcon(documentType)}
           {documentType.replace('_', ' ')} Designer
         </div>
-        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Choose a Starting Template</h2>
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Choose a Starting Template</h2>
         <p className="text-sm text-slate-500 max-w-lg mx-auto font-medium">
           Select a professionally designed template to start with. You can fully customize every element later.
         </p>
@@ -84,7 +85,9 @@ export function DocumentTemplateGallery({ documentType, branding, savedLayout, o
         {/* Saved Layout Card (if exists) */}
         {savedLayout && (
           <div
-            className="group relative bg-white rounded-[2rem] border-2 border-primary shadow-2xl overflow-hidden ring-4 ring-primary/5 transition-all duration-300 cursor-pointer"
+            className={`group relative bg-white rounded-2xl border-2 border-primary shadow-xl overflow-hidden ring-4 ring-primary/5 transition-all duration-300 cursor-pointer flex flex-col ${
+              savedLayout.orientation === "landscape" ? "col-span-full md:col-span-1" : ""
+            }`}
             onClick={() =>
               onSelect({
                 id: "saved",
@@ -93,30 +96,25 @@ export function DocumentTemplateGallery({ documentType, branding, savedLayout, o
               })
             }
           >
-            <div className="absolute top-4 right-4 z-10">
-              <Badge className="bg-primary text-white text-[10px] uppercase font-black py-1.5 px-3 gap-1.5 shadow-lg border-none">
-                <Check className="h-3 w-3" /> Currently Active
-              </Badge>
-            </div>
-
-            <div className="aspect-[4/5] bg-slate-50 flex items-center justify-center p-6 border-b border-slate-100 group-hover:bg-white transition-colors overflow-hidden">
-               <div className="scale-75 origin-center">
-                  <CanvasMiniPreview layout={savedLayout} branding={branding} />
+            <div className={`relative w-full overflow-hidden bg-slate-50 flex items-center justify-center border-b border-slate-100 group-hover:bg-white transition-colors ${
+              savedLayout.orientation === "landscape" ? "aspect-[4/3]" : "aspect-[3/4]"
+            }`}>
+               <CanvasMiniPreview layout={savedLayout} branding={branding} />
+               <div className="absolute top-3 right-3 z-10">
+                 <Badge className="bg-primary text-white text-[9px] uppercase font-bold py-1 px-2.5 gap-1 shadow-md border-none">
+                   <Check className="h-3 w-3" /> ACTIVE DESIGN
+                 </Badge>
                </div>
             </div>
 
-            <div className="p-6 bg-white flex items-center justify-between">
+            <div className="p-4 bg-white flex items-center justify-between mt-auto">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-primary font-black text-sm">RESUME DESIGN</span>
-                </div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                  Your personalized {savedLayout.orientation} layout
-                </p>
+                <p className="text-[10px] text-primary font-bold uppercase tracking-wider mb-0.5">RESUME DESIGN</p>
+                <p className="text-[11px] text-slate-500 font-bold">Your Current {savedLayout.orientation}</p>
               </div>
-              <Button size="icon" variant="ghost" className="rounded-full bg-slate-50 hover:bg-primary/10 hover:text-primary transition-colors">
-                <Plus className="h-5 w-5" />
-              </Button>
+              <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                <Plus className="h-4 w-4" />
+              </div>
             </div>
           </div>
         )}
@@ -124,41 +122,39 @@ export function DocumentTemplateGallery({ documentType, branding, savedLayout, o
         {/* Starter Templates */}
         {templates.map((t) => {
           const isActive = savedLayout && JSON.stringify(savedLayout) === JSON.stringify(t.layout);
+          const isLandscape = t.layout.orientation === "landscape";
           return (
             <div
               key={t.id}
-              className={`group relative bg-white rounded-[2rem] border overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer ${
-                isActive ? "border-primary ring-4 ring-primary/5" : "border-slate-100 hover:border-primary/20"
+              className={`group relative bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col ${
+                isActive ? "border-primary ring-4 ring-primary/5 shadow-primary/10" : "hover:border-primary/30"
               }`}
               onClick={() => onSelect(t)}
             >
-              {isActive && (
-                <div className="absolute top-4 right-4 z-10">
-                  <Badge className="bg-primary text-white text-[10px] uppercase font-black py-1.5 px-3 gap-1.5 shadow-lg border-none">
-                    <Check className="h-3 w-3" /> Active
-                  </Badge>
-                </div>
-              )}
-
-              <div className="aspect-[4/5] bg-slate-50 flex items-center justify-center p-6 border-b border-slate-100 group-hover:bg-white transition-colors overflow-hidden">
-                <div className="scale-75 origin-center">
-                  <CanvasMiniPreview layout={t.layout} branding={branding} />
-                </div>
+              <div className={`relative w-full overflow-hidden bg-slate-50 flex items-center justify-center border-b border-slate-100 group-hover:bg-white transition-colors ${
+                isLandscape ? "aspect-[4/3]" : "aspect-[3/4]"
+              }`}>
+                 <CanvasMiniPreview layout={t.layout} branding={branding} />
+                 {isActive && (
+                    <div className="absolute top-3 right-3 z-10">
+                      <Badge className="bg-primary text-white text-[9px] uppercase font-bold py-1 px-2.5 gap-1 shadow-md border-none">
+                        <Check className="h-3 w-3" /> ACTIVE
+                      </Badge>
+                    </div>
+                 )}
               </div>
 
-              <div className="p-6 flex items-center justify-between">
+              <div className="p-4 flex items-center justify-between mt-auto">
                 <div>
-                   <h4 className="font-bold text-slate-800 mb-0.5">{t.name}</h4>
-                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">
+                   <h4 className="font-bold text-slate-800 text-[13px] mb-0.5">{t.name}</h4>
+                   <p className="text-[10px] text-slate-400 font-bold uppercase">
                      {t.layout.paperSize} • {t.layout.orientation}
                    </p>
                 </div>
-                <Button size="icon" variant="ghost" className="rounded-full bg-slate-50 group-hover:bg-primary group-hover:text-white transition-all">
-                   <Plus className="h-5 w-5" />
-                </Button>
+                <div className="h-8 w-8 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                   <Plus className="h-4 w-4" />
+                </div>
               </div>
-
-              <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             </div>
           );
         })}
@@ -166,7 +162,7 @@ export function DocumentTemplateGallery({ documentType, branding, savedLayout, o
 
       {/* Blank Canvas Option */}
       <div
-        className="group border-2 border-dashed border-slate-200 hover:border-primary/30 rounded-[2.5rem] p-10 flex flex-col items-center justify-center gap-4 cursor-pointer transition-all hover:bg-primary/5 bg-white shadow-sm hover:shadow-xl mt-12"
+        className="group border border-dashed border-slate-200 hover:border-primary/30 rounded-2xl p-10 flex flex-col items-center justify-center gap-4 cursor-pointer transition-all hover:bg-primary/5 bg-white shadow-sm hover:shadow-lg mt-12"
         onClick={() =>
           onSelect({
             id: "blank",
@@ -181,13 +177,14 @@ export function DocumentTemplateGallery({ documentType, branding, savedLayout, o
           })
         }
       >
-        <div className="w-16 h-16 rounded-3xl bg-slate-50 group-hover:bg-primary group-hover:text-white transition-all flex items-center justify-center border border-slate-100 shadow-inner group-hover:shadow-primary/20">
+        <div className="w-16 h-16 rounded-2xl bg-slate-50 group-hover:bg-primary group-hover:text-white transition-all flex items-center justify-center border border-slate-100 shadow-inner">
           <Plus className="h-8 w-8 text-slate-400 group-hover:text-white transition-colors" />
         </div>
         <div className="text-center">
-          <h3 className="font-black text-slate-800 text-xl tracking-tight">Start from Scratch</h3>
-          <p className="text-sm text-slate-400 mt-1 font-medium italic">"Creativity is intelligence having fun." — Design your own from zero.</p>
+          <h3 className="font-bold text-slate-800 text-xl tracking-tight">Start from Scratch</h3>
+          <p className="text-sm text-slate-400 mt-1 font-medium">Create a custom layout from zero.</p>
         </div>
+      </div>
       </div>
     </div>
   );

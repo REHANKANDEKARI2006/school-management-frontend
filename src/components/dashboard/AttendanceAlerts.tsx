@@ -16,7 +16,7 @@ interface AttendanceAlertsProps {
 
 export const AttendanceAlerts = ({ students }: AttendanceAlertsProps) => {
   return (
-    <Card className="rounded-[2.5rem] border-rose-50 shadow-sm overflow-hidden bg-white">
+    <Card className="rounded-xl border-slate-100 shadow-sm overflow-hidden bg-white">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-black text-slate-800 tracking-tight">Attendance Alerts</CardTitle>
         <div className="bg-rose-50 p-2 rounded-xl text-rose-600">

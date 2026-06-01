@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import RouteGuard from "@/components/auth/RouteGuard";
-import { ADMIN_GROUP } from "@/config/roles";
+import { ALL_STAFF_GROUP, STUDENT_PARENT_GROUP } from "@/config/roles";
 import api from "@/lib/axios";
 import { format, isAfter, startOfToday } from "date-fns";
 import { ArrowLeft, Calendar, Info } from "lucide-react";
@@ -12,10 +12,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const CATEGORY_COLORS: Record<string, { badge: string; label: string }> = {
     national: { badge: "bg-green-100 text-green-700 border-green-200", label: "National" },
+    maharashtra: { badge: "bg-orange-100 text-orange-700 border-orange-200", label: "Maharashtra" },
+    karnataka: { badge: "bg-sky-100 text-sky-700 border-sky-200", label: "Karnataka" },
     holiday:  { badge: "bg-blue-100 text-blue-700 border-blue-200",   label: "Holiday" },
+    "school holiday": { badge: "bg-rose-100 text-rose-700 border-rose-200", label: "School Holiday" },
     event:    { badge: "bg-purple-100 text-purple-700 border-purple-200", label: "Event" },
     exam:     { badge: "bg-rose-100 text-rose-700 border-rose-200",     label: "Exam" },
 };
+
+const CALENDAR_ALLOWED_ROLES = [...ALL_STAFF_GROUP, ...STUDENT_PARENT_GROUP];
 
 export default function AcademicCalendarPage() {
   const [events, setEvents] = React.useState<any[]>([]);
@@ -23,35 +28,61 @@ export default function AcademicCalendarPage() {
   const today = startOfToday();
 
   React.useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchEventsAndHolidays = async () => {
       try {
-        const response = await api.get("/api/events");
-        if (response.data.success) {
-          // Filter for upcoming events and sort by date
-          const upcoming = response.data.data
-            .filter((ev: any) => {
-              try {
-                const date = new Date(ev.time);
-                if (isNaN(date.getTime())) return false;
-                return isAfter(date, today) || format(date, "yyyy-MM-dd") === format(today, "yyyy-MM-dd");
-              } catch (err) {
-                return false;
-              }
-            })
-            .sort((a: any, b: any) => new Date(a.time).getTime() - new Date(b.time).getTime());
-          setEvents(upcoming);
+        const currentYear = new Date().getFullYear();
+        const [eventsRes, holidaysResCurrent, holidaysResNext] = await Promise.all([
+          api.get("/api/events"),
+          api.get(`/api/holidays?year=${currentYear}`),
+          api.get(`/api/holidays?year=${currentYear + 1}`)
+        ]);
+
+        let merged: any[] = [];
+        if (eventsRes.data.success) {
+          merged = [...eventsRes.data.data];
         }
+
+        const addHolidays = (res: any) => {
+          if (res.data.success) {
+            const mapped = res.data.data.map((h: any) => ({
+              id: h.id || `h_${h.date}_${h.name}`,
+              title: h.name,
+              time: h.date,
+              category: h.category?.toLowerCase() || "holiday",
+              location: "School Campus"
+            }));
+            merged.push(...mapped);
+          }
+        };
+
+        addHolidays(holidaysResCurrent);
+        addHolidays(holidaysResNext);
+
+        // Filter for upcoming events and sort by date
+        const upcoming = merged
+          .filter((ev: any) => {
+            try {
+              const date = new Date(ev.time);
+              if (isNaN(date.getTime())) return false;
+              return isAfter(date, today) || format(date, "yyyy-MM-dd") === format(today, "yyyy-MM-dd");
+            } catch (err) {
+              return false;
+            }
+          })
+          .sort((a: any, b: any) => new Date(a.time).getTime() - new Date(b.time).getTime());
+
+        setEvents(upcoming);
       } catch (error) {
-        console.error("Failed to fetch events:", error);
+        console.error("Failed to fetch events and holidays:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchEvents();
+    fetchEventsAndHolidays();
   }, []);
 
   return (
-    <RouteGuard allowedRoles={ADMIN_GROUP}>
+    <RouteGuard allowedRoles={CALENDAR_ALLOWED_ROLES}>
       <div className="flex flex-col gap-8 max-w-4xl mx-auto py-8 px-4 sm:px-6">
         
         {/* BACK BUTTON & HEADER */}
@@ -90,7 +121,8 @@ export default function AcademicCalendarPage() {
           ) : events.length > 0 ? (
             <div className="divide-y divide-slate-50">
               {events.map((event, idx) => {
-                const cat = CATEGORY_COLORS[event.category] || CATEGORY_COLORS.event;
+                const catKey = event.category?.toLowerCase() || "event";
+                const cat = CATEGORY_COLORS[catKey] || CATEGORY_COLORS.event;
                 return (
                   <div key={idx} className="flex items-center gap-4 sm:gap-8 p-6 hover:bg-slate-50/50 transition-colors group">
                     {/* Date Sidebar */}

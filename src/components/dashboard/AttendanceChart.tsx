@@ -1,52 +1,121 @@
 "use client";
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { MoreHorizontal } from "lucide-react";
-import { motion } from "framer-motion";
+import React from "react";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { MoreHorizontal, AlertCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface AttendanceChartProps {
-  data?: { name: string; present: number; absent: number }[];
+  data?: any[];
+  isHoliday?: boolean;
+  stats?: {
+    present: number;
+    total: number;
+  };
 }
 
-const defaultData = [
-  { name: "Mon", present: 40, absent: 24 },
-  { name: "Tue", present: 30, absent: 13 },
-  { name: "Wed", present: 20, absent: 98 },
-  { name: "Thur", present: 27, absent: 39 },
-  { name: "Fri", present: 18, absent: 48 },
-];
+const COLORS = ["#10B981", "#EF4444"]; // Green, Red
 
-export const AttendanceChart = ({ data = defaultData }: AttendanceChartProps) => {
+export const AttendanceChart = ({ data, isHoliday, stats }: AttendanceChartProps) => {
+  const presentCount = stats?.present || 572;
+  const totalCount = stats?.total || 618;
+  const absentCount = Math.max(0, totalCount - presentCount);
+  
+  const attendancePercentage = totalCount ? Math.round((presentCount / totalCount) * 1000) / 10 : 92.6;
+
+  const chartData = [
+    { name: "Present", value: presentCount },
+    { name: "Absent", value: absentCount },
+  ];
+
   return (
-    <motion.div 
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
-      className="bg-white rounded-xl w-full h-full p-4 border border-blue-100 shadow-sm hover:shadow-md transition-shadow"
-    >
-      {/* TITLE */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-lg font-semibold">Attendance</h1>
-        <MoreHorizontal className="h-5 w-5 text-gray-400 cursor-pointer" />
-      </div>
+    <Card className="border border-slate-100/80 shadow-sm bg-white overflow-hidden rounded-2xl h-full flex flex-col min-h-[380px] hover:shadow-md transition-all duration-300">
+      <CardHeader className="p-6 pb-2 shrink-0">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-2 select-none">
+             Attendance Overview
+          </CardTitle>
+          <div className="p-2 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer select-none">
+            <MoreHorizontal className="h-5 w-5 text-slate-400" />
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="p-6 pt-0 flex-grow flex flex-col justify-between">
+        <div className="w-full relative flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-4 h-auto sm:h-[220px] py-4 sm:py-0">
+          <AnimatePresence>
+            {isHoliday && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="absolute inset-0 z-10 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center text-center p-4 rounded-2xl"
+              >
+                <div className="bg-orange-100 p-3 rounded-full mb-2 text-orange-600">
+                  <AlertCircle size={24} />
+                </div>
+                <h3 className="text-sm font-black text-slate-800 uppercase tracking-tighter">School Closed</h3>
+                <p className="text-slate-500 font-bold text-[10px] mt-0.5">Today is a holiday / Sunday</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-      {/* CHART */}
-      <div className="w-full h-[85%] mt-4">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={data}
-            barSize={20}
-          >
-            <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="name" axisLine={false} tick={{fill: "#d1d5db"}} tickLine={false} />
-            <YAxis axisLine={false} tick={{fill: "#d1d5db"}} tickLine={false} />
-            <Tooltip contentStyle={{borderRadius: "10px", borderColor: "lightgray"}} />
-            <Legend align="left" verticalAlign="top" wrapperStyle={{paddingTop: "10px", paddingBottom: "30px"}} />
-            <Bar dataKey="present" fill="#2563eb" radius={[10, 10, 0, 0]} />
-            <Bar dataKey="absent" fill="#93c5fd" radius={[10, 10, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </motion.div>
+          {/* Left half: Pie chart */}
+          <div className="w-full sm:w-1/2 h-[160px] sm:h-full relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={75}
+                  paddingAngle={3}
+                  dataKey="value"
+                  nameKey="name"
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            
+            {/* Center percentage indicator */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
+              <span className="text-xl font-extrabold text-slate-900 leading-none">
+                {attendancePercentage}%
+              </span>
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1">
+                Present
+              </span>
+            </div>
+          </div>
+
+          {/* Right half: Legend */}
+          <div className="w-full sm:w-1/2 flex flex-col gap-3.5 px-4 sm:px-0 sm:pr-2 select-none">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Present</span>
+              </div>
+              <span className="text-xs font-extrabold text-slate-800">{presentCount}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-rose-500" />
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Absent</span>
+              </div>
+              <span className="text-xs font-extrabold text-slate-800">{absentCount}</span>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider select-none border-t border-slate-50 pt-4 mt-2">
+          Based on today's attendance
+        </p>
+      </CardContent>
+    </Card>
   );
 };

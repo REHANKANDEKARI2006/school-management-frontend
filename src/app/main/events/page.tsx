@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import axios from "@/lib/axios";
-import { MoreHorizontal, PlusCircle, Award, Calendar as CalendarIcon, MapPin, Image as ImageIcon } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Award, Calendar as CalendarIcon, MapPin, Image as ImageIcon, Loader2, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { PageSkeleton } from "@/components/ui/skeletons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -58,7 +60,7 @@ import { EventForm, type Event } from "@/components/campus-connect/event-form";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useSearch } from "@/components/campus-connect/search-provider";
 import { EventCertificateDialog } from "@/components/campus-connect/event-certificate";
-import { getEvents, createEvent, updateEvent, deleteEvent } from "@/lib/api/events";
+import { getEvents, createEvent, updateEvent, deleteEvent, unlockAttendanceEdit } from "@/lib/api/events";
 import { format } from "date-fns";
 import { EventGallery } from "@/components/campus-connect/event-gallery";
 
@@ -204,6 +206,7 @@ export default function EventsPage() {
 
   const staffId = typeof window !== "undefined" ? Number(localStorage.getItem("staff_id")) : undefined;
   const isAdmin = roleId === ROLE.MASTER_ADMIN || roleId === ROLE.INSTITUTE_ADMIN;
+  const isTeacher = roleId === ROLE.TEACHER || roleId === ROLE.CLASS_TEACHER || roleId === ROLE.MENTOR;
 
   const navigateToAttendance = (eventId: number, classId: number) => {
     window.location.href = `/main/events/attendance/${eventId}/${classId}`;
@@ -211,32 +214,38 @@ export default function EventsPage() {
 
   return (
     <>
-      <Card className="border-none shadow-sm bg-white/50 backdrop-blur-sm">
-        <CardHeader className="pb-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <CardTitle className="font-bold text-2xl tracking-tight text-slate-800">Events & Activities</CardTitle>
-              <CardDescription className="text-slate-500 font-medium">Manage class-specific events, scheduling, and attendance.</CardDescription>
-            </div>
-            {!isStudent && (
-              <Button size="sm" className="gap-2 w-full sm:w-auto bg-blue-600 hover:bg-blue-700 h-10 px-6 rounded-xl font-bold shadow-lg shadow-blue-100 transition-all active:scale-95" onClick={openNewDialog}>
-                <PlusCircle className="h-4 w-4" />
-                <span>Create Event</span>
-              </Button>
-            )}
+      <Card>
+        <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+          <div>
+            <CardTitle>Events & Activities</CardTitle>
+            <CardDescription>
+              Manage school events, class participation, and scheduling
+            </CardDescription>
           </div>
+          
+          {isAdmin && (
+            <Button
+              size="sm"
+              onClick={openNewDialog}
+            >
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Create Event
+            </Button>
+          )}
         </CardHeader>
+
         <CardContent className="p-0">
-          <div className="overflow-x-auto min-h-[400px]">
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
             <Table>
-              <TableHeader className="bg-slate-50/50">
-                <TableRow className="border-slate-100 hover:bg-transparent">
-                  <TableHead className="w-[80px] hidden sm:table-cell pl-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Preview</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Event Details</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Type & Status</TableHead>
-                  <TableHead className="hidden md:table-cell text-[10px] font-black uppercase tracking-widest text-slate-400">Date, Time & Venue</TableHead>
-                  <TableHead className="hidden lg:table-cell text-[10px] font-black uppercase tracking-widest text-slate-400">Participants</TableHead>
-                  {!isStudent && <TableHead className="w-12 text-right pr-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</TableHead>}
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-6">Event Name</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date & Venue</TableHead>
+                  <TableHead>Participation</TableHead>
+                  {!isStudent && <TableHead className="w-12 text-right pr-6" />}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -248,147 +257,178 @@ export default function EventsPage() {
                   </TableRow>
                 ) : filteredEvents.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-64 text-center">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <CalendarIcon className="h-10 w-10 text-slate-200" />
-                        <p className="text-slate-400 font-medium italic">No events found matching your criteria.</p>
-                      </div>
+                    <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
+                      No events found. Click "Create Event" to add one.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredEvents.map((event) => (
-                    <TableRow 
-                      key={event.event_id} 
-                      className="group border-slate-50 hover:bg-blue-50/20 transition-colors cursor-pointer"
-                      onClick={() => openDetailWithTab(event, "overview")}
-                    >
-                      <TableCell className="hidden sm:table-cell pl-6">
-                        <Avatar className="h-12 w-12 rounded-2xl bg-white border border-slate-100 shadow-sm transition-transform group-hover:scale-110">
-                          <AvatarFallback className="rounded-2xl bg-blue-50 text-blue-600 font-black text-xs">
-                            {event.event_name?.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-0.5">
-                          <div className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{event.event_name}</div>
-                          <div className="text-[11px] text-slate-400 font-medium max-w-[250px] line-clamp-1">
-                            {event.description}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1.5">
-                          <div className="flex items-center gap-2">
-                            <Badge variant={getStatusVariant(event.computed_status)} className="rounded-full px-3 py-0 h-5 text-[10px] font-bold uppercase tracking-tight">
-                              {event.computed_status || "Scheduled"}
-                            </Badge>
-                          </div>
-                          <Badge variant="outline" className="w-fit border-slate-200 text-slate-500 text-[9px] font-bold uppercase tracking-widest bg-white">
-                            {event.event_type || "School Event"}
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600">
-                            <CalendarIcon className="h-3.5 w-3.5 text-blue-500" />
-                            {event.event_start_date ? (
-                              event.event_start_date === event.event_end_date 
-                                ? format(new Date(event.event_start_date), "MMM d, yyyy")
-                                : `${format(new Date(event.event_start_date), "MMM d")} - ${format(new Date(event.event_end_date), "MMM d, yyyy")}`
-                            ) : event.event_date ? format(new Date(event.event_date), "MMM d, yyyy") : "No date"}
-                          </div>
-                          <div className="flex items-center gap-2 text-[10px] font-medium text-slate-400">
-                            <MapPin className="h-3 w-3" />
-                            {event.venue || "No venue"}
-                            {event.start_time && (
-                              <span className="ml-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 font-bold border border-slate-200">
-                                {event.start_time.substring(0, 5)} - {event.end_time?.substring(0, 5)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <div className="flex flex-col gap-1">
-                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            {event.class_count > 0 ? `${event.class_count} Participating Classes` : "General School Event"}
-                          </div>
-                          {event.class_count > 0 && (
-                            <div className="flex items-center gap-2">
-                              <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                <div 
-                                  className="h-full bg-emerald-500 transition-all duration-1000" 
-                                  style={{ width: `${(event.classes_submitted / event.class_count) * 100}%` }}
-                                />
-                              </div>
-                              <span className="text-[9px] font-black text-emerald-600 uppercase">
-                                {Math.round((event.classes_submitted / event.class_count) * 100)}% Marked
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      {!isStudent && (
-                        <TableCell className="text-right pr-6">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="icon" variant="ghost" className="h-9 w-9 rounded-xl hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-100 transition-all">
-                                <MoreHorizontal className="h-5 w-5 text-slate-400" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl shadow-xl border-slate-100">
-                              <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">Event Controls</DropdownMenuLabel>
-                              <DropdownMenuItem className="rounded-xl px-3 py-2 cursor-pointer font-bold text-slate-700 focus:bg-blue-50 focus:text-blue-600" onClick={() => openEditDialog(event)}>
-                                Edit Configuration
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="rounded-xl px-3 py-2 cursor-pointer font-bold text-slate-700 focus:bg-blue-50 focus:text-blue-600" onClick={() => openCertificateDialog(event)}>
-                                <Award className="mr-2 h-4 w-4" />
-                                Generate Certificates
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="rounded-xl px-3 py-2 cursor-pointer font-bold text-slate-700 focus:bg-blue-50 focus:text-blue-600" onClick={() => openDetailWithTab(event, "photos")}>
-                                <ImageIcon className="mr-2 h-4 w-4" />
-                                Photo Gallery
-                              </DropdownMenuItem>
-                              <div className="h-px bg-slate-100 my-1 mx-1" />
-                              <DropdownMenuItem
-                                className="rounded-xl px-3 py-2 cursor-pointer font-bold text-rose-600 focus:bg-rose-50 focus:text-rose-600"
-                                onClick={() => setDeleteTarget(event)}
-                              >
-                                Delete Permanent
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                  filteredEvents.map((event) => {
+                    const participationPct = event.class_count && event.class_count > 0 
+                      ? Math.round((event.classes_submitted / event.class_count) * 100) 
+                      : 0;
+                    
+                    return (
+                      <TableRow 
+                        key={event.event_id} 
+                        className="group cursor-pointer"
+                        onClick={() => openDetailWithTab(event, "overview")}
+                      >
+                        <TableCell className="pl-6 font-medium">
+                          {event.event_name}
                         </TableCell>
-                      )}
-                    </TableRow>
-                  ))
+                        <TableCell className="text-muted-foreground text-xs">
+                          {event.event_type}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusVariant(event.computed_status)}>
+                            {event.computed_status || "Scheduled"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-xs text-muted-foreground">
+                            <p>{event.event_start_date ? format(new Date(event.event_start_date), "MMM d, yyyy") : "TBD"}</p>
+                            <p>{event.venue || "Campus"}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                             <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-primary transition-all" 
+                                  style={{ width: `${participationPct}%` }}
+                                />
+                             </div>
+                             <span className="text-[10px] font-medium text-muted-foreground">{participationPct}%</span>
+                          </div>
+                        </TableCell>
+                        {!isStudent && (
+                          <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {!isTeacher && (
+                                  <DropdownMenuItem onClick={() => openEditDialog(event)}>Edit Details</DropdownMenuItem>
+                                )}
+                                {!isTeacher && (
+                                  <DropdownMenuItem onClick={() => openCertificateDialog(event)}>Certificates</DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onClick={() => openDetailWithTab(event, "photos")}>Gallery</DropdownMenuItem>
+                                {!isTeacher && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(event)}>Delete Event</DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
           </div>
+
+          {/* Mobile List View */}
+          <div className="md:hidden flex flex-col gap-3 p-4 bg-muted/10">
+            {loading ? (
+              <PageSkeleton rows={3} />
+            ) : filteredEvents.length === 0 ? (
+              <p className="text-center text-muted-foreground py-10 text-sm">No events found.</p>
+            ) : (
+              filteredEvents.map((event) => (
+                <div 
+                  key={event.event_id} 
+                  onClick={() => openDetailWithTab(event, "overview")}
+                  className="bg-background border rounded-xl p-4 shadow-sm relative space-y-3"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-semibold text-sm">{event.event_name}</p>
+                      <p className="text-xs text-muted-foreground">{event.event_type}</p>
+                    </div>
+                    {!isStudent && (
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {!isTeacher && (
+                              <DropdownMenuItem onClick={() => openEditDialog(event)}>Edit Details</DropdownMenuItem>
+                            )}
+                            {!isTeacher && (
+                              <DropdownMenuItem onClick={() => openCertificateDialog(event)}>Certificates</DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => openDetailWithTab(event, "photos")}>Gallery</DropdownMenuItem>
+                            {!isTeacher && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(event)}>Delete Event</DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground bg-muted/30 p-2 rounded-md">
+                     <span className="flex items-center gap-1">
+                        <CalendarIcon className="h-3 w-3" />
+                        {event.event_start_date ? format(new Date(event.event_start_date), "MMM d") : "TBD"}
+                     </span>
+                     <span className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {event.venue || "Campus"}
+                     </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <Badge variant={getStatusVariant(event.computed_status)}>
+                      {event.computed_status || "Scheduled"}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground">
+                       Participation: <strong>{event.classes_submitted}/{event.class_count || 0}</strong>
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
 
+      {/* Forms & Dialogs */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[750px] p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl">
-          <div className="bg-blue-600 px-8 py-6 text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl" />
-            <DialogHeader className="relative z-10">
-              <DialogTitle className="text-2xl font-black tracking-tight">{selectedEvent ? "Configure Event" : "Create New Activity"}</DialogTitle>
-              <DialogDescription className="text-blue-100 font-medium opacity-80">
-                {selectedEvent ? "Modify the schedule and participation rules for this event." : "Set up a new school-wide or class-specific activity with period exchange logic."}
-              </DialogDescription>
-            </DialogHeader>
-          </div>
-          <ScrollArea className="max-h-[80vh] p-8">
-            <EventForm
+        <DialogContent className="w-[92vw] sm:max-w-lg max-h-[90vh] p-0 border shadow-2xl rounded-2xl flex flex-col overflow-hidden left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%]">
+          <DialogHeader className="p-6 pb-4 bg-slate-50/50 border-b shrink-0">
+            <DialogTitle className="text-xl font-bold text-slate-900">
+              {selectedEvent ? "Edit Event" : "Create New Event"}
+            </DialogTitle>
+            <DialogDescription className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+              {selectedEvent 
+                ? "Update the details for this event below." 
+                : "Enter the details to schedule a new event."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto p-6">
+            <EventForm 
+              event={selectedEvent} 
               onSubmit={handleFormSubmit}
-              event={selectedEvent}
               loading={formLoading}
             />
-          </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -411,10 +451,9 @@ export default function EventsPage() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Event?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the event
-              <strong> {deleteTarget?.event_name}</strong>.
+              This action cannot be undone. This will permanently delete <strong>{deleteTarget?.event_name}</strong> and all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -461,7 +500,7 @@ function EventDetailDialog({ eventId, onMarkAttendance, isAdmin, currentStaffId,
 
   const handleUnlock = async (classId: number) => {
     try {
-      await axios.post(`/api/events/unlock-attendance`, { eventId, classId });
+      await unlockAttendanceEdit(eventId, classId);
       toast({ title: "Unlocked", description: "Attendance can now be corrected." });
       fetchDetail();
     } catch {
@@ -470,165 +509,136 @@ function EventDetailDialog({ eventId, onMarkAttendance, isAdmin, currentStaffId,
   };
 
   if (loading || !eventData) {
-    return <div className="p-10 flex flex-col items-center gap-4">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-      <p className="text-sm font-bold text-slate-400">Loading details...</p>
+    return <div className="p-20 flex flex-col items-center gap-4">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <p className="text-sm text-muted-foreground">Loading event details...</p>
     </div>;
   }
 
   return (
-    <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden rounded-[2rem] border-none shadow-2xl">
-       <DialogHeader className="sr-only">
-         <DialogTitle>{eventData.event_name}</DialogTitle>
-       </DialogHeader>
-       <div className="bg-slate-900 px-8 py-10 text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/20 rounded-full -mr-32 -mt-32 blur-[80px]" />
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <Badge className="bg-blue-600 text-white border-none rounded-md px-2 py-0.5 text-[10px] uppercase font-black tracking-widest">{eventData.event_type || 'Event'}</Badge>
-                <div className="flex items-center gap-1.5 text-blue-400">
-                  <CalendarIcon size={14} />
-                  <span className="text-xs font-bold tracking-tight">{format(new Date(eventData.event_start_date), "MMMM d, yyyy")}</span>
+    <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] p-0 border shadow-2xl rounded-2xl flex flex-col overflow-hidden left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%]">
+        <DialogHeader className="p-6 border-b bg-white">
+          <div className="flex justify-between items-center">
+            <div className="space-y-1.5">
+              <DialogTitle className="text-xl font-bold text-slate-900 tracking-tight">{eventData.event_name}</DialogTitle>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={getStatusVariant(eventData.computed_status)} className="rounded-md uppercase text-[9px] tracking-widest font-bold px-2 py-0.5">{eventData.event_type}</Badge>
+                <div className="flex items-center gap-1.5 text-slate-400">
+                   <CalendarIcon size={12} />
+                   <span className="text-[10px] font-bold uppercase tracking-wider">
+                     {eventData.event_start_date ? format(new Date(eventData.event_start_date), "MMM d, yyyy") : "Date TBD"}
+                   </span>
                 </div>
               </div>
-              <h2 className="text-3xl font-black tracking-tight leading-none uppercase">{eventData.event_name}</h2>
-              <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-wider">
-                <MapPin size={12} className="text-blue-500" />
-                {eventData.venue}
+              <div className="flex items-center gap-1.5 text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">
+                 <MapPin size={12} className="text-slate-400" />
+                 {eventData.venue || "Campus Location"}
               </div>
             </div>
-            <div className="bg-white/5 backdrop-blur-md rounded-3xl p-4 border border-white/10 text-center min-w-[120px]">
-               <div className="text-2xl font-black text-blue-400">{eventData.attendance_percentage}%</div>
-               <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-0.5">Participation</div>
-            </div>
-          </div>
-       </div>
 
-       <Tabs defaultValue={defaultTab} className="w-full">
-          <div className="bg-slate-50 px-8 border-b border-slate-100">
-            <TabsList className="bg-transparent h-14 p-0 gap-8">
-              <TabsTrigger value="overview" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 h-14 rounded-none px-0 text-xs font-black uppercase tracking-widest text-slate-400">Overview</TabsTrigger>
-              <TabsTrigger value="classes" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 h-14 rounded-none px-0 text-xs font-black uppercase tracking-widest text-slate-400">Participants ({eventData.classes?.length || 0})</TabsTrigger>
-              <TabsTrigger value="photos" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 h-14 rounded-none px-0 text-xs font-black uppercase tracking-widest text-slate-400">Event Photos</TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value="overview" className="m-0">
-            <ScrollArea className="h-[450px]">
-              <div className="p-8 space-y-8">
-                 <div className="space-y-3">
-                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">About the Event</h3>
-                   <p className="text-sm text-slate-600 leading-relaxed font-medium bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                     {eventData.description || "No description provided."}
-                   </p>
-                 </div>
-
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                   <div className="p-6 bg-white border border-slate-100 rounded-3xl space-y-4 shadow-sm">
-                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Schedule Timeline</h3>
-                      <div className="space-y-3">
-                         <div className="flex items-center justify-between">
-                           <span className="text-xs font-bold text-slate-500">Start Time</span>
-                           <span className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-md">{eventData.start_time?.substring(0, 5) || "N/A"}</span>
-                         </div>
-                         <div className="flex items-center justify-between">
-                           <span className="text-xs font-bold text-slate-500">End Time</span>
-                           <span className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-md">{eventData.end_time?.substring(0, 5) || "N/A"}</span>
-                         </div>
-                      </div>
-                   </div>
-                   
-                   <div className="p-6 bg-white border border-slate-100 rounded-3xl space-y-4 shadow-sm">
-                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Event Statistics</h3>
-                      <div className="space-y-4">
-                         <div className="flex justify-between items-end">
-                            <span className="text-xs font-bold text-slate-500">Attendance</span>
-                            <span className="text-[10px] font-black text-slate-400">{eventData.att_present}/{eventData.att_total} Students</span>
-                         </div>
-                         <Progress value={eventData.attendance_percentage} className="h-2 rounded-full" />
-                      </div>
-                   </div>
-                 </div>
-              </div>
-            </ScrollArea>
-          </TabsContent>
-
-          <TabsContent value="classes" className="m-0">
-            <ScrollArea className="h-[450px]">
-              <div className="p-8 space-y-4">
-                 {eventData.classes?.map((c: any) => {
-                   const isCoordinator = c.coordinator_id === currentStaffId;
-                   return (
-                     <div key={c.class_id} className="group flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-white border border-slate-100 rounded-[2rem] hover:border-blue-200 transition-all gap-4">
-                        <div className="flex items-center gap-4">
-                           <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 font-black text-xs border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                             {c.class_name[0]}
-                           </div>
-                           <div className="space-y-0.5">
-                             <h4 className="font-bold text-slate-800">{c.class_name}</h4>
-                             <div className="flex items-center gap-2">
-                               <span className="text-[10px] font-black uppercase text-slate-400 tracking-tighter">Coordinator:</span>
-                               <span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">{c.coordinator_name}</span>
-                             </div>
-                           </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                           <div className="text-right mr-4">
-                             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</div>
-                             <Badge variant="outline" className={cn(
-                               "text-[9px] font-black uppercase h-5",
-                               c.attendance_completed ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-amber-50 text-amber-600 border-amber-100"
-                             )}>
-                               {c.attendance_completed ? "Completed" : "Pending"}
-                             </Badge>
-                           </div>
-                           
-                           {(isAdmin || isCoordinator) && (
-                             <div className="flex items-center gap-2">
-                                {isAdmin && c.attendance_completed && (
-                                  <Button variant="ghost" size="sm" className="h-9 w-9 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50" onClick={() => handleUnlock(c.class_id)}>
-                                    <Award size={16} /> {/* Replace with unlock icon if available */}
-                                  </Button>
-                                )}
-                                <Button 
-                                  size="sm" 
-                                  className={cn(
-                                    "h-10 px-5 rounded-xl font-bold gap-2",
-                                    c.attendance_completed ? "bg-slate-100 text-slate-500 hover:bg-slate-200" : "bg-blue-600 text-white hover:bg-blue-700"
-                                  )}
-                                  onClick={() => onMarkAttendance(eventId, c.class_id)}
-                                >
-                                  {c.attendance_completed ? "Update" : "Mark Attendance"}
-                                  <ChevronRight size={14} />
-                                </Button>
-                             </div>
-                           )}
-                        </div>
-                     </div>
-                   );
-                 })}
-              </div>
-            </ScrollArea>
-          </TabsContent>
-
-          <TabsContent value="photos" className="m-0">
-            <ScrollArea className="h-[450px]">
-               <div className="p-8 space-y-4">
-                <EventGallery 
-                  eventId={eventId} 
-                  isAdmin={isAdmin} 
-                  eventStatus={eventData.computed_status} 
-                />
+            <div className="flex flex-col items-center justify-center min-w-[80px] h-[80px] border rounded-xl bg-slate-50/50">
+               <div className="text-2xl font-black text-slate-900 leading-none">
+                 {(() => {
+                   const assignments = eventData.class_assignments || [];
+                   const submitted = assignments.filter((a: any) => a.attendance_status === 'submitted').length;
+                   const total = assignments.length;
+                   return total > 0 ? Math.round((submitted / total) * 100) : 0;
+                 })()}
+                 <span className="text-sm ml-0.5">%</span>
                </div>
-            </ScrollArea>
+               <div className="text-[8px] text-slate-400 uppercase font-bold tracking-widest mt-1">Participation</div>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto">
+
+        <Tabs defaultValue={defaultTab} className="w-full">
+          <TabsList className="w-full justify-start rounded-none border-b h-11 px-6 bg-transparent">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-11">Overview</TabsTrigger>
+            <TabsTrigger value="classes" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-11">Participants ({eventData.class_assignments?.length || 0})</TabsTrigger>
+            <TabsTrigger value="photos" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-11">Gallery</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="p-6 space-y-6">
+              <div className="space-y-2">
+                 <h3 className="text-xs font-semibold text-muted-foreground uppercase">Description</h3>
+                 <p className="text-sm text-slate-600 bg-muted/30 p-4 rounded-lg">
+                   {eventData.description || "No briefing provided."}
+                 </p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="p-3 bg-muted/20 rounded-lg border">
+                    <span className="text-[10px] text-muted-foreground uppercase font-semibold">Timing</span>
+                    <div className="text-sm font-bold">
+                       {eventData.start_time && eventData.end_time
+                         ? `${eventData.start_time.substring(0, 5)} – ${eventData.end_time.substring(0, 5)}`
+                         : 'All Day'}
+                     </div>
+                 </div>
+                 <div className="p-3 bg-muted/20 rounded-lg border">
+                    <span className="text-[10px] text-muted-foreground uppercase font-semibold">Date Info</span>
+                    <div className="text-sm font-bold">{eventData.event_start_date === eventData.event_end_date ? "Single Day" : "Multi-Day"}</div>
+                 </div>
+              </div>
+          </TabsContent>
+
+          <TabsContent value="classes" className="p-4 space-y-2">
+              {(eventData.class_assignments?.length ?? 0) === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+                  <p className="text-sm">No classes assigned to this event.</p>
+                </div>
+              ) : eventData.class_assignments?.map((c: any) => {
+                const isAttendanceSubmitted = c.attendance_status === 'submitted';
+                const isCoordinator = c.coordinator_teacher_id === currentStaffId;
+                const coordinatorName = [c.coordinator_first_name, c.coordinator_last_name].filter(Boolean).join(' ') || 'Unassigned';
+                return (
+                  <div key={c.class_id} className="flex items-center justify-between p-3 border rounded-lg bg-background hover:bg-muted/10 transition-colors">
+                     <div>
+                        <h4 className="font-semibold text-sm">
+                          {c.section_name ? `${c.class_name} (${c.section_name})` : c.class_name}
+                        </h4>
+                        <p className="text-[10px] text-muted-foreground">Coordinator: {coordinatorName}</p>
+                     </div>
+
+                     <div className="flex items-center gap-4">
+                        <Badge variant={isAttendanceSubmitted ? "default" : "outline"} className="text-[9px] h-5">
+                            {isAttendanceSubmitted ? "Marked" : "Pending"}
+                        </Badge>
+                        
+                        {(isAdmin || isCoordinator) && (
+                          <div className="flex items-center gap-1">
+                             {isAdmin && isAttendanceSubmitted && (
+                               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleUnlock(c.class_id)}>
+                                 <Award size={12} />
+                               </Button>
+                             )}
+                             <Button 
+                               size="sm" 
+                               variant="outline"
+                               className="h-7 text-[10px] font-semibold"
+                               onClick={() => onMarkAttendance(eventId, c.class_id)}
+                             >
+                               {isAttendanceSubmitted ? "Edit" : "Mark"}
+                             </Button>
+                          </div>
+                        )}
+                     </div>
+                  </div>
+                );
+              })}
+          </TabsContent>
+
+          <TabsContent value="photos" className="p-4">
+            <EventGallery 
+              eventId={eventId} 
+              isAdmin={isAdmin} 
+              eventStatus={eventData.computed_status} 
+            />
           </TabsContent>
        </Tabs>
+        </div>
     </DialogContent>
   );
 }
-
-// Re-defining icons for the component if not already imported or available
-import { ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";

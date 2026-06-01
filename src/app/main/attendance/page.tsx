@@ -26,6 +26,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { AttendanceSummaryDialog } from "@/components/campus-connect/attendance-summary-dialog";
+import { cn } from "@/lib/utils";
 
 interface SubjectWithAttendance {
   subject_id: string;
@@ -34,6 +35,9 @@ interface SubjectWithAttendance {
   absent_count: number;
   status: string;
   session_id: string | null;
+  start_time?: string;
+  end_time?: string;
+  location?: string;
 }
 
 interface ClassWithSubjects {
@@ -92,104 +96,104 @@ const StudentAttendanceView = () => {
   const attendancePercentage = total > 0 ? Math.round((presentCount / total) * 100) : 0;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
         <div>
-          <h1 className="text-3xl font-bold font-headline flex items-center gap-2">
-            <CalendarDays className="h-8 w-8 text-primary" />
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <CalendarDays className="h-6 w-6 text-primary" />
             My Attendance
           </h1>
-          <p className="text-muted-foreground mt-1">Track your daily attendance and subject-wise records.</p>
+          <p className="text-sm text-slate-500">Track your daily attendance and subject-wise records.</p>
         </div>
       </div>
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-none shadow-sm shadow-indigo-100/50 bg-white/60 backdrop-blur-sm">
+        <Card className="shadow-sm border-slate-100">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Attendance Rate</CardTitle>
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-500">Attendance Rate</CardTitle>
             <BarChart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{attendancePercentage}%</div>
-            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter mt-1">Current Semester</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Current Semester</p>
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-sm shadow-emerald-100/50 bg-white/60 backdrop-blur-sm">
+        <Card className="shadow-sm border-slate-100">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Present</CardTitle>
-            <CheckCircle className="h-4 w-4 text-emerald-500/70" />
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Present</CardTitle>
+            <CheckCircle className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-emerald-600">{presentCount}</div>
-            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter mt-1">Sessions Attended</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Sessions Attended</p>
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-sm shadow-rose-100/50 bg-white/60 backdrop-blur-sm">
+        <Card className="shadow-sm border-slate-100">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Absent</CardTitle>
-            <XCircle className="h-4 w-4 text-rose-500/70" />
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Absent</CardTitle>
+            <XCircle className="h-4 w-4 text-rose-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-rose-600">{absentCount}</div>
-            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter mt-1">Sessions Missed</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Sessions Missed</p>
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-sm shadow-slate-100/50 bg-white/60 backdrop-blur-sm">
+        <Card className="shadow-sm border-slate-100">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
-            <Users className="h-4 w-4 text-slate-500/70" />
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Sessions</CardTitle>
+            <Users className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-700">{total}</div>
-            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter mt-1">Total Recorded</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Total Recorded</p>
           </CardContent>
         </Card>
       </div>
 
       {/* History Table */}
-      <Card className="border-none shadow-md overflow-hidden bg-white/60 backdrop-blur-sm">
-        <CardHeader className="bg-slate-50/40 border-b">
-          <CardTitle className="text-xl font-headline">Attendance Log</CardTitle>
+      <Card className="shadow-sm border-slate-100 overflow-hidden">
+        <CardHeader className="bg-slate-50/50 border-b p-6">
+          <CardTitle className="text-lg font-bold">Attendance Log</CardTitle>
           <CardDescription>A complete history of your subject-wise attendance.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {history.length === 0 ? (
             <div className="p-20 text-center text-muted-foreground flex flex-col items-center gap-2">
               <CalendarDays className="h-12 w-12 opacity-10" />
-              <p className="font-medium">No attendance records found yet.</p>
+              <p className="font-medium text-sm">No attendance records found yet.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50/30 border-b">
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Date</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Subject</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Date</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Subject</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100/50">
+                <tbody className="divide-y divide-slate-100">
                   {history.map((record, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="px-6 py-4 text-sm font-medium text-slate-600">
                         {format(new Date(record.date), "PPP")}
                       </td>
-                      <td className="px-6 py-4 text-sm font-bold text-slate-900">
+                      <td className="px-6 py-4 text-sm font-semibold text-slate-900">
                         {record.subjectName}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <Badge 
                           variant="secondary"
-                          className={`
-                            ${record.status === 'present' 
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
-                              : 'bg-rose-50 text-rose-700 border-rose-100'}
-                            px-2 py-0.5 font-bold text-[9px] uppercase tracking-tighter border
-                          `}
+                          className={cn(
+                            "px-2 py-0.5 font-bold text-[10px] uppercase tracking-wider border",
+                            record.status === 'present' 
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-50' 
+                              : 'bg-rose-50 text-rose-700 border-rose-100 hover:bg-rose-50'
+                          )}
                         >
                           {record.status}
                         </Badge>
@@ -220,6 +224,8 @@ export default function AttendanceDashboardPage() {
       : null;
 
   const isStudentOrGuardian = roleId === ROLE.STUDENT || roleId === ROLE.GUARDIAN;
+  const isAdmin = roleId ? (ADMIN_GROUP as readonly number[]).includes(roleId) : false;
+  const isTeacher = roleId === ROLE.TEACHER || roleId === ROLE.CLASS_TEACHER || roleId === ROLE.MENTOR;
 
   const canExport = roleId ? (ADMIN_GROUP as readonly number[]).includes(roleId) : false;
   const [classData, setClassData] = React.useState<ClassWithSubjects[]>([]);
@@ -228,6 +234,8 @@ export default function AttendanceDashboardPage() {
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
   const [isSummaryOpen, setIsSummaryOpen] = React.useState(false);
   const [expandedClasses, setExpandedClasses] = React.useState<Record<string, boolean>>({});
+  const [isHoliday, setIsHoliday] = React.useState(false);
+  const [holidayNames, setHolidayNames] = React.useState<string[]>([]);
   const [selectedSummary, setSelectedSummary] = React.useState<{
     classId: string;
     subjectId: string;
@@ -243,8 +251,11 @@ export default function AttendanceDashboardPage() {
       const response = await axios.get(`/api/attendance/dashboard?date=${dateString}`);
 
       if (response.data.success) {
+        const rawData = response.data.data.classes || [];
+        setIsHoliday(response.data.data.is_holiday || false);
+        setHolidayNames(response.data.data.holiday_names || []);
+
         // Group by class and section
-        const rawData = response.data.data;
         const grouped: Record<string, ClassWithSubjects> = {};
 
         rawData.forEach((item: any) => {
@@ -264,7 +275,10 @@ export default function AttendanceDashboardPage() {
             present_count: parseInt(item.present_count),
             absent_count: parseInt(item.absent_count),
             status: item.status,
-            session_id: item.session_id
+            session_id: item.session_id,
+            start_time: item.start_time,
+            end_time: item.end_time,
+            location: item.location
           });
         });
 
@@ -447,20 +461,51 @@ export default function AttendanceDashboardPage() {
   return (
     <RouteGuard allowedRoles={[...ADMIN_GROUP, ROLE.TEACHER, ROLE.CLASS_TEACHER]}>
       <div className="container mx-auto py-8 px-4 space-y-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <BarChart className="h-8 w-8 text-indigo-600" />
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+          <div className="space-y-1 px-1">
+            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2 tracking-tight">
+              <BarChart className="h-6 w-6 text-primary" />
               Attendance Dashboard
             </h1>
-            <p className="text-muted-foreground mt-1">Overview of attendance records for the selected date.</p>
+            <p className="text-sm text-slate-500 font-medium">Overview of daily student and faculty presence</p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <div className="flex flex-col xs:flex-row items-center gap-3 w-full sm:w-auto">
+            {isTeacher && (
+              <div className="flex bg-slate-100/80 p-1 rounded-xl items-center gap-1 h-10 shadow-inner mr-1">
+                <button
+                  onClick={() => setSelectedDate(new Date())}
+                  className={cn(
+                    "px-4 h-8 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all",
+                    format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")
+                      ? "bg-white text-indigo-600 shadow-sm"
+                      : "text-slate-500 hover:text-slate-800"
+                  )}
+                >
+                  Today
+                </button>
+                <button
+                  onClick={() => {
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    setSelectedDate(yesterday);
+                  }}
+                  className={cn(
+                    "px-4 h-8 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all",
+                    format(selectedDate, "yyyy-MM-dd") === format(new Date(Date.now() - 86400000), "yyyy-MM-dd")
+                      ? "bg-white text-indigo-600 shadow-sm"
+                      : "text-slate-500 hover:text-slate-800"
+                  )}
+                >
+                  Yesterday
+                </button>
+              </div>
+            )}
+
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full sm:w-[240px] justify-start text-left font-normal h-11">
-                  <CalendarDays className="mr-2 h-4 w-4" />
+                <Button variant="outline" className="w-full xs:w-[180px] sm:w-[220px] justify-start text-left font-bold text-[11px] h-10 border-slate-100 shadow-sm bg-white rounded-xl">
+                  <CalendarDays className="mr-2 h-4 w-4 text-slate-400" />
                   {format(selectedDate, "PPP")}
                 </Button>
               </PopoverTrigger>
@@ -474,26 +519,70 @@ export default function AttendanceDashboardPage() {
               </PopoverContent>
             </Popover>
 
-            <Button onClick={() => router.push('/main/attendance/new')} className="bg-indigo-600 hover:bg-indigo-700 h-11 px-6">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Take Attendance
-            </Button>
+            {!isTeacher && (
+              <Button 
+                onClick={() => router.push('/main/attendance/new')} 
+                disabled={isHoliday}
+                className={`w-full xs:w-auto h-10 px-6 rounded-xl font-bold text-[11px] uppercase tracking-wider shadow-md shadow-indigo-100 ${
+                  isHoliday 
+                    ? 'bg-slate-300 hover:bg-slate-300 cursor-not-allowed opacity-50' 
+                    : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                }`}
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Take Attendance
+              </Button>
+            )}
           </div>
         </div>
+
+        {/* Holiday Banner */}
+        {isHoliday && (
+          <Card className="bg-amber-50 border-amber-200 shadow-none rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-4 relative overflow-hidden">
+            <div className="p-3 bg-white rounded-xl shadow-sm border border-amber-100">
+              <CalendarDays className="h-6 w-6 text-amber-600" />
+            </div>
+            
+            <div className="flex-1 text-center sm:text-left z-10">
+              <h3 className="text-lg font-bold text-amber-900 mb-1">
+                School Holiday
+              </h3>
+              
+              {holidayNames && holidayNames.length > 0 && (
+                <div className="flex flex-wrap justify-center sm:justify-start gap-2 mb-2">
+                  {holidayNames.map((name, idx) => (
+                    <Badge key={idx} variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-200 px-2 py-0 font-bold text-[10px] uppercase border-amber-200">
+                      {name}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              
+              <p className="text-sm text-amber-800/80 font-medium leading-relaxed">
+                The school is closed on this date. You cannot record new attendance, but you can still view any previously recorded sessions.
+              </p>
+            </div>
+          </Card>
+        )}
+
+        {/* Monthly Attendance Report Section */}
+        {isAdmin && (
+           <MonthlyAttendanceReportCard roleId={roleId} isStudentOrGuardian={isStudentOrGuardian} />
+        )}
 
         {isLoading ? (
           <PageSkeleton rows={5} />
         ) : classData.length === 0 ? (
-          <Card className="p-12 text-center border-dashed">
+          <Card className="p-12 text-center border-dashed border-2 border-slate-100 bg-slate-50/20 rounded-[2rem]">
             <div className="flex flex-col items-center space-y-4">
               <Users className="h-12 w-12 text-muted-foreground opacity-20" />
-              <h3 className="text-xl font-semibold">No Sessions Found</h3>
-              <p className="text-muted-foreground max-w-sm">No attendance has been taken for this date yet.</p>
-              <Button variant="outline" onClick={() => router.push('/main/attendance/new')}>Start New Session</Button>
+              <h3 className="text-xl font-bold text-slate-800">No Sessions Found</h3>
+              <p className="text-[11px] font-bold text-slate-400 uppercase">No attendance has been taken for this date yet.</p>
+              <Button variant="outline" onClick={() => router.push('/main/attendance/new')} className="rounded-xl border-slate-200">Start New Session</Button>
             </div>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {classData.map((cls) => {
               const classKey = `${cls.class_id}-${cls.section_id}`;
               const isExpanded = expandedClasses[classKey];
@@ -502,23 +591,25 @@ export default function AttendanceDashboardPage() {
               const isFilled = cls.subjects.every(s => s.session_id !== null);
 
               return (
-                <Card key={classKey} className="flex flex-col overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                  <CardHeader className="bg-slate-50/50 border-b py-4">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-5 w-5 text-indigo-600" />
-                      <CardTitle className="text-xl font-bold">{cls.class_name} - {cls.section_name}</CardTitle>
+                <Card key={classKey} className="flex flex-col overflow-hidden shadow-sm hover:shadow-md border-slate-100 bg-white rounded-xl transition-all">
+                  <CardHeader className="bg-slate-50/50 border-b p-5">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-primary/10 p-2 rounded-lg shrink-0">
+                        <Users className="h-4 w-4 text-primary" />
+                      </div>
+                      <CardTitle className="text-base font-bold text-slate-800">{cls.class_name} - {cls.section_name}</CardTitle>
                     </div>
-                    <CardDescription className="text-xs">
-                      Attendance status for {format(selectedDate, "MMMM do, yyyy")}.
-                    </CardDescription>
                   </CardHeader>
                   <CardContent className="p-0 flex-grow">
-                    <div className="divide-y">
-                      {displayedSubjects.map((sub) => (
+                    <div className="divide-y divide-slate-100">
+                      {displayedSubjects.map((sub, idx) => (
                         <div
-                          key={sub.subject_id}
-                          className="group flex items-center justify-between p-5 hover:bg-slate-50/50 transition-colors cursor-pointer"
+                          key={`${sub.subject_id}-${idx}`}
+                          className={`group flex items-center justify-between p-4 transition-colors ${
+                            sub.session_id ? 'hover:bg-slate-50/50 cursor-pointer' : (isHoliday ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50/50 cursor-pointer')
+                          }`}
                           onClick={() => {
+                            const isToday = format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
                             if (sub.session_id) {
                               setSelectedSummary({
                                 classId: cls.class_id,
@@ -527,25 +618,47 @@ export default function AttendanceDashboardPage() {
                                 sessionId: sub.session_id
                               });
                               setIsSummaryOpen(true);
-                            } else {
+                            } else if (isTeacher && !isToday) {
+                              toast({
+                                title: "Access Denied",
+                                description: "Teachers are not permitted to record attendance for previous days.",
+                                variant: "destructive"
+                              });
+                            } else if (!isHoliday) {
                               router.push(`/main/attendance/${cls.class_id}/${sub.subject_id}`);
+                            } else {
+                              toast({ title: "Holiday", description: "Cannot take attendance on a holiday.", variant: "destructive" });
                             }
                           }}
                         >
-                          <span className="font-semibold text-slate-700">{sub.subject_name}</span>
+                          <div className="flex flex-col gap-1.5 align-start text-left">
+                            <span className="text-sm font-semibold text-slate-700">{sub.subject_name}</span>
+                            {sub.start_time && (
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                  {sub.start_time.substring(0, 5)} - {sub.end_time?.substring(0, 5)}
+                                </span>
+                                {sub.location && (
+                                  <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                    Room {sub.location}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
 
                           <div className="text-right">
                             {sub.session_id ? (
-                              <div className="flex items-center gap-3">
-                                <span className="text-green-600 text-sm font-medium flex items-center gap-1">
-                                  <CheckCircle className="h-4 w-4" /> {sub.present_count}
+                              <div className="flex items-center gap-2.5">
+                                <span className="text-emerald-600 text-xs font-bold flex items-center gap-1">
+                                  <CheckCircle className="h-3.5 w-3.5" /> {sub.present_count}
                                 </span>
-                                <span className="text-red-500 text-sm font-medium flex items-center gap-1">
-                                  <XCircle className="h-4 w-4" /> {sub.absent_count}
+                                <span className="text-rose-500 text-xs font-bold flex items-center gap-1">
+                                  <XCircle className="h-3.5 w-3.5" /> {sub.absent_count}
                                 </span>
                               </div>
                             ) : (
-                              <span className="text-muted-foreground text-sm font-medium opacity-50 bg-slate-100 px-2 py-0.5 rounded-md">Not taken</span>
+                              <Badge variant="outline" className="text-[9px] font-bold uppercase text-slate-400 bg-slate-50/50">Not taken</Badge>
                             )}
                           </div>
                         </div>
@@ -555,28 +668,28 @@ export default function AttendanceDashboardPage() {
                     {!isExpanded && remainingCount > 0 && (
                       <button
                         onClick={() => toggleExpand(classKey)}
-                        className="w-full py-3 text-sm font-medium text-indigo-600 hover:bg-indigo-50/50 flex items-center justify-center gap-1 border-t border-slate-100"
+                        className="w-full py-3 text-xs font-bold text-primary hover:bg-slate-50 flex items-center justify-center gap-1 border-t border-slate-100 transition-colors"
                       >
-                        <ChevronDown className="h-4 w-4" /> View {remainingCount} More Subjects
+                        <ChevronDown className="h-4 w-4" /> View {remainingCount} More
                       </button>
                     )}
                     {isExpanded && remainingCount > 0 && (
                       <button
                         onClick={() => toggleExpand(classKey)}
-                        className="w-full py-3 text-sm font-medium text-slate-500 hover:bg-slate-50 flex items-center justify-center gap-1 border-t border-slate-100"
+                        className="w-full py-3 text-xs font-bold text-slate-500 hover:bg-slate-50 flex items-center justify-center gap-1 border-t border-slate-100 transition-colors"
                       >
                         <ChevronUp className="h-4 w-4" /> Show Less
                       </button>
                     )}
                   </CardContent>
 
-                  <div className="bg-slate-50/80 p-4 border-t flex flex-col gap-3">
+                  <div className="bg-slate-50/50 p-4 border-t flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Overall Status</p>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Progress</p>
                       {isFilled ? (
-                        <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">Ready for Export</span>
+                        <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border-emerald-100 font-bold text-[9px] uppercase tracking-wider">Ready</Badge>
                       ) : (
-                        <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Incomplete</span>
+                        <Badge variant="outline" className="text-slate-400 font-bold text-[9px] uppercase tracking-wider bg-white">Incomplete</Badge>
                       )}
                     </div>
 
@@ -587,9 +700,9 @@ export default function AttendanceDashboardPage() {
                           variant="outline"
                           disabled={!isFilled || isExporting === classKey}
                           onClick={() => handleFullDayExport(cls, 'excel')}
-                          className="flex-1 h-9 rounded-lg bg-white"
+                          className="flex-1 h-8 text-[10px] font-bold uppercase tracking-wider bg-white"
                         >
-                          {isExporting === classKey ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" />}
+                          {isExporting === classKey ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5 mr-1" />}
                           Excel
                         </Button>
                         <Button
@@ -597,9 +710,9 @@ export default function AttendanceDashboardPage() {
                           variant="outline"
                           disabled={!isFilled || isExporting === classKey}
                           onClick={() => handleFullDayExport(cls, 'pdf')}
-                          className="flex-1 h-9 rounded-lg bg-white"
+                          className="flex-1 h-8 text-[10px] font-bold uppercase tracking-wider bg-white"
                         >
-                          {isExporting === classKey ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3.5 w-3.5 mr-1.5" />}
+                          {isExporting === classKey ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3.5 w-3.5 mr-1" />}
                           PDF
                         </Button>
                         <Button
@@ -607,15 +720,12 @@ export default function AttendanceDashboardPage() {
                           variant="outline"
                           disabled={!isFilled || isExporting === classKey}
                           onClick={() => handleFullDayExport(cls, 'whatsapp')}
-                          className="flex-1 h-9 rounded-lg bg-white"
+                          className="flex-1 h-8 text-[10px] font-bold uppercase tracking-wider bg-white"
                         >
-                          {isExporting === classKey ? <Loader2 className="h-3 w-3 animate-spin" /> : <WhatsAppIcon />}
+                          {isExporting === classKey ? <Loader2 className="h-3 w-3 animate-spin" /> : <Share2 className="h-3.5 w-3.5 mr-1" />}
                           Share
                         </Button>
                       </div>
-                    )}
-                    {!isFilled && canExport && (
-                      <p className="text-[9px] text-center text-slate-400 italic">Fill all subject attendance to enable full day export.</p>
                     )}
                   </div>
                 </Card>
@@ -630,10 +740,6 @@ export default function AttendanceDashboardPage() {
           )}
         </Dialog>
 
-        {/* Monthly Attendance Report Section */}
-        {!isStudentOrGuardian && (
-           <MonthlyAttendanceReportCard roleId={roleId} />
-        )}
       </div>
     </RouteGuard>
   );
@@ -643,7 +749,7 @@ export default function AttendanceDashboardPage() {
 /*                 MONTHLY ATTENDANCE REPORT COMPONENT                        */
 /* -------------------------------------------------------------------------- */
 
-function MonthlyAttendanceReportCard({ roleId }: { roleId: number | null }) {
+function MonthlyAttendanceReportCard({ roleId, isStudentOrGuardian }: { roleId: number | null, isStudentOrGuardian: boolean }) {
   const [classes, setClasses] = React.useState<{ class_id: string; label: string }[]>([]);
   const [selectedClass, setSelectedClass] = React.useState<string>("");
   const [selectedMonth, setSelectedMonth] = React.useState<string>((new Date().getMonth() + 1).toString());
@@ -662,14 +768,6 @@ function MonthlyAttendanceReportCard({ roleId }: { roleId: number | null }) {
         const res = await axios.get("/api/classes/class-enrollments/list");
         if (res.data.data) {
           setClasses(res.data.data);
-          
-          // If Class Teacher, try to auto-select their class
-          if (isClassTeacher) {
-            // Usually Class Teachers look for their assigned class. 
-            // The backend endpoint /api/attendance/monthly-report handles the security, 
-            // but we can help by finding the class they are assigned to.
-            // For now, if we have only one class for them, we could select it.
-          }
         }
       } catch (error) {
         console.error("Failed to fetch classes", error);
@@ -681,7 +779,7 @@ function MonthlyAttendanceReportCard({ roleId }: { roleId: number | null }) {
     if (!isStudentOrGuardian) {
       fetchClasses();
     }
-  }, [isClassTeacher]);
+  }, [isClassTeacher, isStudentOrGuardian]);
 
   const handleGeneratePDF = async () => {
     if (!selectedClass) {
@@ -697,7 +795,8 @@ function MonthlyAttendanceReportCard({ roleId }: { roleId: number | null }) {
       );
 
       // Create a link to download the PDF
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       
@@ -706,13 +805,19 @@ function MonthlyAttendanceReportCard({ roleId }: { roleId: number | null }) {
       let fileName = `Monthly_Attendance_${selectedMonth}_${selectedYear}.pdf`;
       if (contentDisposition) {
         const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/);
-        if (fileNameMatch?.[1]) fileName = fileNameMatch[1];
+        if (fileNameMatch?.[1]) fileName = fileNameMatch[1].replace(/["']/g, '');
       }
+      
+      // Ensure extension
+      if (!fileName.toLowerCase().endsWith('.pdf')) fileName += '.pdf';
       
       link.setAttribute('download', fileName);
       document.body.appendChild(link);
       link.click();
-      link.remove();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
       
       toast({ title: "Success", description: "Your report is downloading." });
     } catch (error: any) {
@@ -738,27 +843,26 @@ function MonthlyAttendanceReportCard({ roleId }: { roleId: number | null }) {
   const years = [currentYear - 1, currentYear, currentYear + 1].map(String);
 
   return (
-    <Card className="border-none shadow-2xl shadow-indigo-100 bg-white rounded-[2rem] overflow-hidden mt-12 ring-1 ring-slate-100">
-      <div className="h-2 bg-gradient-to-r from-indigo-500 to-primary w-full" />
-      <CardHeader className="p-8 pb-4">
+    <Card className="shadow-sm border-slate-100 rounded-xl overflow-hidden transition-all hover:shadow-md">
+      <CardHeader className="bg-slate-50/50 border-b p-6">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-indigo-50 rounded-2xl">
-            <FileText className="h-6 w-6 text-indigo-600" />
+          <div className="p-2.5 bg-primary/10 rounded-xl shrink-0">
+            <FileText className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">Monthly Attendance Report</CardTitle>
-            <CardDescription className="text-base text-slate-500 font-medium">Generate a comprehensive A3 landscape attendance sheet for any month.</CardDescription>
+            <CardTitle className="text-lg font-bold text-slate-800">Monthly Attendance Report</CardTitle>
+            <CardDescription className="text-sm text-slate-500">Generate comprehensive attendance records for your class.</CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-8 pt-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-          <div className="space-y-3">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Academic Class</label>
+      <CardContent className="p-6">
+        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-4 items-end">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-0.5">Academic Class</label>
             <select 
               value={selectedClass}
               onChange={(e) => setSelectedClass(e.target.value)}
-              className="w-full h-12 bg-slate-50 border-none rounded-xl px-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+              className="w-full h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-primary/10 transition-all appearance-none cursor-pointer"
             >
               <option value="">Select Class</option>
               {classes.map(c => (
@@ -767,12 +871,12 @@ function MonthlyAttendanceReportCard({ roleId }: { roleId: number | null }) {
             </select>
           </div>
 
-          <div className="space-y-3">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Selected Month</label>
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-0.5">Month</label>
             <select 
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-full h-12 bg-slate-50 border-none rounded-xl px-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+              className="w-full h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-primary/10 transition-all appearance-none cursor-pointer"
             >
               {months.map(m => (
                 <option key={m.value} value={m.value}>{m.label}</option>
@@ -780,12 +884,12 @@ function MonthlyAttendanceReportCard({ roleId }: { roleId: number | null }) {
             </select>
           </div>
 
-          <div className="space-y-3">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Academic Year</label>
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-0.5">Year</label>
             <select 
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
-              className="w-full h-12 bg-slate-50 border-none rounded-xl px-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+              className="w-full h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-primary/10 transition-all appearance-none cursor-pointer"
             >
               {years.map(y => (
                 <option key={y} value={y}>{y}</option>
@@ -796,26 +900,13 @@ function MonthlyAttendanceReportCard({ roleId }: { roleId: number | null }) {
           <Button 
             onClick={handleGeneratePDF}
             disabled={loading || !selectedClass}
-            className="h-12 bg-slate-900 hover:bg-black text-white rounded-xl font-bold shadow-lg shadow-slate-200 transition-all active:scale-95 flex items-center gap-2 group"
+            className="h-10 bg-primary hover:bg-primary/90 text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 group-hover:translate-y-0.5 transition-transform" />}
-            {loading ? "Generating..." : "Generate PDF Sheet"}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {loading ? "Generating..." : "Generate Sheet"}
           </Button>
-        </div>
-        
-        <div className="mt-8 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex items-start gap-3">
-          <Share2 className="h-5 w-5 text-blue-500 mt-0.5" />
-          <div className="space-y-1">
-            <p className="text-xs font-bold text-blue-800">Professional A3 Format</p>
-            <p className="text-[10px] text-blue-600 font-medium">
-              Reports include automated school branding, Sunday/Holiday highlights, and daily attendance summaries. 
-              {isClassTeacher && " As a Class Teacher, you can only generate reports for your assigned class."}
-            </p>
-          </div>
         </div>
       </CardContent>
     </Card>
   );
 }
-
-const isStudentOrGuardian = false; // Mock for component outside main func scope if needed

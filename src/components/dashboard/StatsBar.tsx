@@ -17,9 +17,10 @@ interface StatsBarProps {
     attendance: { present: number; total: number; pendingClasses: number };
     feesMonth: number;
   };
+  isHoliday?: boolean;
 }
 
-export const StatsBar = ({ stats }: StatsBarProps) => {
+export const StatsBar = ({ stats, isHoliday }: StatsBarProps) => {
   const attendancePercentage = stats?.attendance.total 
     ? Math.round((stats.attendance.present / stats.attendance.total) * 100) 
     : 0;
@@ -52,11 +53,11 @@ export const StatsBar = ({ stats }: StatsBarProps) => {
       />
       <StatsCard
         title="Today's Attendance"
-        value={`${attendancePercentage}%`}
-        secondaryLabel={stats?.attendance.pendingClasses ? `${stats.attendance.pendingClasses} classes pending` : "All classes marked"}
+        value={isHoliday ? (new Date().getDay() === 0 ? "Sunday" : "Holiday") : `${attendancePercentage}%`}
+        secondaryLabel={isHoliday ? "School Closed" : (stats?.attendance.pendingClasses ? `${stats.attendance.pendingClasses} classes pending` : "All classes marked")}
         icon={ClipboardCheck}
-        iconColor="text-amber-600"
-        iconBg="bg-amber-50"
+        iconColor={isHoliday ? "text-orange-600" : "text-amber-600"}
+        iconBg={isHoliday ? "bg-orange-50" : "bg-amber-50"}
       />
       <StatsCard
         title="Fees This Month"

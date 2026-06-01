@@ -51,7 +51,7 @@ export default function Dashboard() {
       ? Number(localStorage.getItem("role_id"))
       : null;
 
-  const isAdmin = roleId === ROLE.MASTER_ADMIN || roleId === ROLE.INSTITUTE_ADMIN;
+  const isAdmin = roleId ? (ADMIN_GROUP as readonly number[]).includes(roleId) : false;
   const isTeacher = roleId ? (TEACHING_STAFF_GROUP as readonly number[]).includes(roleId) : false;
   const isStudent = roleId ? (STUDENT_PARENT_GROUP as readonly number[]).includes(roleId) : false;
 
@@ -59,7 +59,7 @@ export default function Dashboard() {
 
   if (isAdmin) {
     return (
-      <RouteGuard allowedRoles={[ROLE.MASTER_ADMIN, ROLE.INSTITUTE_ADMIN]}>
+      <RouteGuard allowedRoles={[...ADMIN_GROUP]}>
         <AdminDashboard />
       </RouteGuard>
     );

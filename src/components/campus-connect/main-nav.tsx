@@ -26,7 +26,7 @@ import {
   CalendarDays,
   CalendarOff,
   ShieldCheck,
-  UserCog,
+  TrendingUp,
 } from "lucide-react";
 
 import { ROLE, ADMIN_GROUP, ALL_STAFF_GROUP } from "@/config/roles";
@@ -54,10 +54,28 @@ const navItems: NavItem[] = [
     roles: "ALL",
   },
   {
+    href: "/main/user-management/admins",
+    label: "Manage Admins",
+    icon: ShieldCheck,
+    roles: [ROLE.MASTER_ADMIN],
+  },
+  {
+    href: "/main/my-class",
+    label: "My Class",
+    icon: ShieldCheck,
+    roles: [ROLE.TEACHER, ROLE.CLASS_TEACHER],
+  },
+  {
     href: "/main/students",
     label: "Students",
     icon: Users,
     roles: [...ADMIN_GROUP, ROLE.TEACHER, ROLE.CLASS_TEACHER, ROLE.ADMISSION_OFFICER],
+  },
+  {
+    href: "/main/students/promotion",
+    label: "Promotion",
+    icon: TrendingUp,
+    roles: [ROLE.MASTER_ADMIN, ROLE.INSTITUTE_ADMIN, ROLE.CLASS_TEACHER],
   },
   {
     href: "/main/faculty",
@@ -111,7 +129,7 @@ const navItems: NavItem[] = [
     href: "/main/holidays",
     label: "Holidays",
     icon: CalendarDays,
-    roles: ADMIN_GROUP,
+    roles: [ROLE.MASTER_ADMIN],
   },
   {
     href: "/main/leaves",
@@ -132,25 +150,13 @@ const navItems: NavItem[] = [
     icon: Megaphone,
     roles: "ALL",
   },
-  {
-    href: "/main/user-management/admins",
-    label: "Manage Admins",
-    icon: ShieldCheck,
-    roles: [ROLE.MASTER_ADMIN],
-  },
-  {
-    href: "/main/user-management/staff",
-    label: "Manage Staff",
-    icon: UserCog,
-    roles: [ROLE.MASTER_ADMIN, ROLE.INSTITUTE_ADMIN],
-  },
 ];
 
 const settingsItem: NavItem = {
   href: "/main/settings",
   label: "Settings",
   icon: Settings,
-  roles: [...ADMIN_GROUP, ROLE.IT_SUPPORT],
+  roles: [ROLE.MASTER_ADMIN, ROLE.IT_SUPPORT],
 };
 
 /* =========================

@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import axios from "@/lib/axios";
 import { 
+  Settings as SettingsIcon,
+  ShieldCheck,
   User, 
   MapPin, 
   Phone,
@@ -237,249 +239,287 @@ export default function ProfileSettingsPage() {
     .slice(0, 2);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-20 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row items-center gap-6 p-6 bg-white rounded-xl shadow-sm border border-slate-100">
-        <div className="relative group">
-          {imgSrc ? (
-            <div className="flex flex-col items-center gap-4 p-4 border border-dashed border-indigo-200 rounded-xl bg-indigo-50/30">
-              <ReactCrop
-                crop={crop}
-                onChange={(_, percentCrop) => setCrop(percentCrop)}
-                onComplete={(c) => setCompletedCrop(c)}
-                aspect={1}
-                circularCrop
-              >
-                <img
-                  ref={imgRef}
-                  alt="Crop profile"
-                  src={imgSrc}
-                  className="max-h-[300px] w-auto mx-auto rounded-lg shadow-sm"
-                  onLoad={(e) => {
-                    const { width, height } = e.currentTarget;
-                    setCrop(centerAspectCrop(width, height, 1));
-                  }}
-                />
-              </ReactCrop>
-              <div className="flex gap-3">
-                <Button 
-                  type="button" 
-                  onClick={handleConfirmCrop} 
-                  disabled={uploading}
-                  className="bg-indigo-600 hover:bg-indigo-700 h-9"
-                >
-                  {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Save Photo
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setImgSrc("")} 
-                  disabled={uploading}
-                  className="h-9"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="relative group">
-              <Avatar className="h-24 w-24 border-2 border-slate-100 shadow-sm">
-                <AvatarImage 
-                  src={profileUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.name}`} 
-                  className="object-cover"
-                />
-                <AvatarFallback className="text-2xl font-bold bg-indigo-50 text-indigo-600">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              {!isStudent && (
-                <>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileUpload} 
-                    className="hidden" 
-                    accept="image/*"
-                  />
-                  <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="absolute -bottom-1 -right-1 p-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-all active:scale-95"
-                    title="Change Photo"
-                  >
-                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="text-center md:text-left flex-grow">
-          <h1 className="text-xl font-bold text-slate-900">{profile?.name}</h1>
-          <p className="text-sm text-slate-500">{profile?.email}</p>
-          <Badge variant="outline" className="mt-2 text-[9px] uppercase font-black tracking-widest border-indigo-100 text-indigo-600">
-            {profile?.role_id === 1 ? 'Master Admin' : profile?.role_id === 2 ? 'Admin' : profile?.role_id === 18 ? 'Student' : 'Staff'}
-          </Badge>
-        </div>
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Page Header */}
+      <div className="flex flex-col gap-1 px-1">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+          <SettingsIcon className="h-6 w-6 text-primary" />
+          Account Settings
+        </h1>
+        <p className="text-slate-500 text-sm font-medium">
+          Update your personal identity, professional credentials, and health information.
+        </p>
       </div>
 
+      {/* Profile Identity Card */}
+      <section>
+        <Card className="shadow-sm border-slate-100 rounded-xl overflow-hidden bg-white">
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              <div className="relative group shrink-0">
+                {imgSrc ? (
+                  <div className="flex flex-col items-center gap-4 p-4 border border-dashed border-primary/20 rounded-xl bg-slate-50">
+                    <ReactCrop
+                      crop={crop}
+                      onChange={(_, percentCrop) => setCrop(percentCrop)}
+                      onComplete={(c) => setCompletedCrop(c)}
+                      aspect={1}
+                      circularCrop
+                    >
+                      <img
+                        ref={imgRef}
+                        alt="Crop profile"
+                        src={imgSrc}
+                        className="max-h-[200px] w-auto mx-auto rounded-lg shadow-sm"
+                        onLoad={(e) => {
+                          const { width, height } = e.currentTarget;
+                          setCrop(centerAspectCrop(width, height, 1));
+                        }}
+                      />
+                    </ReactCrop>
+                    <div className="flex gap-2 w-full">
+                      <Button 
+                        type="button" 
+                        onClick={handleConfirmCrop} 
+                        disabled={uploading}
+                        className="flex-1 h-9 font-bold text-xs rounded-lg"
+                      >
+                        {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Save Photo
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => setImgSrc("")} 
+                        disabled={uploading}
+                        className="flex-1 h-9 font-bold text-xs rounded-lg"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative group">
+                    <Avatar className="h-24 w-24 md:h-28 md:w-28 border-2 border-white shadow-sm">
+                      <AvatarImage 
+                        src={profileUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.name}`} 
+                        className="object-cover"
+                      />
+                      <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    {!isStudent && (
+                      <>
+                        <input 
+                          type="file" 
+                          ref={fileInputRef} 
+                          onChange={handleFileUpload} 
+                          className="hidden" 
+                          accept="image/*"
+                        />
+                        <button 
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploading}
+                          className="absolute -bottom-1 -right-1 p-2 bg-primary text-white rounded-lg shadow-lg hover:bg-primary/90 transition-all active:scale-95 border-2 border-white"
+                          title="Change Photo"
+                        >
+                          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="text-center md:text-left space-y-1">
+                <h2 className="text-xl font-bold text-slate-900 leading-tight">{profile?.name}</h2>
+                <p className="text-slate-500 text-sm font-medium">{profile?.email}</p>
+                <div className="pt-2">
+                  <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5">
+                    {profile?.role_id === 1 ? 'Master Admin' : profile?.role_id === 2 ? 'Admin' : profile?.role_id === 18 ? 'Student' : 'Faculty Staff'}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
       {isStudent && (
-        <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl flex items-center gap-3 text-amber-900 shadow-sm">
-           <Info className="h-5 w-5 text-amber-600 shrink-0" />
-           <p className="text-xs font-medium">Students can only view their information. Please contact the administrator to request any profile updates.</p>
+        <div className="bg-amber-50 border border-amber-100 p-5 rounded-2xl flex items-center gap-4 text-amber-900 shadow-sm">
+           <div className="p-2 bg-white rounded-lg shadow-sm border border-amber-100">
+             <Info className="h-5 w-5 text-amber-600 shrink-0" />
+           </div>
+           <p className="text-sm font-semibold">Students can only view their information. Please contact the administrator to request any profile updates.</p>
         </div>
       )}
 
-      <Card className="border-none shadow-sm bg-white">
-        <CardHeader className="border-b border-slate-50 py-5">
-          <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-800">
-            <User className="h-5 w-5 text-indigo-600" />
-            Personal Information
-          </CardTitle>
-          <CardDescription className="text-xs">Update your basic profile details below.</CardDescription>
-        </CardHeader>
-        <CardContent className="p-8">
-          <form onSubmit={handleUpdateProfile} className="space-y-6">
+      <form onSubmit={handleUpdateProfile} className="space-y-6">
+        <Card className="shadow-sm border-slate-100 rounded-xl overflow-hidden bg-white">
+          <CardHeader className="p-6 border-b bg-slate-50/30">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <User className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-lg font-bold text-slate-900">Personal Information</CardTitle>
+                <CardDescription className="text-xs">Update your basic identity and contact details.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="firstName" className="text-xs font-bold uppercase text-slate-400 tracking-wider">First Name</Label>
+                <Label htmlFor="firstName" className="text-xs font-bold uppercase text-slate-500 tracking-wider">First Name</Label>
                 <Input 
                   id="firstName" 
                   value={firstName} 
                   onChange={(e) => setFirstName(e.target.value)}
                   disabled={isStudent}
-                  className="h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all rounded-lg"
+                  placeholder="Enter first name"
+                  className="h-11 bg-white border-slate-200 focus:ring-primary/10 transition-all rounded-lg text-sm font-semibold"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName" className="text-xs font-bold uppercase text-slate-400 tracking-wider">Last Name</Label>
+                <Label htmlFor="lastName" className="text-xs font-bold uppercase text-slate-500 tracking-wider">Last Name</Label>
                 <Input 
                   id="lastName" 
                   value={lastName} 
                   onChange={(e) => setLastName(e.target.value)}
                   disabled={isStudent}
-                  className="h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all rounded-lg"
+                  placeholder="Enter last name"
+                  className="h-11 bg-white border-slate-200 focus:ring-primary/10 transition-all rounded-lg text-sm font-semibold"
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs font-bold uppercase text-slate-400 tracking-wider">Registered Email</Label>
-              <Input id="email" value={profile?.email} disabled className="h-11 bg-slate-100 border-slate-200 rounded-lg cursor-not-allowed opacity-60 text-slate-500" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="phone" className="text-xs font-bold uppercase text-slate-400 tracking-wider">Phone Number</Label>
-                <Input 
-                  id="phone" 
-                  value={phone} 
-                  onChange={(e) => setPhone(e.target.value)}
-                  disabled={isStudent}
-                  className="h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all rounded-lg" 
-                  placeholder="+1 234 567 890"
-                />
+                <Label htmlFor="email" className="text-xs font-bold uppercase text-slate-500 tracking-wider">Institutional Email</Label>
+                <div className="relative">
+                  <Input id="email" value={profile?.email} disabled className="h-11 bg-slate-50 border-slate-200 rounded-lg cursor-not-allowed opacity-70 font-semibold text-slate-500" />
+                  <BadgeCheck className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address" className="text-xs font-bold uppercase text-slate-400 tracking-wider">Address</Label>
-                <Textarea 
-                  id="address" 
-                  value={address} 
-                  onChange={(e) => setAddress(e.target.value)}
-                  disabled={isStudent}
-                  className="min-h-[100px] bg-slate-50 border-slate-200 focus:bg-white transition-all rounded-lg py-3 resize-none" 
-                  placeholder="Street, City, State, ZIP"
-                />
+                <Label htmlFor="phone" className="text-xs font-bold uppercase text-slate-500 tracking-wider">Phone Number</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input 
+                    id="phone" 
+                    value={phone} 
+                    onChange={(e) => setPhone(e.target.value)}
+                    disabled={isStudent}
+                    placeholder="+1 (555) 000-0000"
+                    className="h-11 bg-white border-slate-200 focus:ring-primary/10 transition-all rounded-lg text-sm font-semibold pl-10" 
+                  />
+                </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Teacher Specific Fields Section */}
-            {!isStudent && (
-              <div className="pt-6 border-t border-slate-50 space-y-6">
-                <div className="flex items-center gap-2 text-indigo-600">
-                   <BadgeCheck className="h-4 w-4" />
-                   <h3 className="text-sm font-bold uppercase tracking-wider">Professional & Health Details</h3>
+        {/* Professional & Health Details Section */}
+        {!isStudent && (
+          <Card className="shadow-sm border-slate-100 rounded-xl overflow-hidden bg-white">
+            <CardHeader className="p-6 border-b bg-slate-50/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <BadgeCheck className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-bold text-slate-900">Professional & Health Details</CardTitle>
+                  <CardDescription className="text-xs">Manage your institutional credentials and medical info.</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="bloodGroup" className="text-xs font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+                    <Droplets className="h-3.5 w-3.5 text-rose-500" />
+                    Blood Group
+                  </Label>
+                  <Select value={bgId} onValueChange={setBgId}>
+                    <SelectTrigger className="h-11 bg-white border-slate-200 rounded-lg font-semibold px-4">
+                      <SelectValue placeholder="Select blood group" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bloodGroups.map((bg: any) => (
+                        <SelectItem key={bg.bg_id} value={bg.bg_id.toString()} className="font-semibold">
+                          {bg.blood_group}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {(profile?.role_id === 3 || profile?.role_id === 12) && (
                   <div className="space-y-2">
-                    <Label htmlFor="subject" className="text-xs font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
-                      <BookOpen className="h-3.5 w-3.5" />
-                      Specialization (Subject)
+                    <Label htmlFor="subject" className="text-xs font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+                      <BookOpen className="h-3.5 w-3.5 text-primary" />
+                      Specialization
                     </Label>
                     <Select value={subjectId} onValueChange={setSubjectId}>
-                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-lg">
+                      <SelectTrigger className="h-11 bg-white border-slate-200 rounded-lg font-semibold px-4">
                         <SelectValue placeholder="Select specialized subject" />
                       </SelectTrigger>
                       <SelectContent>
                         {subjects.map((sub: any) => (
-                          <SelectItem key={sub.subject_id} value={sub.subject_id.toString()}>
+                          <SelectItem key={sub.subject_id} value={sub.subject_id.toString()} className="font-semibold">
                             {sub.subject_name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
+                )}
+              </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="bloodGroup" className="text-xs font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
-                      <Droplets className="h-3.5 w-3.5" />
-                      Blood Group
-                    </Label>
-                    <Select value={bgId} onValueChange={setBgId}>
-                      <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-lg">
-                        <SelectValue placeholder="Select blood group" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {bloodGroups.map((bg: any) => (
-                          <SelectItem key={bg.bg_id} value={bg.bg_id.toString()}>
-                            {bg.blood_group}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
+              {(profile?.role_id === 3 || profile?.role_id === 12) && (
                 <div className="space-y-2">
-                  <Label htmlFor="qualification" className="text-xs font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
-                    <GraduationCap className="h-3.5 w-3.5" />
+                  <Label htmlFor="qualification" className="text-xs font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+                    <GraduationCap className="h-3.5 w-3.5 text-primary" />
                     Educational Qualifications
                   </Label>
                   <Textarea 
                     id="qualification" 
                     value={qualification} 
                     onChange={(e) => setQualification(e.target.value)}
-                    className="min-h-[100px] bg-slate-50 border-slate-200 focus:bg-white transition-all rounded-lg py-3 resize-none" 
+                    className="min-h-[120px] bg-white border-slate-200 focus:ring-primary/10 transition-all rounded-lg p-4 text-sm font-medium leading-relaxed resize-none" 
                     placeholder="E.g. MSc in Mathematics, PhD in Education..."
                   />
                 </div>
-              </div>
-            )}
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-            {!isStudent && (
-              <div className="pt-4 flex justify-end gap-3">
-                <Button 
-                    type="button" 
-                    variant="outline"
-                    onClick={() => fetchProfile()}
-                    className="rounded-lg h-11 px-6 font-bold"
-                >
-                    Reset Changes
-                </Button>
-                <Button type="submit" disabled={saving} className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 h-11 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-all active:scale-95">
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Save Changes
-                </Button>
-              </div>
-            )}
-          </form>
-        </CardContent>
-      </Card>
-      
-      {/* Simple Information Footer */}
-      <div className="flex items-center justify-center gap-2 text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">
-        <BadgeCheck className="h-3 w-3" />
+        {!isStudent && (
+          <div className="pt-6 flex items-center justify-end gap-3 pb-12">
+            <Button 
+                type="button" 
+                variant="outline"
+                onClick={() => fetchProfile()}
+                className="rounded-lg h-11 px-6 font-bold text-slate-600 border-slate-200 bg-white hover:bg-slate-50 transition-all text-sm"
+            >
+                Reset Changes
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={saving} 
+              className="h-11 px-8 rounded-lg font-bold gap-2 transition-all active:scale-95"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Save Changes
+            </Button>
+          </div>
+        )}
+      </form>
+
+      {/* Subtle Information Footer */}
+      <div className="flex items-center justify-center gap-2 text-slate-400 text-[10px] font-bold uppercase tracking-wider pb-10">
+        <ShieldCheck className="h-3 w-3" />
         Official Profile Management System
       </div>
     </div>

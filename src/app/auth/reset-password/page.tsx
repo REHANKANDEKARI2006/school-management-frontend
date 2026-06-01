@@ -15,6 +15,9 @@ export default function ResetPasswordPage() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
+  const [verifying, setVerifying] = useState(true);
+  const [error, setError] = useState("");
+  const [userName, setUserName] = useState("");
   const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -29,18 +32,30 @@ export default function ResetPasswordPage() {
     { label: "At least one special character", regex: /[!@#$%^&*(),.?":{}|<>]/ },
   ];
 
-  if (!token) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="max-w-md w-full bg-card border p-8 rounded-2xl shadow-xl text-center">
-            <X className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Invalid Request</h1>
-            <p className="text-muted-foreground mb-6">No reset token provided. Please use the link sent to your email.</p>
-            <Button onClick={() => router.push("/auth/forgot-password")} className="w-full">Request new link</Button>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!token) {
+      setError("No reset token provided. Please use the link sent to your email.");
+      setVerifying(false);
+      return;
+    }
+
+    const verify = async () => {
+      try {
+        const res = await axios.get(`/api/auth/verify-reset-token?token=${token}`);
+        if (res.data.success) {
+          setUserName(res.data.name || "");
+        } else {
+          setError(res.data.message || "This password reset link is invalid or has expired.");
+        }
+      } catch (err: any) {
+        setError(err?.response?.data?.message || "This password reset link is invalid or has expired.");
+      } finally {
+        setVerifying(false);
+      }
+    };
+
+    verify();
+  }, [token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,9 +79,6 @@ export default function ResetPasswordPage() {
 
       if (res.data.success) {
         setSuccess(true);
-        setTimeout(() => {
-          router.push("/");
-        }, 3000);
       }
     } catch (err: any) {
       alert(err?.response?.data?.message || "Failed to reset password.");
@@ -75,29 +87,57 @@ export default function ResetPasswordPage() {
     }
   };
 
+  if (verifying) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Verifying your reset link…</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-destructive/5 p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md w-full bg-card border border-destructive/20 p-10 rounded-2xl shadow-xl text-center"
+        >
+          <div className="bg-destructive/10 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-6">
+            <X className="h-8 w-8 text-destructive" />
+          </div>
+          <h1 className="text-2xl font-bold mb-3">Link Invalid</h1>
+          <p className="text-muted-foreground text-sm mb-8 leading-relaxed">{error}</p>
+          <Button onClick={() => router.push("/")} className="w-full h-12 rounded-xl">
+            Back to Login
+          </Button>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full bg-card border border-primary/20 p-8 rounded-2xl shadow-xl text-center"
+          className="max-w-md w-full bg-card border border-primary/20 p-10 rounded-2xl shadow-xl text-center"
         >
-          <div className="bg-primary/10 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Check className="h-8 w-8 text-primary" />
+          <div className="bg-emerald-100 h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Check className="h-10 w-10 text-emerald-600" />
           </div>
           <h1 className="text-2xl font-bold mb-4">Password Reset!</h1>
-          <p className="text-muted-foreground mb-8">
-            Your password has been reset successfully. Redirecting you to login...
+          <p className="text-muted-foreground text-sm mb-8">
+            Your password has been reset successfully. You can now log in using your new credentials.
           </p>
-          <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
-            <motion.div 
-              initial={{ width: "0%" }}
-              animate={{ width: "100%" }}
-              transition={{ duration: 3 }}
-              className="h-full bg-primary"
-            />
-          </div>
+          <Button
+            className="w-full h-12 rounded-xl text-base font-semibold"
+            onClick={() => router.push("/")}
+          >
+            Go to Login
+          </Button>
         </motion.div>
       </div>
     );
@@ -113,7 +153,9 @@ export default function ResetPasswordPage() {
         <div className="text-center mb-8">
           <Logo className="h-12 w-12 mx-auto mb-4" />
           <h1 className="text-3xl font-black tracking-tight">Reset Password</h1>
-          <p className="text-muted-foreground mt-2">Enter your new password below.</p>
+          <p className="text-muted-foreground mt-2 text-sm">
+            {userName ? `Hi ${userName}, enter your new password below.` : "Enter your new password below."}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6 bg-card border p-8 rounded-2xl shadow-xl">

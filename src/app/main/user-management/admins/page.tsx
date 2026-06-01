@@ -7,7 +7,7 @@ import { ROLE } from "@/config/roles";
 export default function AdminsManagementPage() {
   return (
     <RouteGuard allowedRoles={[ROLE.MASTER_ADMIN]}>
-      <div className="p-6">
+      <div className="p-1 sm:p-6">
         <UserManagementTable 
           role_code="INSTITUTE_ADMIN" 
           title="Admin Accounts" 

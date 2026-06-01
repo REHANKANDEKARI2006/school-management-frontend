@@ -168,15 +168,15 @@ export function GradeEntryForm({ exam, onSave }: GradeEntryFormProps) {
         )}
       </div>
 
-      <div className="max-h-[55vh] overflow-y-auto rounded-md border">
+      <div className="max-h-[55vh] overflow-auto rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-10">#</TableHead>
-              <TableHead>Student Name</TableHead>
-              <TableHead className="w-28 text-center">Marks</TableHead>
-              <TableHead className="w-16 text-center">Grade</TableHead>
-              <TableHead className="w-10 text-center">✓</TableHead>
+              <TableHead className="w-10 min-w-[40px]">#</TableHead>
+              <TableHead className="min-w-[140px]">Student Name</TableHead>
+              <TableHead className="w-28 min-w-[100px] text-center">Marks</TableHead>
+              <TableHead className="w-16 min-w-[70px] text-center">Grade</TableHead>
+              <TableHead className="w-10 min-w-[40px] text-center">✓</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

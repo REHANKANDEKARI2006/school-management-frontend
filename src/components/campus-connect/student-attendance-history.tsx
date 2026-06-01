@@ -128,25 +128,36 @@ export function StudentAttendanceHistory({ student }: AttendanceHistoryProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {recordsForDate.map((record, index) => (
-                    <TableRow key={index} className="border-slate-100 dark:border-slate-800 hover:bg-slate-50/30 dark:hover:bg-slate-800/10 h-16">
-                      <TableCell className="font-bold text-slate-400 tabular-nums text-sm px-6">
-                        P{record.periodNumber || index + 1}
-                      </TableCell>
-                      <TableCell className="text-[13px] font-semibold text-slate-600 dark:text-slate-400 tabular-nums">
-                        {record.startTime?.slice(0,5)} - {record.endTime?.slice(0,5)}
-                      </TableCell>
-                      <TableCell className="font-bold text-slate-900 dark:text-slate-100 text-sm">
-                        {record.subjectName}
-                      </TableCell>
-                      <TableCell className="text-right px-6">
-                         <Badge variant={getStatusVariant(record.status)} className="capitalize px-3 py-1 text-[11px] font-bold tracking-tight shadow-none border-none">
-                           {getStatusIcon(record.status)}
-                           {record.status.replace('_', ' ')}
-                         </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {recordsForDate.map((record: any, index) => {
+                    const startTime = record.startTime || record.start_time;
+                    const endTime = record.endTime || record.end_time;
+                    const periodNumber = record.periodNumber || record.period_number || (index + 1);
+                    const status = record.status || "not_taken";
+                    
+                    const formattedTime = startTime && endTime 
+                      ? `${startTime.slice(0,5)} - ${endTime.slice(0,5)}` 
+                      : "-";
+
+                    return (
+                      <TableRow key={index} className="border-slate-100 dark:border-slate-800 hover:bg-slate-50/30 dark:hover:bg-slate-800/10 h-16">
+                        <TableCell className="font-bold text-slate-400 tabular-nums text-sm px-6">
+                          P{periodNumber}
+                        </TableCell>
+                        <TableCell className="text-[13px] font-semibold text-slate-600 dark:text-slate-400 tabular-nums">
+                          {formattedTime}
+                        </TableCell>
+                        <TableCell className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                          {record.subjectName}
+                        </TableCell>
+                        <TableCell className="text-right px-6">
+                           <Badge variant={getStatusVariant(status)} className="capitalize px-3 py-1 text-[11px] font-bold tracking-tight shadow-none border-none">
+                             {getStatusIcon(status)}
+                             {status.replace('_', ' ')}
+                           </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             ) : (

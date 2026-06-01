@@ -58,163 +58,202 @@ export default function ProfilePage() {
   const isTeacher = profile?.role_id !== 18 && profile?.role_id !== 1 && profile?.role_id !== 2 && profile?.role_id !== 20;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-in fade-in duration-500">
-      {/* Original Header Structure */}
-      <div className="flex flex-col md:flex-row items-center gap-6 p-8 bg-white rounded-xl shadow-sm border border-slate-100">
-        <div className="relative">
-          <Avatar className="h-28 w-28 border-4 border-slate-50 shadow-sm">
-            <AvatarImage 
-              src={profile?.profile_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.name}`} 
-              className="object-cover"
-            />
-            <AvatarFallback className="text-3xl font-bold bg-indigo-50 text-indigo-600">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <div className="absolute -bottom-1 -right-1 bg-emerald-500 p-1.5 rounded-full border-2 border-white shadow-sm">
-            <BadgeCheck className="h-4 w-4 text-white" />
-          </div>
-        </div>
-        <div className="text-center md:text-left flex-grow">
-          <div className="flex flex-col md:flex-row md:items-center gap-2 mb-1">
-            <h1 className="text-2xl font-bold text-slate-900">{profile?.name}</h1>
-            <Badge variant="outline" className="w-fit self-center md:self-auto text-[10px] uppercase font-bold tracking-widest border-indigo-100 bg-indigo-50/30 text-indigo-600">
-              {profile?.role_id === 1 ? 'Master Admin' : profile?.role_id === 2 ? 'Admin' : 'Personal Profile'}
-            </Badge>
-          </div>
-          <p className="text-slate-500 text-sm font-medium">{profile?.email}</p>
-          <div className="mt-4">
-            {profile?.role_id !== 18 && (
-              <Button 
-                  onClick={() => router.push("/main/profile/settings")}
-                  size="sm"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 flex items-center gap-2 shadow-sm"
-              >
-                  Account Settings
-                  <ArrowRight className="h-4 w-4" />
-              </Button>
-            )}
-            {profile?.role_id === 18 && (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-100 rounded-lg text-xs font-bold">
-                 <ShieldCheck className="h-4 w-4" />
-                 View Only Mode
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col gap-1 px-1">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+          <User className="h-6 w-6 text-primary" />
+          Personal Profile
+        </h1>
+        <p className="text-slate-500 text-sm font-medium">
+          Manage your identity and professional information within the institution.
+        </p>
+      </div>
+
+      {/* Profile Header Card */}
+      <section>
+        <Card className="shadow-sm border-slate-100 rounded-xl overflow-hidden bg-white">
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+              <div className="relative shrink-0">
+                <Avatar className="h-24 w-24 md:h-28 md:w-28 border shadow-sm">
+                  <AvatarImage 
+                    src={profile?.profile_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.name}`} 
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute -bottom-1 -right-1 bg-emerald-500 p-1.5 rounded-full border-2 border-white shadow-sm">
+                  <BadgeCheck className="h-3.5 w-3.5 text-white" />
+                </div>
               </div>
-            )}
-          </div>
-        </div>
-      </div>
 
-      {/* Stats Cards Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="border-none shadow-sm hover:shadow-md transition-shadow bg-white">
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-              <MapPin className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black">Location</p>
-              <p className="font-bold text-slate-800 line-clamp-1">{profile?.address || "Not specified"}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm hover:shadow-md transition-shadow bg-white">
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
-              <Phone className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black">Contact</p>
-              <p className="font-bold text-slate-800">{profile?.phone || "No contact info"}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm hover:shadow-md transition-shadow bg-white">
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-red-50 text-red-600 rounded-xl">
-              <Droplets className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black">Blood Group</p>
-              <p className="font-bold text-slate-800">{profile?.blood_group_name || "Not specified"}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Teacher Professional Profile Section */}
-      {isTeacher && (
-        <Card className="border-none shadow-sm bg-white overflow-hidden">
-          <CardHeader className="border-b border-slate-50 py-5">
-            <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-800">
-              <BookOpen className="h-5 w-5 text-indigo-600" />
-              Teacher Professional Details
-            </CardTitle>
-            <CardDescription className="text-xs">Your academic specializations and qualifications within the system.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-6">
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
-                  <div className="flex items-center gap-2 text-indigo-600 mb-1">
-                    <BookOpen className="h-4 w-4" />
-                    <p className="text-[10px] uppercase font-black tracking-wider">Primary Specialization</p>
+              <div className="flex-1 text-center md:text-left space-y-4">
+                <div>
+                  <div className="flex flex-col md:flex-row md:items-center gap-3 mb-1 justify-center md:justify-start">
+                    <h2 className="text-2xl font-bold text-slate-900 leading-tight">{profile?.name}</h2>
+                    <Badge variant="secondary" className="w-fit self-center md:self-auto text-[10px] uppercase font-bold tracking-wider px-2 py-0.5">
+                      {profile?.role_name?.replace(/_/g, " ") || 'Personal Profile'}
+                    </Badge>
                   </div>
-                  <p className="text-lg font-bold text-slate-800">{profile?.subject_name || "General Teaching"}</p>
+                  <p className="text-slate-500 text-base font-medium">
+                    {profile?.email ? (
+                      <a href={`mailto:${profile.email}`} className="hover:underline hover:text-blue-600 transition-colors">
+                        {profile.email}
+                      </a>
+                    ) : (
+                      "No email"
+                    )}
+                  </p>
                 </div>
 
-                <div className="space-y-4">
-                   <div className="flex items-center gap-2 text-emerald-600">
-                      <ShieldCheck className="h-4 w-4" />
-                      <p className="text-xs font-bold">Verified Professional Record</p>
-                   </div>
-                   <p className="text-xs text-slate-500 leading-relaxed">
-                     Your profile is synchronized with the school's central database. Any changes made here are reflected across all administrative modules.
-                   </p>
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-2">
+                  {profile?.role_id !== 18 && (
+                    <Button 
+                      onClick={() => router.push("/main/profile/settings")}
+                      className="rounded-lg px-6 font-bold flex items-center gap-2 shadow-sm transition-all h-10"
+                    >
+                      Account Settings
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {profile?.role_id === 18 && (
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-600 border border-slate-100 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      View Only Mode
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Quick Info Grid */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {[
+          { icon: Phone, label: "Contact Number", value: profile?.phone || "No contact info", color: "text-primary", bg: "bg-primary/10" },
+          { icon: Droplets, label: "Blood Group", value: profile?.blood_group_name || "Not specified", color: "text-rose-500", bg: "bg-rose-50" },
+        ].map((item, i) => (
+          <Card key={i} className="shadow-sm border-slate-100 rounded-xl bg-white hover:shadow-md transition-all">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className={`p-2.5 ${item.bg} ${item.color} rounded-lg`}>
+                <item.icon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-0.5">{item.label}</p>
+                <p className="text-sm font-bold text-slate-800 truncate">
+                  {item.label === "Contact Number" && profile?.phone ? (
+                    <a href={`tel:${profile.phone}`} className="hover:underline hover:text-blue-600 transition-colors">
+                      {item.value}
+                    </a>
+                  ) : (
+                    item.value
+                  )}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </section>
+
+      {/* Professional & System Details */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Professional Details (Only for Staff/Teachers) */}
+        {isTeacher && (
+          <Card className="shadow-sm border-slate-100 rounded-xl overflow-hidden bg-white flex flex-col">
+            <CardHeader className="p-6 border-b bg-slate-50/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-bold text-slate-900">Professional Details</CardTitle>
+                  <CardDescription className="text-xs">Your academic and educational credentials.</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6 flex-1 space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Primary Specialization</p>
+                  <div className="p-4 bg-slate-50 border border-slate-100 rounded-lg">
+                    <p className="text-base font-bold text-slate-800">{profile?.subject_name || "General Teaching"}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Academic Qualification</p>
+                  <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg min-h-[80px]">
+                    <p className="text-sm font-medium text-slate-700 leading-relaxed italic">
+                      {profile?.qualification || "No qualification details provided."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* System Credentials */}
+        <Card className={`shadow-sm border-slate-100 rounded-xl overflow-hidden bg-white flex flex-col ${!isTeacher ? 'md:col-span-2' : ''}`}>
+          <CardHeader className="p-6 border-b bg-slate-50/30">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-lg font-bold text-slate-900">System Credentials</CardTitle>
+                <CardDescription className="text-xs">Security and identity verification details.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6 flex-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Identity Verification</p>
+                  <div className="flex items-center gap-4 p-4 bg-slate-50 border border-slate-100 rounded-lg group hover:border-primary/20 hover:bg-white transition-all">
+                    <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100 text-emerald-500">
+                      <BadgeCheck className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">{profile?.name}</p>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tight">Full Name</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-indigo-600 mb-2">
-                    <GraduationCap className="h-5 w-5" />
-                    <h3 className="font-bold text-slate-800 uppercase text-xs tracking-widest">Educational Qualifications</h3>
+                <div className="space-y-1.5">
+                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Institutional Email</p>
+                  <div className="flex items-center gap-4 p-4 bg-slate-50 border border-slate-100 rounded-lg group hover:border-primary/20 hover:bg-white transition-all">
+                    <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100 text-primary">
+                      <Mail className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900 break-all">
+                        {profile?.email ? (
+                          <a href={`mailto:${profile.email}`} className="hover:underline hover:text-blue-600 transition-colors">
+                            {profile.email}
+                          </a>
+                        ) : (
+                          "No email"
+                        )}
+                      </p>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tight">Primary Address</p>
+                    </div>
                   </div>
-                  <div className="p-6 bg-indigo-50/30 rounded-2xl border border-indigo-50 min-h-[120px]">
-                    <p className="text-sm font-medium text-slate-700 whitespace-pre-wrap leading-relaxed italic">
-                      {profile?.qualification || "No qualification details provided."}
-                    </p>
-                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {/* Academic Profile Section (Base Info) */}
-      <Card className="border-none shadow-sm bg-white overflow-hidden">
-        <CardHeader className="border-b border-slate-50 py-5">
-          <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-800">
-            <User className="h-5 w-5 text-indigo-600" />
-            System Credentials
-          </CardTitle>
-          <CardDescription className="text-xs">Registered system information and credentials.</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="p-8 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-1">
-                 <p className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Legal Name</p>
-                 <p className="font-semibold text-slate-800">{profile?.name}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Registered Email</p>
-                <p className="font-semibold text-slate-800 break-all">{profile?.email}</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      </section>
     </div>
   );
 }

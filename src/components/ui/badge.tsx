@@ -15,6 +15,18 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
+        active: "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100/60 shadow-sm font-bold tracking-wide",
+        completed: "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100/60 shadow-sm font-bold tracking-wide",
+        inactive: "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100/60 shadow-sm font-bold tracking-wide",
+        pending: "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100/60 shadow-sm font-bold tracking-wide",
+        approved: "border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100/60 shadow-sm font-bold tracking-wide",
+        rejected: "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100/60 shadow-sm font-bold tracking-wide",
+        draft: "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100/60 shadow-sm font-bold tracking-wide",
+        cancelled: "border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-200/60 shadow-sm font-bold tracking-wide",
+        processing: "border-cyan-200 bg-cyan-50 text-cyan-700 hover:bg-cyan-100/60 shadow-sm font-bold tracking-wide",
+        expired: "border-amber-200 bg-amber-100/60 text-amber-800 hover:bg-amber-200/60 shadow-sm font-bold tracking-wide",
+        published: "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100/60 shadow-sm font-bold tracking-wide",
+        unpublished: "border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100/60 shadow-sm font-bold tracking-wide",
       },
     },
     defaultVariants: {

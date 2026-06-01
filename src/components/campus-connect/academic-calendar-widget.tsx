@@ -102,7 +102,10 @@ export function AcademicCalendarWidget({
             
             return checkDate >= start && checkDate <= end;
           })
-          .map(ev => ({ label: ev.title || ev.event_name, category: ev.category || ev.event_type?.toLowerCase().includes('holiday') ? 'holiday' : 'event' }));
+          .map(ev => ({ 
+            label: ev.title || ev.event_name, 
+            category: ev.category || (ev.event_type?.toLowerCase().includes('holiday') ? 'holiday' : 'event') 
+          }));
         
         const isSelected = isSameDay(d, selectedDate);
         const isCurrentMonth = isSameMonth(d, monthStart);
@@ -112,7 +115,7 @@ export function AcademicCalendarWidget({
           <div
             key={d.toString()}
             className={cn(
-              "relative h-10 flex flex-col items-center justify-center cursor-pointer transition-all group",
+              "relative min-h-[44px] flex flex-col items-center justify-center cursor-pointer transition-all group",
               !isCurrentMonth && "opacity-20 pointer-events-none"
             )}
             onClick={() => setSelectedDate(d)}
@@ -136,11 +139,11 @@ export function AcademicCalendarWidget({
                     {dayEvents.slice(0, 3).map((h, idx) => (
                       <div key={idx} className={cn(
                           "h-1 w-1 rounded-full",
-                          h.category === 'national' ? "bg-emerald-500" : 
-                          h.category === 'maharashtra' ? "bg-orange-500" : 
-                          h.category === 'karnataka' ? "bg-sky-400" : 
-                          h.category === 'holiday' || h.category === 'school holiday' || h.category === 'holiday activity' ? "bg-rose-500" :
-                          h.category === 'event' || h.category === 'exam or test' || h.category === 'educational trip' ? "bg-indigo-600" : "bg-slate-400"
+                          h.category?.toLowerCase() === 'national' ? "bg-emerald-500" : 
+                          h.category?.toLowerCase() === 'maharashtra' ? "bg-orange-500" : 
+                          h.category?.toLowerCase() === 'karnataka' ? "bg-sky-400" : 
+                          h.category?.toLowerCase() === 'holiday' || h.category?.toLowerCase() === 'school holiday' || h.category?.toLowerCase() === 'holiday activity' ? "bg-rose-500" :
+                          h.category?.toLowerCase() === 'event' || h.category?.toLowerCase() === 'exam or test' || h.category?.toLowerCase() === 'educational trip' ? "bg-indigo-600" : "bg-slate-400"
                       )} />
                     ))}
                  </div>
@@ -159,9 +162,9 @@ export function AcademicCalendarWidget({
   };
 
   return (
-    <div className="w-full bg-white dark:bg-slate-900 border-none shadow-none overflow-hidden">
+    <div className="w-full bg-white dark:bg-slate-900 border-none shadow-none overflow-visible">
       {renderHeader()}
-      <div className="p-2">
+      <div className="p-2 min-h-[340px]">
         {renderDays()}
         {renderCells()}
       </div>
@@ -232,11 +235,11 @@ export function CalendarDayDetail({ date, events = [] }: { date: Date; events?: 
                         <div key={i} className="flex items-center gap-3 p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                             <Badge className={cn(
                                 "px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border shrink-0",
-                                h.category === 'national' ? "bg-emerald-100 text-emerald-700 border-emerald-200" : 
-                                h.category === 'maharashtra' ? "bg-orange-100 text-orange-700 border-orange-200" : 
-                                h.category === 'karnataka' ? "bg-sky-100 text-sky-700 border-sky-200" : 
-                                h.category === 'holiday' || h.category === 'school holiday' ? "bg-rose-100 text-rose-700 border-rose-200" :
-                                h.category === 'event' ? "bg-indigo-100 text-indigo-700 border-indigo-200" : 
+                                h.category?.toLowerCase() === 'national' ? "bg-emerald-100 text-emerald-700 border-emerald-200" : 
+                                h.category?.toLowerCase() === 'maharashtra' ? "bg-orange-100 text-orange-700 border-orange-200" : 
+                                h.category?.toLowerCase() === 'karnataka' ? "bg-sky-100 text-sky-700 border-sky-200" : 
+                                h.category?.toLowerCase() === 'holiday' || h.category?.toLowerCase() === 'school holiday' ? "bg-rose-100 text-rose-700 border-rose-200" :
+                                h.category?.toLowerCase() === 'event' ? "bg-indigo-100 text-indigo-700 border-indigo-200" : 
                                 "bg-slate-100 text-slate-700 border-slate-200"
                             )}>
                                 {h.category}

@@ -21,16 +21,12 @@ import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { formatDate } from "@/lib/utils";
 
 // ─── Types & Utilities ────────────────────────────────────────────────────────
 
-function fmtDate(d: any, fmt: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short" }) {
-  if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-GB", fmt);
-}
-function fmtDateLong(d: any) {
-  return new Date(d).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-}
+const fmtDate = (d: any) => formatDate(d);
+const fmtDateLong = (d: any) => formatDate(d);
 function fmtTime(t: string) { return t ? t.slice(0, 5) : ""; }
 
 const TEACHER_COLORS = [
@@ -41,16 +37,16 @@ const TEACHER_COLORS = [
 function teacherColor(id: number) { return TEACHER_COLORS[id % TEACHER_COLORS.length]; }
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
-  pending:   { label: "Pending",   cls: "bg-amber-500/15 text-amber-600 border-amber-300/50" },
-  approved:  { label: "Approved",  cls: "bg-emerald-500/15 text-emerald-600 border-emerald-300/50" },
-  rejected:  { label: "Rejected",  cls: "bg-rose-500/15 text-rose-600 border-rose-300/50" },
-  cancelled: { label: "Cancelled", cls: "bg-slate-400/15 text-slate-500 border-slate-300/50" },
+  pending:   { label: "Pending",   cls: "status-pending" },
+  approved:  { label: "Approved",  cls: "status-approved" },
+  rejected:  { label: "Rejected",  cls: "status-rejected" },
+  cancelled: { label: "Cancelled", cls: "status-cancelled" },
 };
 
 const MATCH_BADGE: Record<string, string> = {
-  "Same Subject":    "bg-emerald-500/15 text-emerald-700 border-emerald-300/40",
-  "Same Department": "bg-blue-500/15 text-blue-700 border-blue-300/40",
-  "Available":       "bg-slate-400/15 text-slate-600 border-slate-300/40",
+  "Same Subject":    "status-approved",
+  "Same Department": "status-draft",
+  "Available":       "status-inactive",
 };
 
 // ─── Stats Card ───────────────────────────────────────────────────────────────
@@ -79,6 +75,7 @@ function LeaveCalendar() {
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [leaves, setLeaves] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tooltip, setTooltip] = useState<{ day: number; x: number; y: number; items: any[] } | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -88,104 +85,174 @@ function LeaveCalendar() {
       .finally(() => setLoading(false));
   }, [year, month]);
 
-  const monthName = new Date(year, month - 1).toLocaleString("default", { month: "long" });
-  const firstDay  = new Date(year, month - 1, 1).getDay();  // 0=Sun
+  const monthName   = new Date(year, month - 1).toLocaleString("default", { month: "long" });
+  const firstDay    = new Date(year, month - 1, 1).getDay(); // 0=Sun
   const daysInMonth = new Date(year, month, 0).getDate();
 
-  // Build calendar grid
+  // Build Mon-first calendar grid
   const cells: (number | null)[] = [];
-  for (let i = 0; i < (firstDay === 0 ? 6 : firstDay - 1); i++) cells.push(null);
+  const offset = firstDay === 0 ? 6 : firstDay - 1; // Mon=0 offset
+  for (let i = 0; i < offset; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
-  // Map date → leaves for that date
   function leavesOnDay(day: number) {
     const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     return leaves.filter(l => {
-      const from = l.from_date?.slice(0,10);
-      const to   = l.to_date?.slice(0,10);
+      const from = l.from_date?.slice(0, 10);
+      const to   = l.to_date?.slice(0, 10);
       return dateStr >= from && dateStr <= to;
     });
   }
 
-  function prevMonth() {
-    if (month === 1) { setMonth(12); setYear(y => y - 1); }
-    else setMonth(m => m - 1);
-  }
-  function nextMonth() {
-    if (month === 12) { setMonth(1); setYear(y => y + 1); }
-    else setMonth(m => m + 1);
-  }
+  function prevMonth() { if (month === 1) { setMonth(12); setYear(y => y - 1); } else setMonth(m => m - 1); }
+  function nextMonth() { if (month === 12) { setMonth(1); setYear(y => y + 1); } else setMonth(m => m + 1); }
+  function goToday() { setYear(today.getFullYear()); setMonth(today.getMonth() + 1); }
+
+  const isCurrentMonth = year === today.getFullYear() && month === today.getMonth() + 1;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5" onClick={() => setTooltip(null)}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">{monthName} {year}</h3>
-        <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={prevMonth}><ChevronLeft className="w-4 h-4" /></Button>
-          <Button variant="outline" size="icon" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
+        <div className="flex items-center gap-3">
+          <h3 className="text-base font-semibold text-slate-800">{monthName} {year}</h3>
+          {!isCurrentMonth && (
+            <button onClick={goToday}
+              className="text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-0.5 rounded-full bg-blue-50 hover:bg-blue-100 transition-colors">
+              Today
+            </button>
+          )}
+        </div>
+        <div className="flex gap-1.5">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={prevMonth}>
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={nextMonth}>
+            <ChevronRight className="w-4 h-4" />
+          </Button>
         </div>
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-7 gap-1">
-        {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d => (
-          <div key={d} className="text-center text-xs font-semibold text-muted-foreground py-2">{d}</div>
-        ))}
-        {cells.map((day, i) => {
-          if (!day) return <div key={`blank-${i}`} />;
-          const dayLeaves = leavesOnDay(day);
-          const isToday = year === today.getFullYear() && month === today.getMonth() + 1 && day === today.getDate();
-          return (
-            <div
-              key={day}
-              className={`rounded-lg p-1.5 min-h-[64px] border transition-all
-                ${isToday ? "border-blue-500/50 bg-blue-500/5" : "border-transparent hover:border-border"}
-                ${dayLeaves.length > 0 ? "bg-background/60" : ""}`}
-            >
-              <div className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full
-                ${isToday ? "bg-blue-600 text-white" : "text-muted-foreground"}`}>
-                {day}
-              </div>
-              <div className="space-y-0.5">
-                {dayLeaves.slice(0, 2).map((l, li) => (
-                  <div
-                    key={li}
-                    title={`${l.staff_first_name} ${l.staff_last_name} — ${l.leave_type_name}`}
-                    className={`text-[9px] font-medium px-1 py-0.5 rounded text-white truncate ${teacherColor(l.teacher_id)}`}
-                  >
-                    {l.staff_first_name}
+      {loading ? (
+        <div className="grid grid-cols-7 gap-1">
+          {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d => (
+            <div key={d} className="text-center text-xs font-semibold text-muted-foreground py-2">{d}</div>
+          ))}
+          {Array(35).fill(0).map((_, i) => (
+            <div key={i} className="h-[72px] rounded-lg animate-pulse bg-secondary/30" />
+          ))}
+        </div>
+      ) : (
+        <>
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1">
+            {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d => (
+              <div key={d} className="text-center text-[11px] font-semibold text-muted-foreground py-1.5 tracking-wide">{d}</div>
+            ))}
+
+            {cells.map((day, i) => {
+              if (!day) return <div key={`b-${i}`} className="h-[72px]" />;
+              const dayLeaves = leavesOnDay(day);
+              const isToday   = isCurrentMonth && day === today.getDate();
+              const isSun     = new Date(year, month - 1, day).getDay() === 0;
+
+              return (
+                <div
+                  key={day}
+                  className={`h-[72px] rounded-xl p-1.5 border transition-all cursor-default relative
+                    ${isToday
+                      ? "border-blue-400/60 bg-blue-50/70 shadow-sm shadow-blue-100"
+                      : dayLeaves.length > 0
+                        ? "border-border/60 bg-background/80 hover:border-border hover:shadow-sm"
+                        : "border-transparent hover:border-border/40 hover:bg-secondary/20"}
+                    ${isSun ? "opacity-50" : ""}`}
+                  onClick={e => {
+                    if (dayLeaves.length === 0) return;
+                    e.stopPropagation();
+                    setTooltip(t => t?.day === day ? null : { day, x: 0, y: 0, items: dayLeaves });
+                  }}
+                >
+                  {/* Day number */}
+                  <div className={`text-[11px] font-bold mb-1 w-5 h-5 flex items-center justify-center rounded-full
+                    ${isToday ? "bg-blue-600 text-white" : "text-muted-foreground"}`}>
+                    {day}
+                  </div>
+
+                  {/* Avatar pills */}
+                  <div className="flex flex-wrap gap-0.5">
+                    {dayLeaves.slice(0, 3).map((l, li) => (
+                      <div
+                        key={li}
+                        title={`${l.staff_first_name} ${l.staff_last_name} — ${l.leave_type_name}`}
+                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black text-white shrink-0
+                          ${teacherColor(l.teacher_id)}`}
+                      >
+                        {l.staff_first_name?.[0]}{l.staff_last_name?.[0]}
+                      </div>
+                    ))}
+                    {dayLeaves.length > 3 && (
+                      <div className="w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-[8px] font-bold text-muted-foreground">
+                        +{dayLeaves.length - 3}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Inline tooltip */}
+                  {tooltip?.day === day && (
+                    <div
+                      onClick={e => e.stopPropagation()}
+                      className="absolute z-30 left-0 top-full mt-1 min-w-[200px] bg-popover border border-border shadow-xl rounded-xl p-3 space-y-2 text-xs"
+                      style={{ maxWidth: "220px" }}
+                    >
+                      {tooltip.items.map((l, li) => (
+                        <div key={li} className="flex items-center gap-2">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black text-white shrink-0 ${teacherColor(l.teacher_id)}`}>
+                            {l.staff_first_name?.[0]}{l.staff_last_name?.[0]}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold truncate text-foreground">{l.staff_first_name} {l.staff_last_name}</p>
+                            <p className="text-muted-foreground truncate">{l.leave_type_name}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Leave list */}
+          {leaves.length > 0 ? (
+            <div className="border-t border-border/40 pt-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Approved Leaves This Month</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {leaves.map(l => (
+                  <div key={l.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-secondary/30 border border-border/30 hover:bg-secondary/50 transition-colors">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black text-white shrink-0 ${teacherColor(l.teacher_id)}`}>
+                      {l.staff_first_name?.[0]}{l.staff_last_name?.[0]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{l.staff_first_name} {l.staff_last_name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{l.leave_type_name} · {l.total_days}d</p>
+                    </div>
+                    <div className="text-right text-xs text-muted-foreground shrink-0">
+                      <p>{fmtDate(l.from_date)}</p>
+                      <p>{fmtDate(l.to_date)}</p>
+                    </div>
                   </div>
                 ))}
-                {dayLeaves.length > 2 && (
-                  <div className="text-[9px] text-muted-foreground pl-1">+{dayLeaves.length - 2} more</div>
-                )}
               </div>
             </div>
-          );
-        })}
-      </div>
-
-      {/* Upcoming leaves list */}
-      {leaves.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Approved Leaves This Month</h4>
-          <div className="space-y-2">
-            {leaves.map(l => (
-              <div key={l.id} className="flex items-center gap-3 p-3 rounded-lg bg-background/50 border border-border/40 hover:bg-secondary/20 transition-all">
-                <div className={`w-2 h-8 rounded-full ${teacherColor(l.teacher_id)} shrink-0`} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{l.staff_first_name} {l.staff_last_name}</p>
-                  <p className="text-xs text-muted-foreground">{l.leave_type_name}</p>
-                </div>
-                <div className="text-right text-xs text-muted-foreground">
-                  <p>{fmtDate(l.from_date)} → {fmtDate(l.to_date)}</p>
-                  <p className="font-medium">{l.total_days}d</p>
-                </div>
+          ) : (
+            <div className="border-t border-border/40 pt-4 flex items-center justify-center py-6 text-muted-foreground">
+              <div className="text-center">
+                <Calendar className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No approved leaves this month.</p>
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -200,20 +267,30 @@ function ApprovalModal({
   application: any;
   onApproved: () => void;
 }) {
-  const [suggestions,  setSuggestions]  = useState<any[]>([]);
-  const [selectedSubs, setSelectedSubs] = useState<Record<string, string>>({});
-  const [remarks, setRemarks]           = useState("");
-  const [loadingSugg,  setLoadingSugg]  = useState(false);
-  const [submitting,   setSubmitting]   = useState(false);
-  const [toast,        setToast]        = useState<string | null>(null);
+  const [suggestions,    setSuggestions]    = useState<any[]>([]);
+  const [selectedSubs,   setSelectedSubs]   = useState<Record<string, string>>({});
+  const [remarks,        setRemarks]        = useState("");
+  const [loadingSugg,    setLoadingSugg]    = useState(false);
+  const [submitting,     setSubmitting]     = useState(false);
+  const [toast,          setToast]          = useState<string | null>(null);
+  // Manual teacher selection state: key → list of available teachers
+  const [manualTeachers, setManualTeachers] = useState<Record<string, any[]>>({});
+  const [loadingManual,  setLoadingManual]  = useState<Record<string, boolean>>({});
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
+
+  // Check if leave dates have already passed
+  const isExpired = application
+    ? new Date(application.to_date) < new Date(new Date().toDateString())
+    : false;
 
   useEffect(() => {
     if (!open || !application) return;
     setRemarks("");
     setSelectedSubs({});
     setSuggestions([]);
+    setManualTeachers({});
+    setLoadingManual({});
     setLoadingSugg(true);
     axios.get(`/api/leaves/suggestions/${application.id}`)
       .then(r => {
@@ -230,6 +307,24 @@ function ApprovalModal({
       .catch(() => showToast("Failed to load substitution suggestions."))
       .finally(() => setLoadingSugg(false));
   }, [open, application]);
+
+  // Lazy-load available teachers for a specific no-suggestion slot
+  const loadManualTeachers = async (s: any) => {
+    const key = `${s.date}_${s.period_number}`;
+    if (manualTeachers[key] || loadingManual[key]) return; // already loaded/loading
+    setLoadingManual(p => ({ ...p, [key]: true }));
+    try {
+      const res = await axios.get(
+        `/api/leaves/available-teachers?date=${s.date}&period_number=${s.period_number}&leave_application_id=${application.id}`
+      );
+      setManualTeachers(p => ({ ...p, [key]: res.data?.data || [] }));
+    } catch {
+      setManualTeachers(p => ({ ...p, [key]: [] }));
+      showToast("Could not load available teachers.");
+    } finally {
+      setLoadingManual(p => ({ ...p, [key]: false }));
+    }
+  };
 
   const handleApprove = async () => {
     setSubmitting(true);
@@ -293,6 +388,18 @@ function ApprovalModal({
           <Button variant="ghost" size="icon" onClick={onClose}><X className="w-5 h-5" /></Button>
         </div>
 
+        {/* ── Expiry Warning Banner ─────────────────────────────── */}
+        {isExpired && (
+          <div className="mx-6 mt-4 flex items-center gap-3 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
+            <span>
+              <strong>Leave dates have passed.</strong> This request covers{" "}
+              {fmtDateLong(application.from_date)} to {fmtDateLong(application.to_date)},
+              which is in the past. Approval is disabled.
+            </span>
+          </div>
+        )}
+
         <div className="p-6 space-y-6">
           {/* ── Two-column layout ────────────────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -348,10 +455,12 @@ function ApprovalModal({
               </Card>
 
               {/* Quick tip */}
-              <div className="rounded-xl bg-blue-500/8 border border-blue-500/20 p-3 text-xs text-blue-700 space-y-1">
-                <p className="font-semibold">💡 How to approve</p>
-                <p>Review the period-wise table on the right. The system has pre-selected the best available substitute for each period. You can change any selection using the dropdown. Then click <strong>Approve & Notify</strong>.</p>
-              </div>
+              {!isExpired && (
+                <div className="rounded-xl bg-blue-500/8 border border-blue-500/20 p-3 text-xs text-blue-700 space-y-1">
+                  <p className="font-semibold">💡 How to approve</p>
+                  <p>Review the period-wise table on the right. The system has pre-selected the best available substitute for each period. You can change any selection using the dropdown. Then click <strong>Approve &amp; Notify</strong>.</p>
+                </div>
+              )}
             </div>
 
             {/* Right Panel — Period-wise Substitute Table */}
@@ -376,9 +485,10 @@ function ApprovalModal({
               ) : (
                 <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
                   {suggestions.map((s, idx) => {
-                    const key = `${s.date}_${s.period_number}`;
+                    const key      = `${s.date}_${s.period_number}`;
                     const selSubId = selectedSubs[key];
-                    const selSub   = s.ranked_subs?.find((r: any) => String(r.staff_id) === selSubId);
+                    const selSub   = s.ranked_subs?.find((r: any) => String(r.staff_id) === selSubId)
+                      ?? manualTeachers[key]?.find((t: any) => String(t.staff_id) === selSubId);
 
                     return (
                       <div key={idx} className={`rounded-xl border p-3.5 space-y-2.5 transition-all
@@ -390,11 +500,11 @@ function ApprovalModal({
                             <p className="font-semibold">{fmtDate(s.date, { weekday: "short", day: "numeric", month: "short" })}</p>
                           </div>
                           <div>
-                            <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-0.5">Period & Time</p>
+                            <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-0.5">Period &amp; Time</p>
                             <p className="font-semibold">P{s.period_number} · {fmtTime(s.period_start_time)}–{fmtTime(s.period_end_time)}</p>
                           </div>
                           <div>
-                            <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-0.5">Class & Subject</p>
+                            <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-0.5">Class &amp; Subject</p>
                             <p className="font-semibold truncate">{s.class_name} · {s.subject}</p>
                           </div>
                         </div>
@@ -427,9 +537,55 @@ function ApprovalModal({
                             )}
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2 text-rose-600 text-xs font-medium bg-rose-500/10 border border-rose-300/40 rounded-lg px-3 py-2">
-                            <AlertTriangle className="w-4 h-4 shrink-0" />
-                            No available substitute found — Needs manual arrangement
+                          /* No auto-suggestion: show warning + manual selection */
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-rose-600 text-xs font-medium bg-rose-500/10 border border-rose-300/40 rounded-lg px-3 py-2">
+                              <AlertTriangle className="w-4 h-4 shrink-0" />
+                              No available substitute found automatically.
+                            </div>
+                            {/* Manual teacher dropdown */}
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1">
+                                {manualTeachers[key] === undefined ? (
+                                  <Button
+                                    variant="outline" size="sm"
+                                    className="w-full h-9 text-xs gap-1.5 border-dashed"
+                                    onClick={() => loadManualTeachers(s)}
+                                    disabled={loadingManual[key]}
+                                  >
+                                    {loadingManual[key]
+                                      ? <><RefreshCw className="w-3 h-3 animate-spin" /> Loading teachers…</>
+                                      : <><User className="w-3 h-3" /> Select Teacher Manually</>}
+                                  </Button>
+                                ) : manualTeachers[key].length === 0 ? (
+                                  <div className="h-9 flex items-center px-3 rounded-lg bg-secondary/40 text-xs text-muted-foreground">
+                                    No free teachers found for this slot.
+                                  </div>
+                                ) : (
+                                  <Select
+                                    value={selSubId || ""}
+                                    onValueChange={v => setSelectedSubs(p => ({ ...p, [key]: v }))}
+                                  >
+                                    <SelectTrigger className="h-9 text-xs bg-background border-dashed">
+                                      <SelectValue placeholder="Choose available teacher..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {manualTeachers[key].map((t: any) => (
+                                        <SelectItem key={t.staff_id} value={String(t.staff_id)} className="text-xs">
+                                          <span className="font-medium">{t.staff_first_name} {t.staff_last_name}</span>
+                                          {t.dept_name && <span className="text-muted-foreground ml-1">({t.dept_name})</span>}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </div>
+                              {selSubId && manualTeachers[key]?.length > 0 && (
+                                <Badge className="text-[10px] border shrink-0 bg-slate-400/15 text-slate-600 border-slate-300/40">
+                                  Manual
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -452,20 +608,22 @@ function ApprovalModal({
             />
             <div className="flex items-center justify-end gap-3">
               <Button
-                variant="outline"
-                className="gap-2 border-rose-300 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                variant="destructive"
+                className="gap-2 border border-rose-200"
                 onClick={handleReject}
-                disabled={submitting}
+                disabled={submitting || isExpired}
               >
                 <XCircle className="w-4 h-4" /> Reject
               </Button>
               <Button
-                className="gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg"
+                variant="success"
+                className="gap-2 text-white shadow-lg"
                 onClick={handleApprove}
-                disabled={submitting || loadingSugg}
+                disabled={submitting || loadingSugg || isExpired}
+                title={isExpired ? "Cannot approve: leave dates have already passed" : undefined}
               >
                 {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                Approve & Notify
+                {isExpired ? "Approval Disabled (Expired)" : "Approve & Notify"}
               </Button>
             </div>
           </div>
@@ -474,6 +632,10 @@ function ApprovalModal({
     </Dialog>
   );
 }
+
+
+
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
@@ -586,54 +748,68 @@ export default function AdminLeavePage() {
           </div>
         ) : (
           <div className="grid gap-3">
-            {pending.map(app => (
-              <Card key={app.id} className="border-none bg-background/60 shadow-sm hover:shadow-md transition-all border-l-4 border-amber-500 overflow-hidden">
-                <CardContent className="p-5">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    {/* Teacher info */}
-                    <div className="flex items-center gap-4">
-                      {app.teacher_photo ? (
-                        <img src={app.teacher_photo} alt="" className="w-12 h-12 rounded-full object-cover ring-2 ring-border shrink-0" />
-                      ) : (
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0 ${teacherColor(app.teacher_id)}`}>
-                          {app.staff_first_name?.[0]}{app.staff_last_name?.[0]}
-                        </div>
-                      )}
-                      <div>
-                        <p className="font-bold">{app.staff_first_name} {app.staff_last_name}</p>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
-                          <Badge variant="secondary" className="text-xs font-normal">{app.leave_type_name}</Badge>
-                          <span>·</span>
-                          <span>{app.total_days} day(s)</span>
+            {pending.map(app => {
+              const isAppExpired = new Date(app.to_date) < new Date(new Date().toDateString());
+              return (
+                <Card key={app.id} className={`border-none bg-background/60 shadow-sm hover:shadow-md transition-all border-l-4 overflow-hidden
+                  ${isAppExpired ? "border-amber-400/50 opacity-80" : "border-amber-500"}`}>
+                  <CardContent className="p-5">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      {/* Teacher info */}
+                      <div className="flex items-center gap-4">
+                        {app.teacher_photo ? (
+                          <img src={app.teacher_photo} alt="" className="w-12 h-12 rounded-full object-cover ring-2 ring-border shrink-0" />
+                        ) : (
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0 ${teacherColor(app.teacher_id)}`}>
+                            {app.staff_first_name?.[0]}{app.staff_last_name?.[0]}
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-bold">{app.staff_first_name} {app.staff_last_name}</p>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5 font-medium">
+                            <Badge variant="secondary" className="text-xs font-normal">{app.leave_type_name}</Badge>
+                            <span>·</span>
+                            <span>{app.total_days} day(s)</span>
+                            {isAppExpired && (
+                              <Badge className="bg-rose-500/10 text-rose-600 border border-rose-200/40 text-[10px] py-0 px-1.5 ml-1 font-semibold animate-pulse">
+                                Expired
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
+
+                      {/* Dates */}
+                      <div className="text-sm text-muted-foreground hidden md:block">
+                        {fmtDate(app.from_date)}
+                        <ArrowRight className="inline w-3 h-3 mx-1" />
+                        {fmtDate(app.to_date)}
+                      </div>
+
+                      {/* Reason (truncated) */}
+                      {app.reason && (
+                        <p className="text-sm text-muted-foreground max-w-xs truncate hidden lg:block">
+                          {app.reason.length > 80 ? app.reason.slice(0, 80) + "..." : app.reason}
+                        </p>
+                      )}
+
+                      {/* Action */}
+                      <Button
+                        variant={isAppExpired ? "outline" : "default"}
+                        className={isAppExpired 
+                          ? "gap-2 border-slate-300 text-slate-500 hover:bg-slate-50 shrink-0"
+                          : "gap-2 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white shrink-0"
+                        }
+                        onClick={() => setModalApp(app)}
+                      >
+                        <Eye className="w-4 h-4" />
+                        {isAppExpired ? "View Details (Expired)" : "View & Approve"}
+                      </Button>
                     </div>
-
-                    {/* Dates */}
-                    <div className="text-sm text-muted-foreground hidden md:block">
-                      {fmtDate(app.from_date, { weekday:"short", day:"numeric", month:"short" })}
-                      <ArrowRight className="inline w-3 h-3 mx-1" />
-                      {fmtDate(app.to_date, { weekday:"short", day:"numeric", month:"short" })}
-                    </div>
-
-                    {/* Reason (truncated) */}
-                    {app.reason && (
-                      <p className="text-sm text-muted-foreground max-w-xs truncate hidden lg:block">
-                        {app.reason.length > 80 ? app.reason.slice(0, 80) + "..." : app.reason}
-                      </p>
-                    )}
-
-                    {/* Action */}
-                    <Button
-                      className="gap-2 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white shrink-0"
-                      onClick={() => setModalApp(app)}
-                    >
-                      <Eye className="w-4 h-4" /> View & Approve
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </section>
@@ -699,6 +875,7 @@ export default function AdminLeavePage() {
                 </TableRow>
               ) : allApps.map(app => {
                 const cfg = STATUS_CONFIG[app.status] ?? STATUS_CONFIG.pending;
+                const isAppExpired = app.status === "pending" && new Date(app.to_date) < new Date(new Date().toDateString());
                 return (
                   <TableRow key={app.id} className="hover:bg-secondary/10 transition-colors">
                     <TableCell>
@@ -715,12 +892,28 @@ export default function AdminLeavePage() {
                     </TableCell>
                     <TableCell><Badge variant="outline">{app.total_days}d</Badge></TableCell>
                     <TableCell className="text-xs text-muted-foreground">{fmtDate(app.applied_at)}</TableCell>
-                    <TableCell><Badge className={`${cfg.cls} border text-xs`}>{cfg.label}</Badge></TableCell>
+                    <TableCell>
+                      {isAppExpired ? (
+                        <div className="flex flex-col items-start gap-0.5">
+                          <Badge className={`${cfg.cls} border text-xs`}>{cfg.label}</Badge>
+                          <Badge className="bg-rose-500/10 text-rose-600 border border-rose-200/40 text-[9px] py-0 px-1 font-semibold scale-90 origin-left">
+                            Expired
+                          </Badge>
+                        </div>
+                      ) : (
+                        <Badge className={`${cfg.cls} border text-xs`}>{cfg.label}</Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       {app.status === "pending" && (
-                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
-                          onClick={() => setModalApp(app)}>
-                          <Eye className="w-3 h-3" /> Review
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className={`h-7 text-xs gap-1 ${isAppExpired ? "text-slate-400 border-slate-200 hover:bg-slate-50" : ""}`}
+                          onClick={() => setModalApp(app)}
+                        >
+                          <Eye className="w-3 h-3" />
+                          {isAppExpired ? "Review (Expired)" : "Review"}
                         </Button>
                       )}
                     </TableCell>

@@ -1,6 +1,9 @@
 import type {Metadata} from 'next';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from "sonner";
+import { GlobalProcessLoader } from "@/components/ui/global-process-loader";
+import { NavigationLoader } from "@/components/ui/navigation-loader";
 
 export const metadata: Metadata = {
   title: 'CampusConnect',
@@ -21,7 +24,10 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         {children}
-        <Toaster />
+        <ShadcnToaster />
+        <SonnerToaster richColors position="top-right" />
+        <GlobalProcessLoader />
+        <NavigationLoader />
       </body>
     </html>
   );

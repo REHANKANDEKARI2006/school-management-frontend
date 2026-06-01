@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 
 import { IdCardSettingsProvider } from "@/components/campus-connect/id-card-settings-provider";
+import { FeedbackProvider } from "@/components/campus-connect/feedback-provider";
 
 // 🔐 SESSION IMPORTS
 import { useSessionManager } from "@/hooks/useSessionManager";
@@ -52,8 +53,9 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
   }
 
   return (
-    <SearchProvider>
-      <IdCardSettingsProvider>
+    <FeedbackProvider>
+      <SearchProvider>
+        <IdCardSettingsProvider>
         <SidebarProvider>
 
           {/* 🔔 SESSION EXPIRY POPUP */}
@@ -95,7 +97,8 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
             </div>
           </div>
         </SidebarProvider>
-      </IdCardSettingsProvider>
-    </SearchProvider>
+        </IdCardSettingsProvider>
+      </SearchProvider>
+    </FeedbackProvider>
   );
 }

@@ -91,12 +91,14 @@ export default function ForgotPasswordPage() {
             </motion.div>
           )}
 
-          <div className="mt-6 text-center">
-            <Link href="/" className="inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-primary transition-colors">
-              <ChevronLeft size={16} className="mr-1" />
-              Back to Login
-            </Link>
-          </div>
+          {!success && (
+            <div className="mt-6 text-center">
+              <Link href="/" className="inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-primary transition-colors">
+                <ChevronLeft size={16} className="mr-1" />
+                Back to Login
+              </Link>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>

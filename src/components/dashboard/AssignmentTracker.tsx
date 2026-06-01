@@ -17,7 +17,7 @@ interface AssignmentTrackerProps {
 
 export const AssignmentTracker = ({ assignments }: AssignmentTrackerProps) => {
   return (
-    <Card className="rounded-[2.5rem] border-blue-50 shadow-sm overflow-hidden bg-white">
+    <Card className="rounded-xl border-slate-100 shadow-sm overflow-hidden bg-white">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-black text-slate-800 tracking-tight">Assignment Tracker</CardTitle>
         <div className="bg-indigo-50 p-2 rounded-xl">

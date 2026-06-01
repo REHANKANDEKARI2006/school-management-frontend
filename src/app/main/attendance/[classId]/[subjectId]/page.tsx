@@ -11,6 +11,7 @@ import { ArrowLeft, ArrowRight, CalendarDays, CheckSquare, Library, Users, Home 
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
+import { cn, formatDate } from "@/lib/utils";
 import axios from "@/lib/axios";
 
 export default function AttendancePage() {
@@ -41,7 +42,25 @@ export default function AttendancePage() {
         if (subjectRes.data.success) setCurrentSubject(subjectRes.data.data);
 
         if (studentsRes.data.success) {
-          const studentData = studentsRes.data.data;
+          const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+          const baseUrl = `http://${hostname}:5000`;
+
+          const studentData = studentsRes.data.data.map((s: any) => {
+            const rawUrl = s.profile_url || s.avatar || s.profileUrl;
+            let fixedUrl = rawUrl;
+            
+            if (rawUrl && !rawUrl.startsWith('http')) {
+              const path = rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`;
+              fixedUrl = `${baseUrl}${path}`;
+            }
+
+            return {
+              ...s,
+              id: String(s.student_id),
+              avatar: fixedUrl,
+              fallback: s.name ? s.name.split(' ').map((n: string) => n[0]).join('') : 'ST'
+            };
+          });
           setStudents(studentData);
 
           // Check if session already exists for today to pre-fill attendance
@@ -87,7 +106,7 @@ export default function AttendancePage() {
     fetchData();
 
     const today = new Date();
-    setCurrentDate(today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
+    setCurrentDate(formatDate(today));
   }, [classId, subjectId, toast]);
 
   const currentStudent = useMemo(() => students[currentIndex], [students, currentIndex]);
@@ -226,6 +245,7 @@ export default function AttendancePage() {
       ) : currentStudent ? (
         <div className="flex flex-col items-center w-full relative">
           <StudentAttendanceCard
+            key={currentStudent.id}
             student={currentStudent}
             onMarkPresent={() => handleMarkAttendance('present')}
             onMarkAbsent={() => handleMarkAttendance('absent')}

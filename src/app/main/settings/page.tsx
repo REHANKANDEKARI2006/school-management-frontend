@@ -25,6 +25,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useIdCardSettings, type IdCardSettings } from "@/components/campus-connect/id-card-settings-provider";
+import axios from "@/lib/axios";
+import { PageSkeleton } from "@/components/ui/skeletons";
 import { 
   Save, 
   FileText, 
@@ -35,16 +37,20 @@ import {
   Globe, 
   CreditCard,
   Building2,
-  Bell
+  Bell,
+  Loader2
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useRoleGuard } from "@/hooks/useRoleGuard";
+import { ROLE } from "@/config/roles";
 
 const settingsSchema = z.object({
   schoolName: z.string().min(1, "School name is required"),
+  organizationName: z.string().optional(),
   slogan: z.string().optional(),
   logoUrl: z.string().url("Must be a valid URL").optional().or(z.literal('')),
   schoolAddress: z.string().min(1, "School address is required"),
@@ -53,136 +59,178 @@ const settingsSchema = z.object({
 });
 
 export default function SettingsPage() {
+  useRoleGuard([ROLE.MASTER_ADMIN, ROLE.IT_SUPPORT]);
   const { toast } = useToast();
   const { settings, setSettings } = useIdCardSettings();
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
 
   const form = useForm<IdCardSettings>({
     resolver: zodResolver(settingsSchema),
     defaultValues: settings,
   });
-  
-  React.useEffect(() => {
-    form.reset(settings);
-  }, [settings, form]);
 
-  const onSubmit = (data: IdCardSettings) => {
-    setSettings(data);
-    toast({
-      title: "Settings Saved",
-      description: "Your settings have been updated.",
-    });
+  // 🔄 Fetch Live Profile on Mount
+  React.useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get("/api/school-profile");
+        if (res.data.success && res.data.data) {
+          const profile = res.data.data;
+          
+          const mappedSettings: IdCardSettings = {
+            schoolName: profile.school_name || "",
+            organizationName: profile.organization_name || "",
+            schoolAddress: profile.address || "",
+            schoolPhone: profile.phone || "",
+            logoUrl: profile.logo_url || "",
+            slogan: profile.slogan || "",
+            academicYear: profile.academic_year || "",
+            signatureUrl: profile.signature_url || "",
+            primaryColor: profile.primary_color || "#437ef1",
+            recognition: "(Govt. Recognised)", // Default fallback
+          };
+          
+          form.reset(mappedSettings);
+          setSettings(mappedSettings);
+        }
+      } catch (error) {
+        console.error("Failed to fetch institutional profile:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [form, setSettings]);
+
+  const onSubmit = async (data: IdCardSettings) => {
+    try {
+      setSaving(true);
+      
+      // Update Backend
+      const res = await axios.put("/api/school-profile", {
+        school_name: data.schoolName,
+        organization_name: data.organizationName,
+        address: data.schoolAddress,
+        phone: data.schoolPhone,
+        slogan: data.slogan,
+        logo_url: data.logoUrl,
+        primary_color: data.primaryColor,
+        academic_year: data.academicYear,
+      });
+
+      if (res.data.success) {
+        setSettings(data);
+        toast({
+          title: "Settings Saved",
+          description: "Institutional identity has been updated successfully.",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to save institutional profile:", error);
+      toast({
+        title: "Save Failed",
+        description: "An error occurred while updating settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
+  if (loading) return <PageSkeleton rows={5} />;
+
   return (
-    <div className="min-h-screen bg-slate-50/30 dark:bg-zinc-950/30 pb-20">
-      {/* Header with Background Pattern */}
-      <div className="bg-white dark:bg-zinc-950 border-b mb-8 pt-10 pb-10 shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-1/4 h-full bg-primary/5 clip-path-polygon pointer-events-none" />
-        <div className="max-w-5xl mx-auto px-4 md:px-6">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-2">
-              <Badge variant="outline" className="text-primary border-primary/20 bg-primary/5 mb-2 px-3 py-1 rounded-full font-bold">
-                Control Panel
-              </Badge>
-              <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
-                <SettingsIcon className="h-10 w-10 text-primary" />
-                Settings
-              </h1>
-              <p className="text-slate-500 max-w-2xl text-lg font-medium">
-                Configure your institution&apos;s digital ecosystem and administrative preferences.
-              </p>
-            </div>
+    <div className="min-h-screen bg-slate-50/50 pb-10">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 pt-8 pb-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+              <SettingsIcon className="h-6 w-6 text-primary" />
+              Settings
+            </h1>
+            <p className="text-sm text-slate-500">Configure your institution&apos;s identity and administrative preferences.</p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 md:px-6 space-y-10">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 space-y-8">
         
-        {/* Core Modules Grid */}
+        {/* Document Branding Section */}
         <section className="space-y-4">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 ml-1">Core Modules</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Link href="/main/settings/documents" className="block group h-full">
-              <motion.div 
-                whileHover={{ y: -4, scale: 1.01 }}
-                className="h-full border-2 border-white shadow-xl shadow-slate-200/50 rounded-3xl p-6 bg-white hover:border-primary/30 transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between"
-              >
-                <div className="absolute top-0 right-0 p-4 opacity-[0.03] scale-150 rotate-12">
-                   <FileText className="h-20 w-20 text-primary" />
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Branding & Identity</h2>
+          <Link href="/main/settings/documents" className="block group mb-4">
+            <div className="border border-slate-200 shadow-sm rounded-xl p-6 bg-white hover:border-primary/50 transition-all flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-primary" />
                 </div>
-                <div className="space-y-4 relative z-10">
-                  <div className="h-14 w-14 bg-primary/10 rounded-2xl flex items-center justify-center">
-                    <FileText className="h-7 w-7 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-800 group-hover:text-primary transition-colors flex items-center gap-2">
-                      Document Branding
-                      <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-50 scale-90">Ready</Badge>
-                    </h3>
-                    <p className="text-slate-500 mt-2 text-sm leading-relaxed font-medium">
-                      Configure consistent logos, stamps, and layout styles for all system-generated PDFs.
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-6 flex items-center text-primary font-bold text-sm">
-                  Configure Module <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </motion.div>
-            </Link>
-
-            <div className="opacity-60 cursor-not-allowed group h-full">
-              <div className="h-full border-2 border-slate-100 rounded-3xl p-6 bg-slate-50 relative overflow-hidden flex flex-col justify-between">
-                <div className="space-y-4">
-                  <div className="h-14 w-14 bg-slate-200 rounded-2xl flex items-center justify-center">
-                    <ShieldCheck className="h-7 w-7 text-slate-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-400 flex items-center gap-2">
-                      Roles & Permissions
-                      <Badge variant="outline" className="scale-90">Soon</Badge>
-                    </h3>
-                    <p className="text-slate-400 mt-2 text-sm leading-relaxed font-medium">
-                      Manage administrative access levels and security protocols.
-                    </p>
-                  </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800 group-hover:text-primary transition-colors">
+                    Document Branding
+                  </h3>
+                  <p className="text-slate-500 text-sm font-medium">
+                    Customize logos, stamps, and signatures for all system-generated reports.
+                  </p>
                 </div>
               </div>
+              <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
             </div>
-          </div>
+          </Link>
+          {/* 
+          <Link href="/main/settings/document-content" className="block group">
+            <div className="border border-slate-200 shadow-sm rounded-xl p-6 bg-white hover:border-emerald-500/50 transition-all flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800 group-hover:text-emerald-600 transition-colors">
+                    Document Content Manager
+                  </h3>
+                  <p className="text-slate-500 text-sm font-medium">
+                    Manage dynamic content, translations, and placeholders for certificates without altering layouts.
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all" />
+            </div>
+          </Link>
+          */}
         </section>
 
         {/* School Profile Card */}
         <section className="space-y-4">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 ml-1">Legacy Config</h2>
-          <Card className="border-none shadow-2xl shadow-slate-200 bg-white rounded-[2rem] overflow-hidden ring-1 ring-slate-100">
-            <div className="h-2 bg-gradient-to-r from-primary/40 via-primary to-primary/40 w-full" />
-            <CardHeader className="p-8 pb-4">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Institutional Profile</h2>
+          <Card className="shadow-sm border-slate-100 rounded-xl overflow-hidden">
+            <CardHeader className="p-6 border-b bg-slate-50/30">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-50 rounded-2xl">
-                  <Building2 className="h-6 w-6 text-blue-600" />
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Building2 className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-2xl font-bold">Quick Identity Check</CardTitle>
-                  <CardDescription className="text-base">Basic institutional data used for ID card generation.</CardDescription>
+                  <CardTitle className="text-lg font-bold">Identity Configuration</CardTitle>
+                  <CardDescription className="text-sm">Manage core information used across ID cards and certificates.</CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-8 pt-4">
-              <Separator className="mb-8 opacity-50" />
+            <CardContent className="p-6">
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
                       name="schoolName"
                       render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <FormLabel className="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">Institutional Name</FormLabel>
+                        <FormItem>
+                          <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-wider">Institutional Name</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="e.g. CampusConnect University" 
                               {...field} 
-                              className="h-14 bg-slate-50 border-slate-100 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all rounded-2xl text-base px-6 font-semibold"
+                              className="h-11 bg-white border-slate-200 focus:ring-primary/10 transition-all rounded-lg text-sm font-semibold"
                             />
                           </FormControl>
                           <FormMessage />
@@ -192,15 +240,36 @@ export default function SettingsPage() {
 
                     <FormField
                       control={form.control}
+                      name="organizationName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-wider">Organization Name</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="e.g. CampusConnect Educational Trust" 
+                              {...field} 
+                              value={field.value || ""}
+                              className="h-11 bg-white border-slate-200 focus:ring-primary/10 transition-all rounded-lg text-sm font-semibold"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
                       name="schoolPhone"
                       render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <FormLabel className="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">Primary Hotline</FormLabel>
+                        <FormItem>
+                          <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-wider">Primary Contact</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="+1-202-555-0123" 
                               {...field} 
-                              className="h-14 bg-slate-50 border-slate-100 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all rounded-2xl text-base px-6 font-semibold"
+                              className="h-11 bg-white border-slate-200 focus:ring-primary/10 transition-all rounded-lg text-sm font-semibold"
                             />
                           </FormControl>
                           <FormMessage />
@@ -213,13 +282,13 @@ export default function SettingsPage() {
                     control={form.control}
                     name="schoolAddress"
                     render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel className="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">Campus Address</FormLabel>
+                      <FormItem>
+                        <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-wider">Campus Address</FormLabel>
                         <FormControl>
                           <Textarea 
-                            placeholder="Full physical address..." 
+                            placeholder="Enter the full institutional address..." 
                             {...field} 
-                            className="bg-slate-50 border-slate-100 min-h-[120px] focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all rounded-2xl text-base p-6 font-medium resize-none"
+                            className="bg-white border-slate-200 min-h-[100px] focus:ring-primary/10 transition-all rounded-lg text-sm font-medium resize-none"
                           />
                         </FormControl>
                         <FormMessage />
@@ -227,33 +296,20 @@ export default function SettingsPage() {
                     )}
                   />
 
-                  <div className="pt-4 flex justify-end">
-                    <Button type="submit" className="bg-primary hover:bg-primary/90 text-white px-10 h-14 rounded-2xl font-bold transition-all shadow-xl shadow-primary/20 hover:shadow-2xl active:scale-95 flex items-center gap-3">
-                      <Save className="h-5 w-5" />
-                      Commit Changes
+                  <div className="pt-2">
+                    <Button 
+                      type="submit" 
+                      disabled={saving}
+                      className="w-full sm:w-auto h-11 px-8 rounded-lg font-bold transition-all flex items-center justify-center gap-2"
+                    >
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                      {saving ? "Saving..." : "Save Settings"}
                     </Button>
                   </div>
                 </form>
               </Form>
             </CardContent>
           </Card>
-        </section>
-
-        {/* Utility Grid */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-           {[
-             { icon: Globe, label: "Localization", color: "text-blue-500", bg: "bg-blue-50" },
-             { icon: Users, label: "User Logs", color: "text-purple-500", bg: "bg-purple-50" },
-             { icon: Bell, label: "Alert Config", color: "text-amber-500", bg: "bg-amber-50" },
-             { icon: CreditCard, label: "Billing", color: "text-emerald-500", bg: "bg-emerald-50" }
-           ].map((item, i) => (
-             <div key={i} className="p-6 bg-white border border-slate-100 rounded-3xl flex items-center gap-4 hover:shadow-md transition-all cursor-pointer group">
-               <div className={`h-12 w-12 ${item.bg} rounded-xl flex items-center justify-center transition-transform group-hover:rotate-12`}>
-                 <item.icon className={`h-6 w-6 ${item.color}`} />
-               </div>
-               <span className="font-bold text-slate-700">{item.label}</span>
-             </div>
-           ))}
         </section>
       </div>
     </div>

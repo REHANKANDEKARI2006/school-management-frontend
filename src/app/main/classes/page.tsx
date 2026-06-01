@@ -57,6 +57,7 @@ export type Class = {
   classTeacher: string;
   roomNumber: string;
   studentCount: number;
+  teacherAvatar?: string;
 };
 
 export default function ClassesPage() {
@@ -103,6 +104,7 @@ export default function ClassesPage() {
         classTeacher: c.staff_first_name
           ? `${c.staff_first_name} ${c.staff_last_name || ""}`.trim()
           : "-",
+        teacherAvatar: c.profile_url || "",
         roomNumber: c.room_number || "-",
         studentCount: Number(c.students_count || 0),
       }));
@@ -160,15 +162,16 @@ export default function ClassesPage() {
   return (
     <RouteGuard allowedRoles={[...ADMIN_GROUP, ...TEACHING_STAFF_GROUP]}>
       <>
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between">
-              <div>
-                <CardTitle>Classes</CardTitle>
-                <CardDescription>Manage classes</CardDescription>
+        <Card className="border-none shadow-sm overflow-hidden">
+          <CardHeader className="flex flex-col gap-6 p-4 sm:p-6 border-b">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight">Classes</CardTitle>
+                <CardDescription className="text-sm">Manage class levels and teacher assignments</CardDescription>
               </div>
               {isAdmin && (
                 <Button
+                  className="w-full sm:w-auto h-9 font-semibold"
                   onClick={() => {
                     setSelectedClass(undefined);
                     setIsFormOpen(true);
@@ -178,12 +181,12 @@ export default function ClassesPage() {
                 </Button>
               )}
             </div>
-              
+
             {/* FILTER BAR */}
-            <div className="mt-4 flex items-center gap-4">
-              <div className="flex-1 max-w-xs">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="w-full sm:max-w-[240px]">
                 <Select value={selectedStandardFilter} onValueChange={setSelectedStandardFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 bg-slate-50/50">
                     <SelectValue placeholder="Filter by Standard" />
                   </SelectTrigger>
                   <SelectContent>
@@ -198,16 +201,17 @@ export default function ClassesPage() {
           </CardHeader>
 
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Class</TableHead>
-                  <TableHead>Class Teacher</TableHead>
-                  <TableHead>Room No.</TableHead>
-                  <TableHead>Students</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+            <div className="w-full overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50/50 dark:bg-slate-900/50">
+                    <TableHead className="pl-4 sm:pl-6 min-w-[150px]">Class</TableHead>
+                    <TableHead className="min-w-[180px]">Class Teacher</TableHead>
+                    <TableHead className="hidden md:table-cell">Room No.</TableHead>
+                    <TableHead className="hidden md:table-cell">Students</TableHead>
+                    {isAdmin && <TableHead className="text-right pr-4 sm:pr-6">Actions</TableHead>}
+                  </TableRow>
+                </TableHeader>
 
               <TableBody>
                 {loading ? (
@@ -217,15 +221,20 @@ export default function ClassesPage() {
                     </TableCell>
                   </TableRow>
                 ) : filteredClasses.map(cls => (
-                  <TableRow key={cls.id}>
-                    <TableCell>
-                      <div className="font-medium text-slate-900 dark:text-slate-100">Class {cls.name}</div>
-                      <div className="text-sm text-slate-500 dark:text-slate-400">Section {cls.section}</div>
+                  <TableRow 
+                    key={cls.id} 
+                    className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors cursor-pointer"
+                    onClick={() => router.push(`/main/classes/${cls.id}`)}
+                  >
+                    <TableCell className="pl-4 sm:pl-6">
+                      <div className="font-bold text-slate-900 dark:text-slate-100">Class {cls.name}</div>
+                      <div className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Section {cls.section}</div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                        <Avatar className="h-8 w-8 shrink-0">
+                          <AvatarImage src={cls.teacherAvatar} className="object-cover" />
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                             {cls.classTeacher !== "-"
                               ? cls.classTeacher
                                   .split(" ")
@@ -239,39 +248,46 @@ export default function ClassesPage() {
                         <span className="font-medium">{cls.classTeacher}</span>
                       </div>
                     </TableCell>
-                    <TableCell>{cls.roomNumber}</TableCell>
-                    <TableCell>{cls.studentCount}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <TableCell className="hidden md:table-cell font-medium">{cls.roomNumber}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+                        {cls.studentCount} Students
+                      </span>
+                    </TableCell>
+                    {isAdmin && (
+                      <TableCell className="text-right pr-4 sm:pr-6">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
 
-                          <DropdownMenuItem
-                            onClick={() => router.push(`/main/classes/${cls.id}`)}
-                          >
-                            Manage Class
-                          </DropdownMenuItem>
-                          
-                          {isAdmin && (
                             <DropdownMenuItem
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/main/classes/${cls.id}`);
+                              }}
+                            >
+                              Manage Class
+                            </DropdownMenuItem>
+                            
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setSelectedClass(cls);
                                 setIsFormOpen(true);
                               }}
                             >
                               Edit Details
                             </DropdownMenuItem>
-                          )}
 
-                          {isAdmin && (
                             <DropdownMenuItem
                               className="text-red-600"
-                              onClick={async () => {
+                              onClick={async (e) => {
+                                e.stopPropagation();
                                 if (!confirm("Delete this class?")) return;
                                 await axios.delete(`/api/classes/${cls.id}`);
                                 fetchData();
@@ -279,29 +295,32 @@ export default function ClassesPage() {
                             >
                               Delete
                             </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
 
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {selectedClass ? "Edit Class" : "Create Class"}
+          <DialogContent className="w-[95vw] sm:max-w-[550px] p-0 overflow-hidden">
+            <DialogHeader className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-900/50 border-b">
+              <DialogTitle className="text-xl font-bold">
+                {selectedClass ? "Edit Class Details" : "Create New Class"}
               </DialogTitle>
             </DialogHeader>
 
-            <ClassForm
-              classData={selectedClass}
-              onSubmit={handleFormSubmit}
-            />
+            <div className="p-4 sm:p-6">
+              <ClassForm
+                classData={selectedClass}
+                onSubmit={handleFormSubmit}
+              />
+            </div>
           </DialogContent>
         </Dialog>
       </>

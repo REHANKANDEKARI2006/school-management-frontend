@@ -47,6 +47,7 @@ interface ClassFormProps {
 export function ClassForm({ onSubmit, classData }: ClassFormProps) {
   const [sections, setSections] = React.useState<any[]>([]);
   const [teachers, setTeachers] = React.useState<any[]>([]);
+  const [classesList, setClassesList] = React.useState<any[]>([]);
 
   const form = useForm<ClassFormData>({
     resolver: zodResolver(classSchema),
@@ -98,6 +99,30 @@ export function ClassForm({ onSubmit, classData }: ClassFormProps) {
     });
   }, []);
 
+  /* =========================
+     LOAD ALL CLASSES (TO CHECK ASSIGNED TEACHERS)
+  ========================= */
+  React.useEffect(() => {
+    axios.get("/api/classes/admin/list").then((res) => {
+      setClassesList(res.data.data || []);
+    });
+  }, []);
+
+  const assignedTeacherIds = React.useMemo(() => {
+    return classesList
+      .map((c: any) => String(c.staff_id))
+      .filter((id) => id && id !== "null" && id !== "undefined");
+  }, [classesList]);
+
+  const availableTeachers = React.useMemo(() => {
+    return teachers.filter((t) => {
+      const idStr = String(t.staff_id);
+      const isCurrentlyAssignedHere = classData?.staff_id && String(classData.staff_id) === idStr;
+      const isAssignedElsewhere = assignedTeacherIds.includes(idStr);
+      return !isAssignedElsewhere || isCurrentlyAssignedHere;
+    });
+  }, [teachers, assignedTeacherIds, classData]);
+
   return (
     <Form {...form}>
       <form
@@ -128,98 +153,100 @@ export function ClassForm({ onSubmit, classData }: ClassFormProps) {
         })}
         className="space-y-4"
       >
-        {/* CLASS NAME */}
-        <FormField
-          control={form.control}
-          name="class_name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Class/Standard</FormLabel>
-              <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select standard" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STANDARD_OPTIONS.map((opt) => (
-                    <SelectItem key={opt} value={opt}>
-                      {opt}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* CLASS NAME */}
+          <FormField
+            control={form.control}
+            name="class_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Class/Standard</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select standard" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STANDARD_OPTIONS.map((opt) => (
+                      <SelectItem key={opt} value={opt}>
+                        {opt}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {/* SECTION */}
-        <FormField
-          control={form.control}
-          name="section_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Section</FormLabel>
-              <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select section" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sections.map((s) => (
-                    <SelectItem
-                      key={s.section_id}
-                      value={String(s.section_id)}
-                    >
-                      {s.section_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          {/* SECTION */}
+          <FormField
+            control={form.control}
+            name="section_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Section</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select section" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sections.map((s) => (
+                      <SelectItem
+                        key={s.section_id}
+                        value={String(s.section_id)}
+                      >
+                        {s.section_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {/* CLASS TEACHER */}
-        <FormField
-          control={form.control}
-          name="staff_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Class Teacher</FormLabel>
-              <Select value={field.value || ""} onValueChange={field.onChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select teacher" />
-                </SelectTrigger>
-                <SelectContent>
-                  {teachers.map((t) => (
-                    <SelectItem
-                      key={t.staff_id}
-                      value={String(t.staff_id)}
-                    >
-                      {t.staff_first_name} {t.staff_last_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          {/* CLASS TEACHER */}
+          <FormField
+            control={form.control}
+            name="staff_id"
+            render={({ field }) => (
+              <FormItem className="md:col-span-2">
+                <FormLabel>Class Teacher</FormLabel>
+                <Select value={field.value || ""} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select teacher" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableTeachers.map((t) => (
+                      <SelectItem
+                        key={t.staff_id}
+                        value={String(t.staff_id)}
+                      >
+                        {t.staff_first_name} {t.staff_last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {/* ROOM NUMBER */}
-        <FormField
-          control={form.control}
-          name="room_number"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Room Number</FormLabel>
-              <FormControl>
-                <Input placeholder="301" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          {/* ROOM NUMBER */}
+          <FormField
+            control={form.control}
+            name="room_number"
+            render={({ field }) => (
+              <FormItem className="md:col-span-2">
+                <FormLabel>Room Number</FormLabel>
+                <FormControl>
+                  <Input placeholder="301" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <Button type="submit" className="w-full" loading={form.formState.isSubmitting}>
           {classData ? "Update Class" : "Create Class"}

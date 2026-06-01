@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { StatsBar } from "./StatsBar";
+import { AdminStatsBar } from "./AdminStatsBar";
 import { Card } from "@/components/ui/card";
-import { QuickActions } from "./QuickActions";
-import { AcademicCalendarWidget, CalendarDayDetail } from "@/components/campus-connect/academic-calendar-widget";
-import { UpcomingEventsList } from "@/components/campus-connect/upcoming-events-list";
-import { Announcements } from "./Announcements";
+import { AdminQuickActions } from "./AdminQuickActions";
+import { AdminAcademicCalendarWidget, AdminCalendarDayDetail } from "./AdminAcademicCalendarWidget";
+import { AdminUpcomingEventsList } from "./AdminUpcomingEventsList";
+import { AdminAnnouncements } from "./AdminAnnouncements";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, RefreshCcw, ExternalLink } from "lucide-react";
+import { AlertCircle, RefreshCcw, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { AttendanceChart } from "./AttendanceChart";
@@ -15,8 +15,10 @@ import { FinanceChart } from "./FinanceChart";
 import { FeeCollection } from "./FeeCollection";
 import { StudentDistribution } from "./StudentDistribution";
 import { ActivityFeed } from "./ActivityFeed";
+import { HolidayBanner } from "./HolidayBanner";
 import api from "@/lib/axios";
 import { format } from "date-fns";
+import { formatDate } from "@/lib/utils";
 
 export const AdminDashboard = () => {
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -25,6 +27,7 @@ export const AdminDashboard = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [apiHolidays, setApiHolidays] = useState<any[]>([]);
+  const [todayHolidays, setTodayHolidays] = useState<any[]>([]);
 
   const fetchDashboardData = async () => {
     try {
@@ -41,13 +44,13 @@ export const AdminDashboard = () => {
     }
   };
 
-  const fetchMonthHolidays = async (date: Date) => {
+  const fetchMonthHolidays = async (date: Date, setFn: (data: any[]) => void) => {
     try {
       const year = format(date, "yyyy");
       const month = format(date, "M");
       const res = await api.get(`/api/holidays?year=${year}&month=${month}`);
       if (res.data.success) {
-        setApiHolidays(res.data.data);
+        setFn(res.data.data);
       }
     } catch (err) {
       console.error("Failed to fetch holidays for month:", err);
@@ -56,19 +59,25 @@ export const AdminDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 60000); // Live refresh every 60s
+    fetchMonthHolidays(new Date(), setTodayHolidays); 
+    const interval = setInterval(() => {
+        fetchDashboardData();
+        fetchMonthHolidays(new Date(), setTodayHolidays);
+    }, 60000); 
     return () => clearInterval(interval);
   }, []);
 
   const monthKey = format(currentMonth, "yyyy-MM");
 
   useEffect(() => {
-    fetchMonthHolidays(currentMonth);
+    fetchMonthHolidays(currentMonth, setApiHolidays);
   }, [monthKey]);
 
   const { stats, events = [], announcements } = dashboardData || {};
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+  const isSunday = new Date().getDay() === 0;
+  const isTodayHoliday = todayHolidays.some(h => h.date === todayStr) || isSunday;
 
-  // Unified Event Merging and Deduplication - Moved above conditional returns to follow Rules of Hooks
   const allCalendarEvents = React.useMemo(() => {
     const uniqueMap = new Map();
 
@@ -105,16 +114,17 @@ export const AdminDashboard = () => {
 
   if (loading && !dashboardData) {
     return (
-      <div className="p-6 space-y-8 bg-[#F7F8FA] min-h-screen">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
+      <div className="p-6 sm:p-10 space-y-10 bg-[#F8FAFC] min-h-screen">
+        <Skeleton className="h-32 w-full rounded-xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-32 w-full rounded-[12px]" />
+            <Skeleton key={i} className="h-40 w-full rounded-xl" />
           ))}
         </div>
-        <Skeleton className="h-24 w-full rounded-[12px]" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-           <Skeleton className="h-[500px] lg:col-span-2 rounded-[12px]" />
-           <Skeleton className="h-[500px] rounded-[12px]" />
+        <Skeleton className="h-40 w-full rounded-xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+           <Skeleton className="h-[600px] lg:col-span-2 rounded-xl" />
+           <Skeleton className="h-[600px] rounded-xl" />
         </div>
       </div>
     );
@@ -122,13 +132,13 @@ export const AdminDashboard = () => {
 
   if (error && !dashboardData) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 bg-[#F7F8FA]">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 bg-[#F8FAFC]">
         <AlertCircle className="h-12 w-12 text-rose-500" />
         <div className="text-center">
           <h2 className="text-xl font-bold text-slate-800">Connection Error</h2>
           <p className="text-slate-500 text-sm max-w-xs">{error}</p>
         </div>
-        <Button onClick={fetchDashboardData} variant="outline" className="gap-2 border-slate-200">
+        <Button onClick={fetchDashboardData} variant="outline" className="gap-2 border-slate-200 rounded-xl">
           <RefreshCcw className="h-4 w-4" />
           Retry Connection
         </Button>
@@ -137,69 +147,99 @@ export const AdminDashboard = () => {
   }
 
   return (
-    <div className="p-6 space-y-8 bg-[#F7F8FA] animate-in fade-in duration-700">
-      {/* ZONE 1 — STATS BAR */}
-      <StatsBar stats={stats} />
+    <div className="p-4 sm:p-6 space-y-6 bg-[#F8FAFC] min-h-screen animate-in fade-in duration-500">
+      <div className="max-w-[1600px] mx-auto space-y-6">
+        <HolidayBanner />
 
-      {/* ZONE 2 — QUICK ACTIONS ROW */}
-      <QuickActions />
+        {/* WELCOME HEADER */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-100/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 select-none">
+          <div className="text-left">
+            <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+              Good morning! 👋
+            </h1>
+            <p className="text-slate-405 font-bold text-xs mt-1">
+              Here's what's happening in your institute today.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2 bg-blue-50/50 border border-blue-100/50 rounded-xl text-xs font-black text-blue-650 shrink-0">
+            <span className="text-[11px] uppercase tracking-wide">
+              {format(new Date(), "dd MMMM yyyy, EEEE")}
+            </span>
+          </div>
+        </div>
 
-      {/* ZONE 3 — THREE COLUMN MAIN CONTENT */}
-      <div className="flex flex-col lg:flex-row gap-8">
-        {/* LEFT & CENTER COLUMNS */}
-        <div className="w-full lg:w-2/3 flex flex-col gap-8">
-          {/* Main Operational Metrics Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <AttendanceChart data={dashboardData?.attendanceStats || []} />
+        {/* ZONE 1 — STATS BAR */}
+        <AdminStatsBar stats={stats} isHoliday={isTodayHoliday} />
+
+        {/* ZONE 2 — QUICK ACTIONS ROW */}
+        <AdminQuickActions />
+
+        {/* ZONE 3 — THREE COLUMN MAIN CONTENT */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          {/* COLUMN 1 (4/12 width) */}
+          <div className="lg:col-span-4 flex flex-col gap-6">
+            <AttendanceChart 
+              stats={dashboardData?.stats?.attendance} 
+              isHoliday={isTodayHoliday}
+            />
+            <FinanceChart data={dashboardData?.financeStats || []} />
+            <StudentDistribution genderRatio={dashboardData?.genderRatio || []} />
+          </div>
+
+          {/* COLUMN 2 (4/12 width) */}
+          <div className="lg:col-span-4 flex flex-col gap-6">
             <ExamStatus events={dashboardData?.events || []} />
-            
-            <div className="md:col-span-2">
-              <FinanceChart data={dashboardData?.financeStats || []} />
-            </div>
-
             <FeeCollection stats={{ 
               feesMonth: dashboardData?.stats?.feesMonth || 0,
               pendingDuesCount: dashboardData?.stats?.pendingDuesCount || 0,
               overdueStudentsCount: dashboardData?.stats?.overdueStudentsCount || 0
             }} />
-            <StudentDistribution genderRatio={dashboardData?.genderRatio || []} />
+            <ActivityFeed activities={dashboardData?.recentActivity || []} />
           </div>
 
-          <Announcements announcements={announcements} />
+          {/* COLUMN 3 (4/12 width) */}
+          <div className="lg:col-span-4 flex flex-col gap-6">
+            {/* Calendar Widget Card */}
+            <Card className="rounded-2xl border border-slate-100/80 shadow-sm overflow-hidden bg-white p-3">
+              <AdminAcademicCalendarWidget 
+                selectedDate={selectedDate} 
+                onSelect={setSelectedDate} 
+                events={allCalendarEvents} 
+                currentMonth={currentMonth}
+                onMonthChange={setCurrentMonth}
+              />
+            </Card>
+
+            {/* Upcoming Holidays & Events */}
+            <Card className="bg-white p-6 rounded-2xl border border-slate-100/80 shadow-sm">
+              <AdminUpcomingEventsList events={allCalendarEvents} />
+            </Card>
+            
+            {/* Selected Day Detail */}
+            <AdminCalendarDayDetail date={selectedDate} events={allCalendarEvents} />
+
+            {/* Stay Connected Card */}
+            <Card className="bg-gradient-to-br from-indigo-50/40 to-blue-50/20 p-6 rounded-2xl border border-slate-100/80 shadow-sm flex flex-col items-center text-center">
+              <div className="h-12 w-12 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-500 mb-3">
+                <Megaphone className="h-5 w-5" />
+              </div>
+              <h3 className="text-xs font-black text-slate-800">Stay Connected with CampusConnect</h3>
+              <p className="text-[10px] font-bold text-slate-400 mt-1 max-w-[200px] leading-normal">
+                Get important updates and announcements instantly.
+              </p>
+              <Link href="/main/notices" className="w-full">
+                <Button variant="outline" className="w-full mt-4 bg-white border border-slate-200 text-blue-650 hover:bg-slate-50 font-black text-[10px] uppercase tracking-wider py-2.5 rounded-xl shadow-sm">
+                  Send Announcement
+                </Button>
+              </Link>
+            </Card>
+          </div>
         </div>
 
-        {/* RIGHT COLUMN (SIDEBAR) — Fixed Truncation Issues */}
-        <div className="w-full lg:w-1/3 flex flex-col gap-6">
-          {/* Calendar Widget Card */}
-          <Card className="border-none shadow-sm overflow-visible bg-white dark:bg-slate-900 rounded-xl">
-             <div className="p-1 relative group">
-                <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Link href="/main/academic-calendar" className="p-1.5 bg-white/80 backdrop-blur rounded-lg shadow-sm hover:bg-white text-indigo-600 transition-all border border-slate-100">
-                      <ExternalLink size={14} />
-                    </Link>
-                </div>
-                <AcademicCalendarWidget 
-                  selectedDate={selectedDate} 
-                  onSelect={setSelectedDate} 
-                  events={allCalendarEvents} 
-                  currentMonth={currentMonth}
-                  onMonthChange={setCurrentMonth}
-                />
-             </div>
-          </Card>
-
-          <CalendarDayDetail date={selectedDate} events={allCalendarEvents} />
-          
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border-none">
-             <UpcomingEventsList events={allCalendarEvents} />
-          </div>
-          
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border-none">
-             <ActivityFeed activities={dashboardData?.recentActivity || []} />
-          </div>
-        </div>
+        {/* ZONE 4 — BOTTOM CARD (Recent Notices) */}
+        <AdminAnnouncements announcements={announcements} />
       </div>
-
     </div>
   );
 };

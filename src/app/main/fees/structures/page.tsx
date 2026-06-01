@@ -34,7 +34,8 @@ import { getClasses } from "@/lib/api/classes";
 import type { ClassItem } from "@/types";
 import { FeeStructureForm } from "@/components/campus-connect/fee-structure-form";
 import { UpdateFeeAmountDialog } from "@/components/campus-connect/update-fee-amount-dialog";
-import { motion } from "framer-motion";
+import { ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface ClassWithFeeStructures {
   id: string;
@@ -45,6 +46,7 @@ interface ClassWithFeeStructures {
 
 export default function FeeStructuresPage() {
   const { toast } = useToast();
+  const router = useRouter();
 
   const [feeStructures, setFeeStructures] = React.useState<any[]>([]);
   const [feeCategories, setFeeCategories] = React.useState<any[]>([]);
@@ -160,112 +162,97 @@ export default function FeeStructuresPage() {
   if (loading) return <PageSkeleton rows={5} />;
 
   return (
-    <div className="space-y-8 pb-10">
-      <Card className="border-none shadow-sm bg-blue-50/50">
-        <CardContent className="flex flex-col md:flex-row justify-between items-center py-8 gap-6">
-          <div className="flex items-center gap-5">
-            <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-blue-200 shadow-xl">
-                <Layers className="h-8 w-8" />
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <div 
+                className="flex items-center gap-2 text-sm text-muted-foreground mb-3 cursor-pointer hover:text-primary transition-colors w-fit" 
+                onClick={() => router.push('/main/fees')}
+              >
+                <ArrowLeft className="h-4 w-4" /> Back to Fees
+              </div>
+              <CardTitle>Fee Structures</CardTitle>
+              <CardDescription>Configuration & Class Structures</CardDescription>
             </div>
-            <div className="space-y-1">
-                <CardTitle className="text-3xl font-black tracking-tight text-blue-900 line-clamp-1">Fee Management</CardTitle>
-                <CardDescription className="text-blue-600 text-sm font-semibold opacity-80 uppercase tracking-widest flex items-center gap-2">
-                    <div className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" /> Configuration & Structures
-                </CardDescription>
-            </div>
+            
+            <Button onClick={() => setIsFormOpen(true)} className="w-full sm:w-auto">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Create Structure
+            </Button>
           </div>
-          <Button 
-            className="bg-blue-600 text-white hover:bg-blue-700 font-bold px-8 py-6 shadow-xl shadow-blue-100 transition-all hover:translate-y-[-2px] group"
-            onClick={() => setIsFormOpen(true)}
-          >
-            <PlusCircle className="mr-2 h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
-            Create New Structure
-          </Button>
-        </CardContent>
+        </CardHeader>
       </Card>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        {structuresByClass.map((cls, idx) => (
-          <motion.div
-            key={cls.id}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: idx * 0.1 }}
-          >
-            <Card className="border-2 border-gray-100 hover:border-blue-200 transition-all shadow-md group">
-              <CardHeader className="bg-gray-50/50 border-b border-gray-100">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {structuresByClass.map((cls) => (
+            <Card key={cls.id} className="flex flex-col">
+              <CardHeader className="bg-muted/30 border-b pb-4">
                 <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-600 text-white rounded-lg group-hover:rotate-12 transition-transform">
-                            <BookOpen className="h-5 w-5" />
-                        </div>
-                        <CardTitle className="text-xl font-bold">{cls.name}</CardTitle>
-                    </div>
-                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none px-3 font-mono">
+                    <CardTitle className="text-lg">{cls.name}</CardTitle>
+                    <Badge variant="secondary">
                         {cls.structures.length} Components
                     </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="pt-6">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50 hover:bg-gray-50">
-                      <TableHead className="font-bold text-gray-700 uppercase text-[10px] tracking-widest px-4">Fee Category</TableHead>
-                      <TableHead className="text-right font-bold text-gray-700 uppercase text-[10px] tracking-widest px-4">Amount</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {cls.structures.map((s) => (
-                      <TableRow key={s.fee_struct_id} className="hover:bg-blue-50/30 transition-colors">
-                        <TableCell className="font-medium text-gray-800 py-4 px-4">
-                            <div className="flex items-center justify-between group/row">
-                                <span>{s.categoryName}</span>
-                                <div className="flex items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                        onClick={() => handleEditAmount(cls.id, s.categoryName, s.fee_cat_id, s.amount)}
-                                    >
-                                        <Edit className="h-3.5 w-3.5" />
-                                    </Button>
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                        onClick={() => handleDelete(cls.id, s.fee_cat_id)}
-                                    >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </TableCell>
-                        <TableCell className="text-right font-bold text-indigo-600 py-4 px-4">
-                          ₹{Number(s.amount).toLocaleString()}
-                        </TableCell>
+              <CardContent className="p-0 flex-grow">
+                <div className="overflow-x-auto w-full">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Fee Category</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {cls.structures.map((s) => (
+                        <TableRow key={s.fee_struct_id}>
+                          <TableCell className="font-medium p-3 sm:p-4">
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between group/row gap-2 sm:gap-0">
+                                  <span className="truncate max-w-[200px] whitespace-normal sm:whitespace-nowrap">{s.categoryName}</span>
+                                  <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover/row:opacity-100 transition-opacity self-end sm:self-auto">
+                                      <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="h-8 w-8 sm:h-6 sm:w-6 text-muted-foreground hover:text-primary"
+                                          onClick={() => handleEditAmount(cls.id, s.categoryName, s.fee_cat_id, s.amount)}
+                                      >
+                                          <Edit className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                                      </Button>
+                                      <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="h-8 w-8 sm:h-6 sm:w-6 text-muted-foreground hover:text-destructive"
+                                          onClick={() => handleDelete(cls.id, s.fee_cat_id)}
+                                      >
+                                          <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                                      </Button>
+                                  </div>
+                              </div>
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            ₹{Number(s.amount).toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
-              <CardFooter className="flex justify-between items-center bg-indigo-50/50 py-5 rounded-b-xl border-t border-indigo-100">
+              <CardFooter className="flex justify-between items-center bg-muted/20 py-4 border-t mt-auto">
                 <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Total Annual Fee</span>
-                    <strong className="text-2xl font-black text-indigo-900">₹{cls.totalAmount.toLocaleString()}</strong>
+                    <span className="text-xs text-muted-foreground font-medium">Total Annual Fee</span>
+                    <strong className="text-xl">₹{cls.totalAmount.toLocaleString()}</strong>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" className="text-indigo-600 hover:bg-white hover:text-indigo-800">
-                        <Calendar className="mr-2 h-4 w-4" />
-                        Due Dates
-                    </Button>
-                    <Button variant="outline" size="sm" className="border-indigo-200 text-indigo-700 hover:bg-white shadow-sm font-bold">
+                    <Button variant="outline" size="sm">
                         <Download className="mr-2 h-4 w-4" />
                         Export
                     </Button>
                 </div>
               </CardFooter>
             </Card>
-          </motion.div>
         ))}
       </div>
 

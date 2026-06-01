@@ -41,12 +41,13 @@ export function UpcomingEventsList({ events = [] }: { events?: any[] }) {
                 {sortedDates.map((dateKey) => (
                     <div key={dateKey} className="flex gap-4 group">
                         {/* Compact Date Sidebar */}
-                        <div className="flex flex-col items-center justify-center h-10 w-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shrink-0">
-                            <span className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-none">
-                                {format(new Date(dateKey), "d")}
+                        <div className="flex flex-col items-center justify-center h-12 w-12 rounded-[1rem] bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shrink-0">
+                            <span className="text-[10px] font-black text-indigo-600 leading-none mb-1">
+                                {format(new Date(dateKey), "dd")}
                             </span>
-                            <span className="text-[8px] font-bold text-slate-400 uppercase mt-0.5">
-                                {format(new Date(dateKey), "MMM")}
+                            <div className="h-px w-4 bg-slate-200 mb-1" />
+                            <span className="text-[10px] font-black text-slate-400 uppercase">
+                                {format(new Date(dateKey), "MM")}
                             </span>
                         </div>
 

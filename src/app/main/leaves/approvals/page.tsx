@@ -679,7 +679,10 @@ export default function AdminLeavePage() {
     fetchAll();
 
     const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || `http://${hostname}:5000`;
+    const envUrl = process.env.NEXT_PUBLIC_API_URL;
+    const baseUrl = envUrl && envUrl.includes('://')
+      ? (envUrl.endsWith('/api') ? envUrl.slice(0, -4) : envUrl)
+      : `http://${hostname}:5000`;
     let eventSource: EventSource | null = null;
 
     function connectSSE() {

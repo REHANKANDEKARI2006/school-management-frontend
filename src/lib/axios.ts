@@ -132,7 +132,11 @@ instance.interceptors.response.use(
       if (refreshToken) {
         try {
           const hostname = window.location.hostname;
-          const res = await axios.post(`http://${hostname}:5000/api/auth/refresh-token`, {
+          const envUrl = process.env.NEXT_PUBLIC_API_URL;
+          const API_URL = envUrl && envUrl.includes('://')
+            ? (envUrl.endsWith('/api') ? envUrl.slice(0, -4) : envUrl)
+            : `http://${hostname}:5000`;
+          const res = await axios.post(`${API_URL}/api/auth/refresh-token`, {
             refreshToken,
           });
 

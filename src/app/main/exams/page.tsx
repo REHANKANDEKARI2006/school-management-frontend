@@ -15,6 +15,7 @@ import {
   CalendarClock,
   BookOpen,
   Users,
+  ArrowUpRight,
 } from "lucide-react";
 import { PageSkeleton, TableSkeleton } from "@/components/ui/skeletons";
 import { useFeedback } from "@/components/campus-connect/feedback-provider";
@@ -63,6 +64,11 @@ import {
 import { ExamForm } from "@/components/campus-connect/exam-form";
 import { GradeEntryForm } from "@/components/campus-connect/grade-entry-form";
 import { ViewResultsDialog } from "@/components/campus-connect/view-results-dialog";
+import {
+  ExamTimetablePreview,
+  downloadExamTimetablePDF,
+  TimetableSubjectRow,
+} from "@/components/campus-connect/exam-timetable-preview";
 import { ROLE, RoleId, ADMIN_GROUP } from "@/config/roles";
 
 /* ===================================================================
@@ -70,16 +76,16 @@ import { ROLE, RoleId, ADMIN_GROUP } from "@/config/roles";
 =================================================================== */
 const ALLOWED_ROLES: number[] = [...ADMIN_GROUP, ROLE.TEACHER, ROLE.CLASS_TEACHER, ROLE.STUDENT];
 
-function getStatusVariant(status: string) {
+function getStatusVariant(status: string): "upcoming" | "completed" | "pending" | "outline" {
   switch (status?.toLowerCase()) {
     case "upcoming":
-      return "default";
+      return "upcoming";
     case "completed":
-      return "secondary";
+      return "completed";
     case "scheduled":
-      return "outline";
+      return "upcoming";
     default:
-      return "secondary";
+      return "outline";
   }
 }
 
@@ -120,14 +126,117 @@ export default function ExamsPage() {
   const [selectedStatus, setSelectedStatus] = React.useState<string>("all");
 
   /* Dialog visibility */
-  const [isScheduleOpen, setIsScheduleOpen] = React.useState(false);
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [isGradeOpen, setIsGradeOpen] = React.useState(false);
   const [isResultsOpen, setIsResultsOpen] = React.useState(false);
+  const [isTimetableOpen, setIsTimetableOpen] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<any>(null);
 
   /* Selected exam for action dialogs */
   const [selectedExam, setSelectedExam] = React.useState<any>(null);
+
+  const [schoolProfile, setSchoolProfile] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    axios
+      .get("/api/school-profile")
+      .then((res) => {
+        if (res.data.success) setSchoolProfile(res.data.data);
+      })
+      .catch(() => {});
+  }, []);
+
+  const timetableRows = React.useMemo(() => {
+    if (!selectedExam) return [];
+    
+    const addMinutesToTime = (startTime: string, minutes: number): string => {
+      if (!startTime) return "";
+      const [h, m] = startTime.split(":").map(Number);
+      const total = h * 60 + m + minutes;
+      const eh = Math.floor(total / 60) % 24;
+      const em = total % 60;
+      return `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
+    };
+
+    const matched = exams.filter(
+      (e) =>
+        e.exam_name === selectedExam.exam_name &&
+        String(e.class_name) === String(selectedExam.class_name) &&
+        String(e.exam_type_id) === String(selectedExam.exam_type_id)
+    );
+
+    const seenSubjects = new Set<string>();
+    const rows: TimetableSubjectRow[] = [];
+    
+    matched.forEach((e) => {
+      const subId = String(e.subject_id);
+      if (!seenSubjects.has(subId)) {
+        seenSubjects.add(subId);
+        const date = e.date_time.split("T")[0];
+        const start_time = e.date_time.split("T")[1].substring(0, 5);
+        const end_time = addMinutesToTime(start_time, e.duration_mins);
+        rows.push({
+          id: String(e.exam_id),
+          subject_id: subId,
+          subject_name: e.subject_name,
+          date,
+          start_time,
+          end_time,
+        });
+      }
+    });
+
+    return rows;
+  }, [selectedExam, exams]);
+
+  const handleDownloadPDF = React.useCallback((exam: any) => {
+    const addMinutesToTime = (startTime: string, minutes: number): string => {
+      if (!startTime) return "";
+      const [h, m] = startTime.split(":").map(Number);
+      const total = h * 60 + m + minutes;
+      const eh = Math.floor(total / 60) % 24;
+      const em = total % 60;
+      return `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
+    };
+
+    const matched = exams.filter(
+      (e) =>
+        e.exam_name === exam.exam_name &&
+        String(e.class_name) === String(exam.class_name) &&
+        String(e.exam_type_id) === String(exam.exam_type_id)
+    );
+
+    const seenSubjects = new Set<string>();
+    const rows: TimetableSubjectRow[] = [];
+    
+    matched.forEach((e) => {
+      const subId = String(e.subject_id);
+      if (!seenSubjects.has(subId)) {
+        seenSubjects.add(subId);
+        const date = e.date_time.split("T")[0];
+        const start_time = e.date_time.split("T")[1].substring(0, 5);
+        const end_time = addMinutesToTime(start_time, e.duration_mins);
+        rows.push({
+          id: String(e.exam_id),
+          subject_id: subId,
+          subject_name: e.subject_name,
+          date,
+          start_time,
+          end_time,
+        });
+      }
+    });
+
+    downloadExamTimetablePDF(
+      exam.exam_name,
+      exam.class_name,
+      exam.exam_type_name,
+      schoolProfile?.academic_year || "2025-26",
+      "",
+      rows,
+      schoolProfile
+    );
+  }, [exams, schoolProfile]);
 
   /* ===== FETCH ===== */
   const fetchExams = React.useCallback(async () => {
@@ -206,37 +315,6 @@ export default function ExamsPage() {
 
     return Array.from(uniqueExamsMap.values());
   }, [exams, searchQuery, selectedStandard, selectedStatus]);
-
-  /* ===== CREATE ===== */
-  const handleCreate = async (values: any) => {
-    setFormLoading(true);
-    try {
-      const dateTime = `${new Date(values.date).toISOString().split("T")[0]}T${values.time}:00`;
-      await axios.post("/api/exams", {
-        exam_name: values.exam_name,
-        class_id: parseInt(values.class_id),
-        subject_id: parseInt(values.subject_id),
-        exam_type_id: parseInt(values.exam_type_id),
-        date_time: dateTime,
-        duration_mins: values.duration_mins,
-        total_score: values.total_score,
-        min_marks: values.min_marks || null,
-        max_marks: values.max_marks || null,
-        exam_status_id: parseInt(values.exam_status_id),
-      });
-      showSuccess("Exam Scheduled", `${values.exam_name} has been scheduled successfully.`);
-      setIsScheduleOpen(false);
-      handleActionSuccess();
-    } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err?.response?.data?.message || "Failed to create exam",
-        variant: "destructive",
-      });
-    } finally {
-      setFormLoading(false);
-    }
-  };
 
   /* ===== UPDATE ===== */
   const handleUpdate = async (values: any) => {
@@ -342,12 +420,12 @@ export default function ExamsPage() {
             {canManage && (
               <div className="flex flex-col xs:flex-row gap-2">
                 <Button
-                  size="sm"
-                  className="w-full xs:w-auto"
-                  onClick={() => setIsScheduleOpen(true)}
+                  className="w-full xs:w-auto gap-2"
+                  onClick={() => router.push("/main/exams/create")}
                 >
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Schedule Exam
+                  <PlusCircle className="h-4 w-4" />
+                  Create Exam
+                  <ArrowUpRight className="h-3.5 w-3.5 opacity-70" />
                 </Button>
               </div>
             )}
@@ -411,7 +489,9 @@ export default function ExamsPage() {
                               canEnterGrades={isCompleted && (canManage || (Boolean(isTeacher && exam.all_subject_teacher_emails?.includes(userEmail?.toLowerCase()))))}
                               canViewResults={isCompleted}
                               canEditDelete={canManage}
-                              onEdit={() => { setSelectedExam(exam); setIsEditOpen(true); }}
+                              onEdit={() => {
+                                router.push(`/main/exams/create?edit=true&exam_name=${encodeURIComponent(exam.exam_name)}&class_name=${encodeURIComponent(exam.class_name)}&exam_type_id=${exam.exam_type_id}`);
+                              }}
                               onGrades={() => { 
                                 // For teachers, find the specific section/exam they are authorized for
                                 const targetExam = isTeacher 
@@ -422,6 +502,8 @@ export default function ExamsPage() {
                               }}
                               onResults={() => { setSelectedExam(exam); setIsResultsOpen(true); }}
                               onDelete={() => confirmDelete(exam)}
+                              onViewTimetable={() => { setSelectedExam(exam); setIsTimetableOpen(true); }}
+                              onDownloadTimetable={() => handleDownloadPDF(exam)}
                             />
                           </TableCell>
                         )}
@@ -460,7 +542,9 @@ export default function ExamsPage() {
                           canEnterGrades={isCompleted && (canManage || (Boolean(isTeacher && exam.all_subject_teacher_emails?.includes(userEmail?.toLowerCase()))))}
                           canViewResults={isCompleted}
                           canEditDelete={canManage}
-                          onEdit={() => { setSelectedExam(exam); setIsEditOpen(true); }}
+                          onEdit={() => {
+                            router.push(`/main/exams/create?edit=true&exam_name=${encodeURIComponent(exam.exam_name)}&class_name=${encodeURIComponent(exam.class_name)}&exam_type_id=${exam.exam_type_id}`);
+                          }}
                           onGrades={() => { 
                             const targetExam = isTeacher 
                               ? exam.all_sections?.find((s: any) => s.subject_teacher_email?.toLowerCase() === userEmail?.toLowerCase())
@@ -470,6 +554,8 @@ export default function ExamsPage() {
                           }}
                           onResults={() => { setSelectedExam(exam); setIsResultsOpen(true); }}
                           onDelete={() => confirmDelete(exam)}
+                          onViewTimetable={() => { setSelectedExam(exam); setIsTimetableOpen(true); }}
+                          onDownloadTimetable={() => handleDownloadPDF(exam)}
                         />
                       )}
                     </div>
@@ -502,17 +588,6 @@ export default function ExamsPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* ===== SCHEDULE EXAM DIALOG ===== */}
-      <Dialog open={isScheduleOpen} onOpenChange={setIsScheduleOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Schedule New Exam</DialogTitle>
-            <DialogDescription>Fill in the details to schedule a new exam.</DialogDescription>
-          </DialogHeader>
-          <ExamForm onSubmit={handleCreate} loading={formLoading} />
-        </DialogContent>
-      </Dialog>
 
       {/* ===== EDIT EXAM DIALOG ===== */}
       <Dialog open={isEditOpen} onOpenChange={(open) => { setIsEditOpen(open); if (!open) setSelectedExam(null); }}>
@@ -569,6 +644,30 @@ export default function ExamsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* ===== VIEW TIMETABLE DIALOG ===== */}
+      <Dialog open={isTimetableOpen} onOpenChange={(open) => { setIsTimetableOpen(open); if (!open) setSelectedExam(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>View Timetable</DialogTitle>
+            <DialogDescription>
+              Timetable details for {selectedExam?.exam_name} — Class {selectedExam?.class_name}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedExam && (
+            <div className="mt-4">
+              <ExamTimetablePreview
+                examName={selectedExam.exam_name}
+                className={selectedExam.class_name}
+                examType={selectedExam.exam_type_name}
+                academicYear={schoolProfile?.academic_year || "2025-26"}
+                instructions=""
+                rows={timetableRows}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Delete confirmation handled by global showWarning modal */}
     </>
   );
@@ -586,6 +685,8 @@ function ExamActionMenu({
   onGrades,
   onResults,
   onDelete,
+  onViewTimetable,
+  onDownloadTimetable,
 }: {
   exam: any;
   canEnterGrades: boolean;
@@ -595,11 +696,13 @@ function ExamActionMenu({
   onGrades: () => void;
   onResults: () => void;
   onDelete: () => void;
+  onViewTimetable: () => void;
+  onDownloadTimetable: () => void;
 }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button size="icon" variant="ghost" className="h-8 w-8">
+        <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-slate-100">
           <MoreHorizontal className="h-4 w-4" />
           <span className="sr-only">Actions</span>
         </Button>
@@ -625,6 +728,14 @@ function ExamActionMenu({
             View Results
           </DropdownMenuItem>
         )}
+
+        <DropdownMenuItem onClick={onViewTimetable}>
+          View Timetable
+        </DropdownMenuItem>
+
+        <DropdownMenuItem onClick={onDownloadTimetable}>
+          Download PDF
+        </DropdownMenuItem>
 
         {canEditDelete && (
           <>

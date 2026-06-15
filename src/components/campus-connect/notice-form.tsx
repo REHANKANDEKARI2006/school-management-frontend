@@ -30,6 +30,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getNoticeAudiences } from "@/lib/api/notices";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const noticeSchema = z.object({
   notice_id: z.number().optional(),
@@ -37,6 +39,7 @@ const noticeSchema = z.object({
   content: z.string().min(1, "Notice content is required"),
   author_name: z.string().min(1, "Author is required"),
   audience_id: z.string().min(1, "Audience is required"),
+  class_ids: z.array(z.string()).optional(),
   class_id: z.string().optional(),
   post_date: z.date({ required_error: "A date is required." }),
 });
@@ -50,10 +53,54 @@ interface NoticeFormProps {
   loading?: boolean;
 }
 
+// Map role_id to a human-readable role label
+function getRoleLabel(roleId: number | null): string {
+  const roleMap: Record<number, string> = {
+    1: "Master Administrator",
+    2: "Institute Administrator",
+    3: "Teacher",
+    4: "Class Teacher",
+    5: "Mentor",
+    6: "Librarian",
+    7: "Lab Assistant",
+    8: "Sports Manager",
+    9: "School Counsellor",
+    10: "Principal",
+    11: "Vice Principal",
+    12: "Office Staff",
+    13: "Cashier",
+    14: "Accountant",
+    15: "Admission Officer",
+    16: "Management Committee Member",
+    17: "HR Manager",
+    18: "Student",
+    19: "Class Representative",
+    20: "Guardian",
+    21: "IT Support",
+    22: "Library Assistant",
+    23: "Demo Guest User",
+  };
+  return roleId ? (roleMap[roleId] ?? "Staff") : "Staff";
+}
+
 export function NoticeForm({ onSubmit, onCancel, notice, loading }: NoticeFormProps) {
   const [audiences, setAudiences] = React.useState<any[]>([]);
   const [fetchingAudiences, setFetchingAudiences] = React.useState(true);
   const [classes, setClasses] = React.useState<any[]>([]);
+
+  // Derive logged-in user info from localStorage
+  const loggedInName = React.useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("user_name") || "";
+  }, []);
+
+  const loggedInRoleId = React.useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const id = localStorage.getItem("role_id");
+    return id ? Number(id) : null;
+  }, []);
+
+  const loggedInRoleLabel = React.useMemo(() => getRoleLabel(loggedInRoleId), [loggedInRoleId]);
 
   const form = useForm<Notice>({
     resolver: zodResolver(noticeSchema),
@@ -61,14 +108,14 @@ export function NoticeForm({ onSubmit, onCancel, notice, loading }: NoticeFormPr
       ...notice,
       post_date: new Date(notice.post_date || notice.created_at || new Date()),
       audience_id: notice.audience_id?.toString() || "",
-      class_id: notice.class_id?.toString() || "all",
+      class_ids: notice.class_ids ? notice.class_ids.map((id: any) => id.toString()) : (notice.class_id ? [notice.class_id.toString()] : []),
       author_name: notice.author_name || notice.author || "",
     } : {
       title: "",
       content: "",
-      author_name: "",
+      author_name: loggedInName,
       audience_id: "",
-      class_id: "all",
+      class_ids: [],
       post_date: new Date(),
     },
   });
@@ -92,13 +139,23 @@ export function NoticeForm({ onSubmit, onCancel, notice, loading }: NoticeFormPr
   }, []);
 
   const handleSubmit = (values: Notice) => {
+    // Determine author_type from role_id
+    const authorTypeMap: Record<number, string> = {
+      1: "Master Admin",
+      2: "Institute Admin",
+      18: "Student",
+      20: "Guardian",
+    };
+    const authorType = loggedInRoleId ? (authorTypeMap[loggedInRoleId] ?? "Staff") : "Staff";
+
     const dataToSend = {
       ...values,
+      author_name: loggedInName || values.author_name,
       post_date: format(values.post_date, 'yyyy-MM-dd'),
       audience_id: parseInt(values.audience_id),
-      class_id: values.class_id && values.class_id !== "all" ? parseInt(values.class_id) : null,
-      author_type: 'admin',
-      author_id: 1
+      class_ids: values.class_ids ? values.class_ids.map(id => parseInt(id)) : [],
+      class_id: values.class_ids && values.class_ids.length === 1 ? parseInt(values.class_ids[0]) : null,
+      author_type: authorType,
     };
     onSubmit(dataToSend);
   };
@@ -141,8 +198,18 @@ export function NoticeForm({ onSubmit, onCancel, notice, loading }: NoticeFormPr
                 <FormItem className="space-y-2">
                 <FormLabel className="text-sm font-semibold text-slate-700">Author</FormLabel>
                 <FormControl>
-                    <Input placeholder="e.g. Admin" {...field} />
+                    <Input
+                      {...field}
+                      value={loggedInName || field.value}
+                      readOnly
+                      className="bg-muted/50 cursor-not-allowed"
+                    />
                 </FormControl>
+                {loggedInRoleLabel && (
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider pt-0.5">
+                    {loggedInRoleLabel}
+                  </p>
+                )}
                 <FormMessage />
                 </FormItem>
             )}
@@ -220,32 +287,116 @@ export function NoticeForm({ onSubmit, onCancel, notice, loading }: NoticeFormPr
 
             <FormField
             control={form.control}
-            name="class_id"
-            render={({ field }) => (
-                <FormItem className="space-y-2">
-                <FormLabel className="text-sm font-semibold text-slate-700">Class</FormLabel>
-                <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    disabled={fetchingAudiences}
-                >
-                    <FormControl>
-                    <SelectTrigger>
-                        <SelectValue placeholder="All" />
-                    </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    {classes.map((c) => (
-                        <SelectItem key={c.class_id} value={c.class_id.toString()}>
-                        {c.class_name}{c.section_name ? ` - ${c.section_name}` : ""}
-                        </SelectItem>
-                    ))}
-                    </SelectContent>
-                </Select>
-                <FormMessage />
+            name="class_ids"
+            render={({ field }) => {
+              const selectedIds = field.value || [];
+              const isAllSelected = selectedIds.length === 0;
+
+              const handleAllChange = (checked: boolean) => {
+                if (checked) {
+                  field.onChange([]);
+                }
+              };
+
+              const handleClassChange = (classId: string, checked: boolean) => {
+                if (checked) {
+                  field.onChange([...selectedIds, classId]);
+                } else {
+                  field.onChange(selectedIds.filter((id) => id !== classId));
+                }
+              };
+
+              // Determine the label for the trigger button
+              let triggerLabel = "All Classes";
+              if (selectedIds.length > 0) {
+                if (selectedIds.length === classes.length) {
+                  triggerLabel = "All Classes";
+                } else if (selectedIds.length <= 2) {
+                  triggerLabel = classes
+                    .filter((c) => selectedIds.includes(c.class_id.toString()))
+                    .map((c) => `${c.class_name}${c.section_name ? `-${c.section_name}` : ""}`)
+                    .join(", ");
+                } else {
+                  triggerLabel = `${selectedIds.length} Classes Selected`;
+                }
+              }
+
+              return (
+                <FormItem className="space-y-2 flex flex-col">
+                  <FormLabel className="text-sm font-semibold text-slate-700">Class</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-between font-normal text-left",
+                            selectedIds.length === 0 && "text-slate-500"
+                          )}
+                          disabled={fetchingAudiences}
+                        >
+                          <span className="truncate">{triggerLabel}</span>
+                          <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded ml-2 font-semibold">
+                            {selectedIds.length === 0 ? "All" : selectedIds.length}
+                          </span>
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-2" align="start">
+                      <div className="flex flex-col space-y-1">
+                        <div className="flex items-center space-x-2 px-2 py-1.5 hover:bg-slate-100/50 rounded-sm cursor-pointer">
+                          <Checkbox
+                            id="class-all"
+                            checked={isAllSelected}
+                            onCheckedChange={handleAllChange}
+                          />
+                          <label
+                            htmlFor="class-all"
+                            className="text-sm font-medium text-slate-700 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                          >
+                            All Classes
+                          </label>
+                        </div>
+                        <div className="h-px bg-slate-100 my-1" />
+                        <ScrollArea className="h-60 pr-2">
+                          <div className="flex flex-col space-y-1">
+                            {classes.map((c) => {
+                              const classIdStr = c.class_id.toString();
+                              const isChecked = selectedIds.includes(classIdStr);
+                              return (
+                                <div
+                                  key={c.class_id}
+                                  className="flex items-center space-x-2 px-2 py-1.5 hover:bg-slate-100/50 rounded-sm cursor-pointer"
+                                  onClick={(e) => {
+                                    // Make clicking the row toggle the checkbox
+                                    if ((e.target as HTMLElement).tagName !== "BUTTON" && (e.target as HTMLElement).tagName !== "INPUT" && (e.target as HTMLElement).tagName !== "label") {
+                                      handleClassChange(classIdStr, !isChecked);
+                                    }
+                                  }}
+                                >
+                                  <Checkbox
+                                    id={`class-${c.class_id}`}
+                                    checked={isChecked}
+                                    onCheckedChange={(checked) => handleClassChange(classIdStr, !!checked)}
+                                  />
+                                  <label
+                                    htmlFor={`class-${c.class_id}`}
+                                    className="text-sm text-slate-600 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                                  >
+                                    {c.class_name}{c.section_name ? ` - ${c.section_name}` : ""}
+                                  </label>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
                 </FormItem>
-            )}
+              );
+            }}
             />
         </div>
 

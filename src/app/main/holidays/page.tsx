@@ -219,7 +219,7 @@ export default function HolidaysPage() {
             <Badge variant="outline" className="hidden sm:flex uppercase tracking-widest text-[10px] px-3 py-1">
               {filteredHolidays.length} Entries Found
             </Badge>
-            <Button onClick={handleOpenAdd} size="sm" className="gap-2">
+            <Button onClick={handleOpenAdd} className="gap-2">
               <PlusCircle className="h-4 w-4" />
               Add Holiday
             </Button>
@@ -297,7 +297,7 @@ export default function HolidaysPage() {
                           <div onClick={(e) => e.stopPropagation()}>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100">
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -351,7 +351,7 @@ export default function HolidaysPage() {
                               <div onClick={(e) => e.stopPropagation()}>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100">
                                       <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>

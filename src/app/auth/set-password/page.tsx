@@ -122,7 +122,7 @@ function SetPasswordForm() {
           </div>
           <h1 className="text-2xl font-bold mb-3">{isExpired ? "Link Expired" : "Link Invalid"}</h1>
           <p className="text-muted-foreground text-sm mb-8 leading-relaxed">{error}</p>
-          <Button onClick={() => router.push("/")} className="w-full h-12 rounded-xl">
+          <Button onClick={() => router.push("/auth/login")} className="w-full h-12 rounded-xl">
             Go to Login
           </Button>
         </motion.div>
@@ -163,7 +163,7 @@ function SetPasswordForm() {
 
           <Button
             className="w-full h-12 rounded-xl gap-2 text-base font-semibold"
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/auth/login")}
           >
             Go to Login
             <ArrowRight className="h-4 w-4" />
@@ -342,7 +342,7 @@ function SetPasswordForm() {
             Already have a password?{" "}
             <button
               type="button"
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/auth/login")}
               className="text-primary hover:underline font-medium"
             >
               Sign in

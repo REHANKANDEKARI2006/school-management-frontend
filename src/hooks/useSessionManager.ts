@@ -26,7 +26,7 @@ export function useSessionManager() {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("role_id");
-    router.push("/");
+    router.push("/auth/login");
   }, [router]);
 
   // 🔄 Silent refresh

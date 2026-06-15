@@ -69,7 +69,7 @@ export const StudentDashboard = () => {
 
   if (error && !dashboardData) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 bg-[#F8FAFC]">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <AlertCircle className="h-12 w-12 text-rose-500" />
         <div className="text-center">
           <h2 className="text-xl font-bold text-slate-800">Connection Error</h2>
@@ -88,7 +88,7 @@ export const StudentDashboard = () => {
   const isTodayHoliday = todayHolidays.length > 0 || isSunday;
 
   return (
-    <div className="p-4 space-y-4 bg-[#F8FAFC] min-h-screen animate-in fade-in duration-500">
+    <div className="space-y-4 animate-in fade-in duration-500">
       <div className="w-full space-y-4">
 
         {/* ZONE 1 — HOLIDAY BANNER */}

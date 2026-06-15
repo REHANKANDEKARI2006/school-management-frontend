@@ -119,13 +119,13 @@ export const WeeklyTimetable = ({ timetable = [], isHoliday, isSunday }: WeeklyT
 
   return (
     <Card className="rounded-2xl border border-slate-100/80 shadow-sm bg-white overflow-hidden">
-      <div className="p-6 border-b border-slate-100/80 flex items-center justify-between">
+      <div className="p-4 sm:p-6 border-b border-slate-100/80 flex items-center justify-between">
         <h2 className="text-base font-bold text-slate-800">Daily Schedule</h2>
         <Badge variant="outline" className="text-[9px] font-extrabold text-blue-600 bg-blue-50 border-blue-100 uppercase tracking-widest px-2.5 py-0.5 rounded-full select-none">
            {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
         </Badge>
       </div>
-      <CardContent className="p-6 space-y-3.5">
+      <CardContent className="p-4 sm:p-6 space-y-3.5">
       {extendedTimetable.map((period, idx) => {
         const isActive = isClassActive(period.start_time, period.end_time);
         const isConcluded = !isActive && isClassConcluded(period.end_time);
@@ -135,7 +135,7 @@ export const WeeklyTimetable = ({ timetable = [], isHoliday, isSunday }: WeeklyT
           <div 
             key={idx}
             className={cn(
-              "flex items-center gap-5 p-4 rounded-2xl border transition-all duration-300 hover:shadow-md hover:translate-x-0.5",
+              "flex items-center gap-3 sm:gap-5 p-3.5 sm:p-4 rounded-2xl border transition-all duration-300 hover:shadow-md hover:translate-x-0.5",
               isHighlighted 
                 ? "bg-emerald-50/20 border-emerald-300 border-l-4 border-l-emerald-500 shadow-sm" 
                 : period.is_lunch_break && !isConcluded
@@ -149,12 +149,12 @@ export const WeeklyTimetable = ({ timetable = [], isHoliday, isSunday }: WeeklyT
           >
             {/* TIME COLUMN */}
             <div className={cn(
-              "flex flex-col items-center justify-center min-w-[75px] py-1 border-r border-slate-100 pr-5 select-none",
+              "flex flex-col items-center justify-center min-w-[65px] sm:min-w-[75px] py-1 border-r border-slate-100 pr-3 sm:pr-5 select-none",
               isConcluded && "opacity-75"
             )}>
               <span className={cn(
                 "text-[13px] font-extrabold",
-                isConcluded ? "text-slate-400 line-through decoration-slate-400/60" : "text-slate-800"
+                isConcluded ? "text-slate-405 line-through decoration-slate-400/60" : "text-slate-800"
               )}>{formatTime(period.start_time)}</span>
               <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Start</span>
             </div>
@@ -183,10 +183,10 @@ export const WeeklyTimetable = ({ timetable = [], isHoliday, isSunday }: WeeklyT
                 )}
               </div>
               <h3 className={cn(
-                "text-[14px] font-extrabold mt-1.5 truncate transition-all duration-300",
+                "text-[14px] font-extrabold mt-1.5 line-clamp-2 transition-all duration-300",
                 isConcluded ? "text-slate-405 line-through decoration-slate-400/80" : "text-slate-800"
               )}>{period.subject_name}</h3>
-              <div className="flex items-center gap-4 mt-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2">
                 <div className="flex items-center gap-1.5">
                   {period.is_lunch_break ? (
                     <>
@@ -203,7 +203,7 @@ export const WeeklyTimetable = ({ timetable = [], isHoliday, isSunday }: WeeklyT
                 <div className="flex items-center gap-1.5">
                   <Clock size={12} className="text-slate-400" />
                   <span className={cn(
-                    "text-[10px] font-bold text-slate-400",
+                    "text-[10px] font-bold text-slate-400 whitespace-nowrap",
                     isConcluded && "line-through decoration-slate-400/50"
                   )}>
                     {formatTime(period.start_time)} - {formatTime(period.end_time)}

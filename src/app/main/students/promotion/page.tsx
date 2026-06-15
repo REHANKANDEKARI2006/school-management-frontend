@@ -387,11 +387,11 @@ export default function PromotionPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Quick Actions:</span>
         <div className="flex flex-row gap-2 w-full sm:w-auto">
-          <Button variant="outline" size="sm" className="flex-1 sm:flex-none h-9 text-xs gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+          <Button variant="outline" size="sm" className="flex-1 sm:flex-none h-9 text-xs gap-1.5 !border-emerald-200 !text-emerald-700 hover:!bg-emerald-50 hover:!text-emerald-800 hover:!border-emerald-300"
             onClick={() => setAllDecision("promote")}>
             <CheckCircle2 className="h-4 w-4" /> Promote All
           </Button>
-          <Button variant="outline" size="sm" className="flex-1 sm:flex-none h-9 text-xs gap-1.5 border-amber-200 text-amber-700 hover:bg-amber-50"
+          <Button variant="outline" size="sm" className="flex-1 sm:flex-none h-9 text-xs gap-1.5 !border-amber-200 !text-amber-700 hover:!bg-amber-50 hover:!text-amber-800 hover:!border-amber-300"
             onClick={() => setAllDecision("retain")}>
             <MinusCircle className="h-4 w-4" /> Retain All
           </Button>

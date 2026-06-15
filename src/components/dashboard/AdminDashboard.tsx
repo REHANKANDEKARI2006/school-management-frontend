@@ -19,8 +19,12 @@ import { HolidayBanner } from "./HolidayBanner";
 import api from "@/lib/axios";
 import { format } from "date-fns";
 import { formatDate } from "@/lib/utils";
+import { ROLE_DISPLAY_NAME } from "@/config/roles";
 
 export const AdminDashboard = () => {
+  const roleId = typeof window !== "undefined" ? Number(localStorage.getItem("role_id")) : 0;
+  const roleName = ROLE_DISPLAY_NAME[roleId] || "Admin";
+
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,7 +118,7 @@ export const AdminDashboard = () => {
 
   if (loading && !dashboardData) {
     return (
-      <div className="p-6 sm:p-10 space-y-10 bg-[#F8FAFC] min-h-screen">
+      <div className="space-y-10">
         <Skeleton className="h-32 w-full rounded-xl" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           {[...Array(5)].map((_, i) => (
@@ -132,7 +136,7 @@ export const AdminDashboard = () => {
 
   if (error && !dashboardData) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 bg-[#F8FAFC]">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <AlertCircle className="h-12 w-12 text-rose-500" />
         <div className="text-center">
           <h2 className="text-xl font-bold text-slate-800">Connection Error</h2>
@@ -147,15 +151,15 @@ export const AdminDashboard = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 bg-[#F8FAFC] min-h-screen animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <div className="max-w-[1600px] mx-auto space-y-6">
         <HolidayBanner />
 
         {/* WELCOME HEADER */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-100/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 select-none">
+        <div className="bg-white p-6 rounded-2xl border border-slate-100/80 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 select-none">
           <div className="text-left">
             <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-              Good morning! 👋
+              {roleName} Dashboard
             </h1>
             <p className="text-slate-405 font-bold text-xs mt-1">
               Here's what's happening in your institute today.
@@ -180,7 +184,7 @@ export const AdminDashboard = () => {
           {/* COLUMN 1 (4/12 width) */}
           <div className="lg:col-span-4 flex flex-col gap-6">
             <AttendanceChart 
-              stats={dashboardData?.stats?.attendance} 
+              stats={dashboardData?.stats?.monthAttendance} 
               isHoliday={isTodayHoliday}
             />
             <FinanceChart data={dashboardData?.financeStats || []} />

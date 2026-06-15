@@ -110,7 +110,6 @@ export default function FeesPage() {
               <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
-                  size="sm"
                   className="flex-1 sm:flex-none"
                   onClick={() => router.push("/main/fees/structures")}
                 >
@@ -119,7 +118,6 @@ export default function FeesPage() {
 
                 <Button
                   variant="outline"
-                  size="sm"
                   className="flex-1 sm:flex-none"
                   onClick={() => router.push("/main/fees/collection")}
                 >
@@ -127,7 +125,6 @@ export default function FeesPage() {
                 </Button>
 
                 <Button
-                  size="sm"
                   className="w-full sm:w-auto mt-2 sm:mt-0"
                   onClick={() => {
                     setEditing(null);
@@ -161,7 +158,7 @@ export default function FeesPage() {
                     <TableCell>
                       <Badge
                         variant={
-                          fee.allow_installments ? "default" : "secondary"
+                          fee.allow_installments ? "active" : "cancelled"
                         }
                       >
                         {fee.allow_installments
@@ -172,7 +169,7 @@ export default function FeesPage() {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost">
+                          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-slate-100">
                             <MoreHorizontal />
                           </Button>
                         </DropdownMenuTrigger>
@@ -187,7 +184,7 @@ export default function FeesPage() {
                           </DropdownMenuItem>
 
                           <DropdownMenuItem
-                            className="text-red-600"
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
                             onClick={async () => {
                               showWarning(
                                 `Delete "${fee.category_name}"?`,

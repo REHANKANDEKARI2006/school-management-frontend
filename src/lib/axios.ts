@@ -34,6 +34,17 @@ instance.interceptors.request.use(
       const token = localStorage.getItem("accessToken");
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+        try {
+          const parts = token.split(".");
+          if (parts.length === 3) {
+            const payload = JSON.parse(atob(parts[1]));
+            if (payload && payload.institute_id) {
+              config.headers["X-Institute-ID"] = String(payload.institute_id);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to decode token for X-Institute-ID header:", e);
+        }
       }
 
       // Trigger global loader for process executions (mutations)
@@ -95,7 +106,7 @@ instance.interceptors.response.use(
         localStorage.removeItem("user_name");
         localStorage.removeItem("student_id");
         localStorage.removeItem("class_id");
-        window.location.href = "/?deactivated=true";
+        window.location.href = "/auth/login?deactivated=true";
       }
       return Promise.reject(error);
     }
@@ -142,7 +153,7 @@ instance.interceptors.response.use(
           localStorage.removeItem("accessToken");
           localStorage.removeItem("refreshToken");
           if (typeof window !== "undefined") {
-            window.location.href = "/?session=expired";
+            window.location.href = "/auth/login?session=expired";
           }
         } finally {
           isRefreshing = false;
@@ -151,7 +162,7 @@ instance.interceptors.response.use(
         // No refresh token available - clear and redirect
         localStorage.removeItem("accessToken");
         if (typeof window !== "undefined") {
-          window.location.href = "/?session=expired";
+          window.location.href = "/auth/login?session=expired";
         }
       }
     }
@@ -165,7 +176,10 @@ instance.interceptors.response.use(
       data: error.response?.data,
     };
     
-    console.error("Axios Error Detail:", JSON.stringify(errorDetail, null, 2));
+    const skipLog = (error.config as any)?.skipGlobalErrorLogging || (originalRequest as any)?.skipGlobalErrorLogging;
+    if (!skipLog) {
+      console.error("Axios Error Detail:", JSON.stringify(errorDetail, null, 2));
+    }
 
     if (typeof window !== "undefined" && ['post', 'put', 'patch', 'delete'].includes(originalRequest?.method?.toLowerCase() || '')) {
       useGlobalLoaderStore.getState().decrement();

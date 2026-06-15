@@ -28,7 +28,7 @@ export const FeeCollection = ({ stats }: FeeCollectionProps) => {
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">This Month</p>
-                <p className="text-lg font-bold text-slate-900">₹{(stats?.feesMonth || 46336).toLocaleString()}</p>
+                <p className="text-lg font-bold text-slate-900">₹{(stats?.feesMonth ?? 0).toLocaleString()}</p>
               </div>
             </div>
           </div>

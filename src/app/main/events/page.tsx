@@ -64,18 +64,18 @@ import { getEvents, createEvent, updateEvent, deleteEvent, unlockAttendanceEdit 
 import { format } from "date-fns";
 import { EventGallery } from "@/components/campus-connect/event-gallery";
 
-const getStatusVariant = (status: string) => {
+const getStatusVariant = (status: string): "completed" | "upcoming" | "cancelled" | "pending" | "outline" => {
   switch (status?.toLowerCase()) {
     case "completed":
-      return "secondary";
+      return "completed";
     case "upcoming":
-      return "default";
+      return "upcoming";
     case "scheduled":
-      return "outline";
+      return "upcoming";
     case "ongoing":
-      return "default"; // or a custom variant if available
+      return "pending";
     case "cancelled":
-      return "destructive";
+      return "cancelled";
     default:
       return "outline";
   }
@@ -225,7 +225,6 @@ export default function EventsPage() {
           
           {isAdmin && (
             <Button
-              size="sm"
               onClick={openNewDialog}
             >
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -305,7 +304,7 @@ export default function EventsPage() {
                           <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100">
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -359,7 +358,7 @@ export default function EventsPage() {
                       <div onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -603,9 +602,9 @@ function EventDetailDialog({ eventId, onMarkAttendance, isAdmin, currentStaffId,
                      </div>
 
                      <div className="flex items-center gap-4">
-                        <Badge variant={isAttendanceSubmitted ? "default" : "outline"} className="text-[9px] h-5">
-                            {isAttendanceSubmitted ? "Marked" : "Pending"}
-                        </Badge>
+                         <Badge variant={isAttendanceSubmitted ? "default" : "secondary"} className="text-[9px] h-5">
+                             {isAttendanceSubmitted ? "Marked" : "Pending"}
+                         </Badge>
                         
                         {(isAdmin || isCoordinator) && (
                           <div className="flex items-center gap-1">

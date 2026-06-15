@@ -497,7 +497,7 @@ function ApprovalModal({
                         <div className="grid grid-cols-3 gap-2 text-sm">
                           <div>
                             <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-0.5">Date</p>
-                            <p className="font-semibold">{fmtDate(s.date, { weekday: "short", day: "numeric", month: "short" })}</p>
+                            <p className="font-semibold">{s.date ? new Date(s.date).toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" }) : "—"}</p>
                           </div>
                           <div>
                             <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-0.5">Period &amp; Time</p>
@@ -677,8 +677,43 @@ export default function AdminLeavePage() {
 
   useEffect(() => {
     fetchAll();
+
+    const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || `http://${hostname}:5000`;
+    let eventSource: EventSource | null = null;
+
+    function connectSSE() {
+      try {
+        eventSource = new EventSource(`${baseUrl}/api/leaves/stream`, { withCredentials: true });
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === "update") {
+              fetchAll();
+            }
+          } catch (e) {
+            console.error("Error parsing SSE message:", e);
+          }
+        };
+        eventSource.onerror = (err) => {
+          console.warn("EventSource connection lost, browser is retrying automatically...");
+        };
+      } catch (err) {
+        console.error("SSE connection error:", err);
+        // Retry connection after 5 seconds
+        setTimeout(connectSSE, 5000);
+      }
+    }
+
+    connectSSE();
+
+    // Fallback interval
     const iv = setInterval(fetchAll, 30000);
-    return () => clearInterval(iv);
+
+    return () => {
+      eventSource?.close();
+      clearInterval(iv);
+    };
   }, [fetchAll]);
 
   const fetchFiltered = async () => {
@@ -796,9 +831,9 @@ export default function AdminLeavePage() {
                       {/* Action */}
                       <Button
                         variant={isAppExpired ? "outline" : "default"}
-                        className={isAppExpired 
+                        className={isAppExpired
                           ? "gap-2 border-slate-300 text-slate-500 hover:bg-slate-50 shrink-0"
-                          : "gap-2 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white shrink-0"
+                          : "gap-2 shrink-0"
                         }
                         onClick={() => setModalApp(app)}
                       >

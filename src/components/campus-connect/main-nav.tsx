@@ -27,6 +27,7 @@ import {
   CalendarOff,
   ShieldCheck,
   TrendingUp,
+  Award,
 } from "lucide-react";
 
 import { ROLE, ADMIN_GROUP, ALL_STAFF_GROUP } from "@/config/roles";
@@ -52,12 +53,6 @@ const navItems: NavItem[] = [
     label: "Dashboard",
     icon: LayoutDashboard,
     roles: "ALL",
-  },
-  {
-    href: "/main/user-management/admins",
-    label: "Manage Admins",
-    icon: ShieldCheck,
-    roles: [ROLE.MASTER_ADMIN],
   },
   {
     href: "/main/my-class",
@@ -148,6 +143,12 @@ const navItems: NavItem[] = [
     href: "/main/notices",
     label: "Notices",
     icon: Megaphone,
+    roles: "ALL",
+  },
+  {
+    href: "/main/results",
+    label: "Results",
+    icon: Award,
     roles: "ALL",
   },
 ];

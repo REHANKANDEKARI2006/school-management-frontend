@@ -13,6 +13,7 @@ import {
 import { format } from "date-fns";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { formatDate } from "@/lib/utils";
+import { ROLE_DISPLAY_NAME } from "@/config/roles";
 
 interface TimetableEntry {
   start_time: string;
@@ -41,6 +42,9 @@ interface StudentStatsBarProps {
 }
 
 export const StudentStatsBar = ({ profile, stats, timetable }: StudentStatsBarProps) => {
+  const roleId = typeof window !== "undefined" ? Number(localStorage.getItem("role_id")) : 0;
+  const roleName = ROLE_DISPLAY_NAME[roleId] || "Student";
+
   const getExamCountdown = (date: string | null) => {
     if (!date) return "No upcoming exams";
     const diff = Math.ceil((new Date(date).getTime() - Date.now()) / (1000 * 3600 * 24));
@@ -123,7 +127,7 @@ export const StudentStatsBar = ({ profile, stats, timetable }: StudentStatsBarPr
           </Avatar>
           <div className="text-left flex-1 min-w-0">
             <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight leading-tight">
-              Welcome back, {profile.name}!
+              {roleName} Dashboard
             </h1>
             <p className="text-slate-400 font-bold text-xs mt-1">
               {profile.class} - {profile.section} | Roll No: {profile.rollNo}

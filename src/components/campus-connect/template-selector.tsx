@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Check, ChevronLeft, ChevronRight, Download, Loader2, Users, X, FileCheck, CreditCard, GraduationCap, Search, FileText, Trash2 } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Download, Loader2, Users, X, FileCheck, CreditCard, GraduationCap, Search, FileText, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -251,12 +251,145 @@ const FeeReceiptPreview = () => (
   </div>
 );
 
+// ─── DocType → API type segment mapping ────────────────────────────────────────
+function getApiType(docType: DocType): string {
+  const map: Record<DocType, string> = {
+    ID_CARD:              "id_card",
+    BONAFIDE:             "bonafide",
+    ACHIEVEMENT:          "general_certificate",
+    MARK_SHEET:           "mark_sheet",
+    FEE_RECEIPT:          "fee_receipt",
+    LEAVING_CERTIFICATE:  "leaving_certificate",
+  };
+  return map[docType] || docType.toLowerCase();
+}
+
+// ─── Template Preview Modal ─────────────────────────────────────────────────────
+function TemplatePreviewModal({
+  docType,
+  templateId,
+  templateName,
+  onClose,
+}: {
+  docType: DocType;
+  templateId: string;
+  templateName: string;
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const apiType = getApiType(docType);
+    let currentUrl: string | null = null;
+    let isMounted = true;
+
+    axios.get(`/api/documents/preview/${apiType}/${templateId}`, { responseType: 'blob' })
+      .then((res) => {
+        if (!isMounted) {
+          return;
+        }
+        currentUrl = URL.createObjectURL(res.data);
+        setPdfUrl(currentUrl);
+      })
+      .catch(async (err) => {
+        if (!isMounted) return;
+        console.error("Preview error:", err);
+        let errMessage = "Failed to load preview";
+        if (err.response?.data) {
+          try {
+            const reader = new FileReader();
+            const parsed = await new Promise<any>((resolve) => {
+              reader.onload = () => {
+                try { resolve(JSON.parse(reader.result as string)); } catch { resolve(null); }
+              };
+              reader.readAsText(err.response.data);
+            });
+            if (parsed?.message) errMessage = parsed.message;
+          } catch (parseErr) {
+            console.error("Failed to parse blob error response:", parseErr);
+          }
+        } else if (err.message) {
+          errMessage = err.message;
+        }
+        setError(errMessage);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+      if (currentUrl) URL.revokeObjectURL(currentUrl);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Panel */}
+      <div className="relative z-10 w-full max-w-4xl max-h-[92vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50/80 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Eye className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="font-bold text-slate-900 text-sm">{templateName}</p>
+              <p className="text-xs text-slate-400 font-medium">Template Preview</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 min-h-0 flex items-center justify-center bg-slate-100">
+          {loading && (
+            <div className="flex flex-col items-center gap-3 text-slate-400">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm font-medium">Generating preview…</p>
+            </div>
+          )}
+          {error && (
+            <div className="flex flex-col items-center gap-3 text-red-400 p-8 text-center">
+              <X className="h-8 w-8" />
+              <p className="text-sm font-medium">Could not load preview</p>
+              <p className="text-xs text-slate-400">{error}</p>
+            </div>
+          )}
+          {pdfUrl && (
+            <iframe
+              src={pdfUrl}
+              className="w-full h-full min-h-[70vh] border-0"
+              title={`Preview — ${templateName}`}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ────────────────────────────────────────────────────────────
 export function TemplateSelector({ documentType, onClose, currentDefault, onSetDefault }: TemplateSelectorProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(currentDefault || null);
   const [studentDialogOpen, setStudentDialogOpen] = useState(false);
   const [editorOpenFor, setEditorOpenFor] = useState<string | null>(null);
   const [customTemplates, setCustomTemplates] = useState<Template[]>([]);
+  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
   
   const baseTemplates = getTemplates(documentType);
   const templates = [...baseTemplates, ...customTemplates];
@@ -364,10 +497,21 @@ export function TemplateSelector({ documentType, onClose, currentDefault, onSetD
                   {/* Info and Actions */}
                   <div className="p-4 border-t border-slate-100 bg-white z-20">
                     <div className="flex justify-between items-start">
-                      <div>
+                      <div className="flex-1 min-w-0 mr-2">
                         <p className="font-bold text-slate-900 text-sm">{t.name}</p>
                         <p className="text-xs text-slate-400 mt-0.5 font-medium">{t.desc}</p>
                       </div>
+                      {/* Preview button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPreviewTemplateId(t.id);
+                        }}
+                        title="Preview template"
+                        className="shrink-0 h-8 w-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                     {isSelected && documentType !== "ID_CARD" && (
                       <div className="mt-4 pt-3 border-t border-slate-100 flex gap-2">
@@ -375,7 +519,7 @@ export function TemplateSelector({ documentType, onClose, currentDefault, onSetD
                           <Button 
                             size="sm" 
                             variant="outline" 
-                            className="w-full text-xs gap-1.5 bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200"
+                            className="w-full text-xs gap-1.5 !bg-slate-50 hover:!bg-indigo-50 hover:!text-indigo-600 hover:!border-indigo-200"
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditorOpenFor(t.id);
@@ -388,7 +532,7 @@ export function TemplateSelector({ documentType, onClose, currentDefault, onSetD
                           <Button 
                             size="sm" 
                             variant="outline" 
-                            className="w-full text-xs gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+                            className="w-full text-xs gap-1.5 !bg-red-50 hover:!bg-red-100 !text-red-600 hover:!text-red-700 !border-red-200 hover:!border-red-300"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteCustomTemplate(t.id);
@@ -426,7 +570,7 @@ export function TemplateSelector({ documentType, onClose, currentDefault, onSetD
               variant="outline"
               disabled={!selectedTemplate}
               onClick={() => setStudentDialogOpen(true)}
-              className="h-12 px-8 font-bold gap-2 rounded-xl w-full sm:w-auto bg-white hover:bg-slate-50 border-slate-200"
+              className="h-12 px-8 font-bold gap-2 rounded-xl w-full sm:w-auto !bg-white hover:!bg-slate-50 border-slate-200 !text-slate-850 hover:!text-slate-900"
             >
               <Users className="h-5 w-5" />
               Generate Test Document
@@ -453,6 +597,16 @@ export function TemplateSelector({ documentType, onClose, currentDefault, onSetD
             setEditorOpenFor(null);
             loadCustomTemplates(); // Refresh list to show newly created template
           }}
+        />
+      )}
+
+      {/* Template Preview Modal */}
+      {previewTemplateId && (
+        <TemplatePreviewModal
+          docType={documentType}
+          templateId={previewTemplateId}
+          templateName={templates.find(t => t.id === previewTemplateId)?.name ?? previewTemplateId}
+          onClose={() => setPreviewTemplateId(null)}
         />
       )}
     </div>
@@ -508,7 +662,6 @@ function StudentPickerDialog({ documentType, templateId, onClose }: { documentTy
   const generate = useCallback(async () => {
     if (selected.size === 0) return;
     setGenerating(true);
-    const token = localStorage.getItem("accessToken");
     const paths = getApiPaths(documentType);
     const label = getTypeLabel(documentType);
     const ids = Array.from(selected);
@@ -518,44 +671,59 @@ function StudentPickerDialog({ documentType, templateId, onClose }: { documentTy
       let filename: string;
 
       if (ids.length === 1 && documentType !== "FEE_RECEIPT") {
-        let fetchUrl = `${process.env.NEXT_PUBLIC_API_URL}/documents/${paths.single}/${ids[0]}?template=${templateId}`;
-        if (selectedEventId) fetchUrl += `&eventId=${selectedEventId}`;
+        let requestUrl = `/api/documents/${paths.single}/${ids[0]}?template=${templateId}`;
+        if (selectedEventId) requestUrl += `&eventId=${selectedEventId}`;
         
-        const res = await fetch(fetchUrl, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => null);
-          throw new Error(errData?.message || "Failed");
-        }
-        blob = await res.blob();
+        const res = await axios.get(requestUrl, { responseType: 'blob' });
+        blob = res.data;
         filename = `${label.replace(/\s+/g, "_")}_${ids[0]}.pdf`;
       } else {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/${paths.bulk}`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ studentIds: ids, templateId, eventId: selectedEventId || undefined }),
-        });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => null);
-          throw new Error(errData?.message || "Failed");
-        }
-        blob = await res.blob();
+        const res = await axios.post(
+          `/api/documents/${paths.bulk}`,
+          { studentIds: ids, templateId, eventId: selectedEventId || undefined },
+          { responseType: 'blob' }
+        );
+        blob = res.data;
         filename = `${label.replace(/\s+/g, "_")}_${ids.length}_students.pdf`;
       }
 
-      const url = URL.createObjectURL(blob);
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url; a.download = filename; a.click();
-      URL.revokeObjectURL(url);
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+      }, 100);
+
       toast.success(`${label} generated for ${ids.length} student${ids.length > 1 ? "s" : ""}!`);
       onClose();
     } catch (error: any) {
-      toast.error(error.message === "Failed" ? "Failed to generate document. Please try again." : error.message);
+      console.error("Document generation error:", error);
+      let errMessage = "Failed to generate document. Please try again.";
+      if (error.response?.data) {
+        try {
+          const reader = new FileReader();
+          const parsed = await new Promise<any>((resolve) => {
+            reader.onload = () => {
+              try { resolve(JSON.parse(reader.result as string)); } catch { resolve(null); }
+            };
+            reader.readAsText(error.response.data);
+          });
+          if (parsed?.message) errMessage = parsed.message;
+        } catch (parseErr) {
+          console.error("Failed to parse blob error response:", parseErr);
+        }
+      } else if (error.message) {
+        errMessage = error.message;
+      }
+      toast.error(errMessage);
     } finally {
       setGenerating(false);
     }
-  }, [selected, documentType, templateId, onClose]);
+  }, [selected, documentType, templateId, onClose, selectedEventId]);
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-8">

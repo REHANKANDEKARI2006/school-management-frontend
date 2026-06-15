@@ -432,7 +432,7 @@ export default function AttendanceSummaryPage() {
               </Button>
             </div>
             {!isTeacher && (
-              <Button onClick={() => router.push('/main/attendance/new')} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg w-full sm:w-auto mt-2 sm:mt-0">
+              <Button onClick={() => router.push('/main/attendance/new')} className="rounded-lg w-full sm:w-auto mt-2 sm:mt-0">
                 <PlusCircle className="mr-2 h-4 w-4" /> New Attendance Session
               </Button>
             )}

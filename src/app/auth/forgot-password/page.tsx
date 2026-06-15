@@ -85,7 +85,7 @@ export default function ForgotPasswordPage() {
               <p className="text-muted-foreground mb-8">
                 {message}
               </p>
-              <Button onClick={() => router.push("/")} variant="outline" className="w-full h-12 rounded-xl">
+              <Button onClick={() => router.push("/auth/login")} variant="outline" className="w-full h-12 rounded-xl">
                 Back to Login
               </Button>
             </motion.div>
@@ -93,7 +93,7 @@ export default function ForgotPasswordPage() {
 
           {!success && (
             <div className="mt-6 text-center">
-              <Link href="/" className="inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-primary transition-colors">
+              <Link href="/auth/login" className="inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-primary transition-colors">
                 <ChevronLeft size={16} className="mr-1" />
                 Back to Login
               </Link>

@@ -320,7 +320,7 @@ export function UserManagementTable({ role_code, title, description }: UserTable
                 const isDeactivated = user.status === "deactivated";
 
                 return (
-                  <TableRow key={user.user_id} className="hover:bg-muted/5">
+                  <TableRow key={user.user_id} className="table-row-hover">
                     <TableCell className="pl-6 py-4">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10 border">
@@ -348,26 +348,26 @@ export function UserManagementTable({ role_code, title, description }: UserTable
 
                     <TableCell>
                       {isActive && (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                        <Badge variant="active" className="gap-1.5 uppercase text-[10px] font-bold">
                           <CheckCircle2 className="h-3 w-3" />
                           Active
-                        </span>
+                        </Badge>
                       )}
                       {isDeactivated ? (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-700 bg-slate-50 border border-slate-200 rounded-full px-2 py-0.5">
+                        <Badge variant="deactivated" className="gap-1.5 uppercase text-[10px] font-bold">
                           <ShieldAlert className="h-3 w-3" />
                           Deactivated
-                        </span>
+                        </Badge>
                       ) : isExpired ? (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-rose-700 bg-rose-50 border border-rose-200 rounded-full px-2 py-0.5">
+                        <Badge variant="expired" className="gap-1.5 uppercase text-[10px] font-bold">
                           <ShieldAlert className="h-3 w-3" />
                           Expired
-                        </span>
+                        </Badge>
                       ) : isPending ? (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                        <Badge variant="pending" className="gap-1.5 uppercase text-[10px] font-bold">
                           <Clock className="h-3 w-3" />
                           Pending
-                        </span>
+                        </Badge>
                       ) : null}
                     </TableCell>
 
@@ -519,22 +519,22 @@ export function UserManagementTable({ role_code, title, description }: UserTable
                           {user.role_name?.replace(/_/g, " ").toLowerCase()}
                         </Badge>
                         {isActive && (
-                          <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                          <Badge variant="active" className="gap-1 uppercase text-[9px] font-bold py-0 h-5">
                             Active
-                          </span>
+                          </Badge>
                         )}
                         {isDeactivated ? (
-                          <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-slate-700 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100">
+                          <Badge variant="deactivated" className="gap-1 uppercase text-[9px] font-bold py-0 h-5">
                             Deactivated
-                          </span>
+                          </Badge>
                         ) : isExpired ? (
-                          <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">
+                          <Badge variant="expired" className="gap-1 uppercase text-[9px] font-bold py-0 h-5">
                             Expired
-                          </span>
+                          </Badge>
                         ) : isPending ? (
-                          <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
+                          <Badge variant="pending" className="gap-1 uppercase text-[9px] font-bold py-0 h-5">
                             Pending
-                          </span>
+                          </Badge>
                         ) : null}
                       </div>
                     </div>

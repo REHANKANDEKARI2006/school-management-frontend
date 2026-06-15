@@ -421,50 +421,6 @@ export function EventForm({ onSubmit, event, loading }: EventFormProps) {
                     </div>
                  </ScrollArea>
               </div>
-
-              <div className="p-6 rounded-xl border bg-muted/10 space-y-4">
-                 <div>
-                    <h4 className="text-sm font-bold text-slate-800">Period Exchange Policy</h4>
-                    <p className="text-xs text-slate-500">Determine how regular classes are handled during this event.</p>
-                 </div>
-
-                 <FormField
-                    control={form.control}
-                    name="displaced_period_action"
-                    render={({ field }) => (
-                      <FormItem className="space-y-4">
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="flex flex-col sm:flex-row gap-4"
-                          >
-                            <FormItem className="flex items-center space-x-3 space-y-0 bg-background p-4 rounded-lg border flex-1 cursor-pointer transition-all hover:border-primary/30">
-                              <FormControl>
-                                <RadioGroupItem value="cancel" />
-                              </FormControl>
-                              <FormLabel className="font-medium text-slate-700 cursor-pointer text-xs">
-                                Mark as Displaced
-                                <span className="block text-[10px] text-slate-400 mt-1">Periods are automatically cancelled.</span>
-                              </FormLabel>
-                            </FormItem>
-                            
-                            <FormItem className="flex items-center space-x-3 space-y-0 bg-background p-4 rounded-lg border flex-1 cursor-pointer transition-all hover:border-primary/30">
-                              <FormControl>
-                                <RadioGroupItem value="reschedule" />
-                              </FormControl>
-                              <FormLabel className="font-medium text-slate-700 cursor-pointer text-xs">
-                                Mark for Rescheduling
-                                <span className="block text-[10px] text-slate-400 mt-1">Periods will require makeup action.</span>
-                              </FormLabel>
-                            </FormItem>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                 />
-              </div>
             </div>
           )}
         </div>

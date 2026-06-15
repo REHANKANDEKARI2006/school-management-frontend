@@ -42,14 +42,14 @@ export const Announcements = ({ announcements = defaultAnnouncements }: Announce
 
   return (
     <Card className="border border-slate-100/80 shadow-sm bg-white overflow-hidden rounded-2xl h-full flex flex-col">
-      <CardHeader className="p-6 pb-3 shrink-0 flex flex-row items-center justify-between border-b border-slate-50">
+      <CardHeader className="p-4 sm:p-6 pb-3 shrink-0 flex flex-row items-center justify-between border-b border-slate-50">
         <CardTitle className="text-[13px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
           Notices
         </CardTitle>
         <Megaphone className="h-4 w-4 text-blue-500" />
       </CardHeader>
       
-      <CardContent className="p-6 flex-grow flex flex-col justify-between">
+      <CardContent className="p-4 sm:p-6 flex-grow flex flex-col justify-between">
         <div className="space-y-3.5 flex-1">
           {displayedAnnouncements.map((announcement, idx) => (
             <motion.div
@@ -60,8 +60,8 @@ export const Announcements = ({ announcements = defaultAnnouncements }: Announce
               className="p-4 rounded-2xl bg-white border border-slate-100/80 hover:bg-slate-50/20 hover:border-slate-200 transition-all duration-300 group"
             >
               <div className="flex flex-col gap-2.5">
-                <div className="flex items-center justify-between gap-3 w-full">
-                  <h3 className="font-extrabold text-slate-700 text-xs leading-tight truncate group-hover:text-primary transition-colors flex-1 min-w-0">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 w-full">
+                  <h3 className="font-extrabold text-slate-700 text-xs leading-tight line-clamp-2 group-hover:text-primary transition-colors flex-1 min-w-0">
                     {announcement.title}
                   </h3>
                   <div className="flex items-center gap-1 text-[9px] font-bold text-blue-600 bg-blue-50/50 border border-blue-100 px-2.5 py-0.5 rounded-full shrink-0 select-none">

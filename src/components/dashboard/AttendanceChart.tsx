@@ -18,11 +18,11 @@ interface AttendanceChartProps {
 const COLORS = ["#10B981", "#EF4444"]; // Green, Red
 
 export const AttendanceChart = ({ data, isHoliday, stats }: AttendanceChartProps) => {
-  const presentCount = stats?.present || 572;
-  const totalCount = stats?.total || 618;
+  const presentCount = stats?.present ?? 0;
+  const totalCount = stats?.total ?? 0;
   const absentCount = Math.max(0, totalCount - presentCount);
   
-  const attendancePercentage = totalCount ? Math.round((presentCount / totalCount) * 1000) / 10 : 92.6;
+  const attendancePercentage = totalCount ? Math.round((presentCount / totalCount) * 1000) / 10 : 0;
 
   const chartData = [
     { name: "Present", value: presentCount },
@@ -113,7 +113,7 @@ export const AttendanceChart = ({ data, isHoliday, stats }: AttendanceChartProps
         </div>
 
         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider select-none border-t border-slate-50 pt-4 mt-2">
-          Based on today's attendance
+          Based on this month's attendance
         </p>
       </CardContent>
     </Card>

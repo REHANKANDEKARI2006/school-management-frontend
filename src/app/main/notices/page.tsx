@@ -163,7 +163,7 @@ export default function NoticesPage() {
               <CardDescription>Post and manage digital notices for all users.</CardDescription>
             </div>
             {!isStudent && (
-              <Button size="sm" className="gap-1 w-full sm:w-auto" onClick={openNewDialog}>
+              <Button className="gap-1 w-full sm:w-auto" onClick={openNewDialog}>
                 <PlusCircle className="h-4 w-4" />
                 <span>Post Notice</span>
               </Button>
@@ -228,7 +228,7 @@ export default function NoticesPage() {
                         <TableCell className="text-right pr-6">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button size="icon" variant="ghost" className="h-8 w-8">
+                                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-slate-100">
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -273,7 +273,7 @@ export default function NoticesPage() {
                     {!isStudent && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost" className="h-8 w-8">
+                          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-slate-100">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>

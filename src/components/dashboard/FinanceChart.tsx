@@ -24,19 +24,17 @@ export const FinanceChart = ({ data }: FinanceChartProps) => {
     ? data.map(item => ({
         name: item.name,
         income: Number(item.income) || 0,
-        expense: item.expense !== undefined ? Number(item.expense) : Math.round((Number(item.income) || 0) * 0.26)
       })) 
     : [
-        { name: "Jan", income: 35000, expense: 11000 },
-        { name: "Feb", income: 48000, expense: 13500 },
-        { name: "Mar", income: 55000, expense: 15000 },
-        { name: "Apr", income: 62800, expense: 16464 },
+        { name: "Jan", income: 35000 },
+        { name: "Feb", income: 48000 },
+        { name: "Mar", income: 55000 },
+        { name: "Apr", income: 62800 },
       ];
 
   // Get the latest month values (or total if preferred, but latest month matches the current status)
   const latestItem = chartData[chartData.length - 1];
-  const displayIncome = latestItem?.income || 62800;
-  const displayExpense = latestItem?.expense || 16464;
+  const displayIncome = latestItem?.income ?? 0;
 
   return (
     <Card className="border border-slate-100/80 shadow-sm bg-white overflow-hidden rounded-2xl flex flex-col justify-between h-full">
@@ -47,8 +45,8 @@ export const FinanceChart = ({ data }: FinanceChartProps) => {
                 <TrendingUp size={20} />
              </div>
              <div>
-               <span className="block text-slate-800">Finance Overview</span>
-               <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Annual Report</span>
+                <span className="block text-slate-800">Finance Overview</span>
+                <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Annual Report</span>
              </div>
           </CardTitle>
           
@@ -59,13 +57,6 @@ export const FinanceChart = ({ data }: FinanceChartProps) => {
               <div>
                 <span className="block text-slate-400 font-bold uppercase tracking-wide text-[8px]">Income</span>
                 <span className="block text-emerald-600 font-extrabold text-[11px] leading-tight">₹{displayIncome.toLocaleString()}</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-rose-50/50 border border-rose-100/50 rounded-xl">
-              <span className="h-2 w-2 rounded-full bg-rose-500" />
-              <div>
-                <span className="block text-slate-400 font-bold uppercase tracking-wide text-[8px]">Expense</span>
-                <span className="block text-rose-600 font-extrabold text-[11px] leading-tight">₹{displayExpense.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -108,15 +99,6 @@ export const FinanceChart = ({ data }: FinanceChartProps) => {
                 dot={{ r: 4, fill: "#10b981", strokeWidth: 2, stroke: "#fff" }}
                 activeDot={{ r: 6, strokeWidth: 0 }}
                 name="Income"
-              />
-              <Line
-                type="monotone"
-                dataKey="expense"
-                stroke="#f43f5e"
-                strokeWidth={3}
-                dot={{ r: 4, fill: "#f43f5e", strokeWidth: 2, stroke: "#fff" }}
-                activeDot={{ r: 6, strokeWidth: 0 }}
-                name="Expense"
               />
             </LineChart>
           </ResponsiveContainer>

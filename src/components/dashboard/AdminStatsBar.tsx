@@ -18,6 +18,7 @@ interface StatsBarProps {
     staff: number;
     attendance: { present: number; total: number; pendingClasses: number };
     feesMonth: number;
+    totalFees?: number;
   };
   isHoliday?: boolean;
 }
@@ -25,7 +26,7 @@ interface StatsBarProps {
 const renderSecondaryLabel = (label: string) => {
   if (!label) return null;
   
-  if (label.startsWith("+")) {
+  if (label.startsWith("+") || label.match(/^\d/)) {
     const parts = label.split(" ");
     const percentOrNum = parts[0];
     const rest = parts.slice(1).join(" ");
@@ -91,7 +92,7 @@ export const AdminStatsBar = ({ stats, isHoliday }: StatsBarProps) => {
       <AdminStatsCard
         title="Total Teachers"
         value={stats?.teachers || 0}
-        secondaryLabel="+3 Active faculty"
+        secondaryLabel={`${stats?.teachers || 0} Active faculty`}
         icon={GraduationCap}
         iconColor="text-indigo-600"
         iconBg="bg-indigo-50"
@@ -107,7 +108,7 @@ export const AdminStatsBar = ({ stats, isHoliday }: StatsBarProps) => {
       <AdminStatsCard
         title="Today's Attendance"
         value={isHoliday ? (new Date().getDay() === 0 ? "Sunday" : "Holiday") : `${attendancePercentage}%`}
-        secondaryLabel={isHoliday ? "School Closed" : `${stats?.attendance.present || 572} / ${stats?.attendance.total || 618} present`}
+        secondaryLabel={isHoliday ? "School Closed" : `${stats?.attendance.present ?? 0} / ${stats?.attendance.total ?? 0} present`}
         icon={ClipboardCheck}
         iconColor={isHoliday ? "text-orange-600" : "text-amber-600"}
         iconBg={isHoliday ? "bg-orange-50" : "bg-amber-50"}
@@ -115,7 +116,7 @@ export const AdminStatsBar = ({ stats, isHoliday }: StatsBarProps) => {
       <AdminStatsCard
         title="Fees Collected"
         value={`₹${(stats?.feesMonth || 0).toLocaleString()}`}
-        secondaryLabel="+12.5% Collected total"
+        secondaryLabel={`₹${(stats?.totalFees || 0).toLocaleString()} Collected total`}
         icon={IndianRupee}
         iconColor="text-rose-600"
         iconBg="bg-rose-50"

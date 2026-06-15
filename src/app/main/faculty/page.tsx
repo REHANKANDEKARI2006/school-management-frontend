@@ -332,19 +332,19 @@ export default function FacultyPage() {
     return Array.from(statuses).sort();
   }, [faculty, inviteStatuses]);
 
-  const statusVariant = (status: string) => {
+  const statusVariant = (status: string): "active" | "rejected" | "inactive" | "pending" | "outline" => {
     switch (status) {
-      case "Active": return "default";
+      case "Active": return "active";
       case "Suspended":
       case "Rusticated":
       case "Terminated":
       case "Banned":
-        return "destructive";
+        return "rejected";
       case "Inactive":
       case "Alumni":
       case "Retired":
       case "Resigned":
-        return "secondary";
+        return "inactive";
       default: return "outline";
     }
   };
@@ -376,9 +376,8 @@ export default function FacultyPage() {
               </Select>
               {canManage && (
                 <Button
-                  size="sm"
                   loading={addLoading}
-                  className="w-full sm:w-auto h-9 font-semibold"
+                  className="w-full sm:w-auto"
                   onClick={() => {
                     setMode("add");
                     setSelectedFaculty(null);
@@ -426,7 +425,7 @@ export default function FacultyPage() {
                   const isDeactivated = inviteInfo?.status === "deactivated" || f.user_status_id === 2;
 
                   return (
-                    <TableRow key={f.staff_id}>
+                    <TableRow key={f.staff_id} className="table-row-hover">
                       {/* Name + Avatar */}
                       <TableCell className="flex gap-3 items-center pl-4 sm:pl-6">
                         <Avatar className="h-10 w-10 shrink-0">
@@ -451,7 +450,7 @@ export default function FacultyPage() {
 
                       {/* Staff status */}
                       <TableCell>
-                        <Badge variant={isDeactivated ? "destructive" : statusVariant(f.status)}>
+                        <Badge variant={isDeactivated ? "deactivated" : statusVariant(f.status)}>
                           {isDeactivated ? "Deactivated" : f.status}
                         </Badge>
                       </TableCell>
@@ -466,10 +465,10 @@ export default function FacultyPage() {
                             <div className="flex flex-col gap-1">
                               {isExpired ? (
                                 <>
-                                  <span className="inline-flex items-center gap-1 text-xs font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-full px-2.5 py-0.5 w-fit">
+                                  <Badge variant="expired" className="gap-1 px-2.5 py-0.5 w-fit">
                                     <ShieldAlert className="h-3 w-3" />
                                     Invitation Expired
-                                  </span>
+                                  </Badge>
                                   {formatExpiry(inviteInfo.invite_token_expiry) && (
                                     <span className="text-[10px] text-muted-foreground pl-0.5">
                                       Expired on {formatExpiry(inviteInfo.invite_token_expiry)}
@@ -478,10 +477,10 @@ export default function FacultyPage() {
                                 </>
                               ) : (
                                 <>
-                                  <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5 w-fit">
+                                  <Badge variant="pending" className="gap-1 px-2.5 py-0.5 w-fit">
                                     <Clock className="h-3 w-3" />
                                     Invitation Pending
-                                  </span>
+                                  </Badge>
                                   {formatExpiry(inviteInfo.invite_token_expiry) && (
                                     <span className="text-[10px] text-muted-foreground pl-0.5">
                                       Expires {formatExpiry(inviteInfo.invite_token_expiry)}
@@ -491,22 +490,22 @@ export default function FacultyPage() {
                               )}
                               <button
                                 onClick={() => handleResend(f.email)}
-                                className="inline-flex items-center gap-1 text-[11px] text-indigo-600 hover:text-indigo-800 font-medium w-fit pl-0.5 hover:underline"
+                                className="inline-flex items-center gap-1 text-[11px] text-primary hover:text-primary/80 font-semibold w-fit pl-0.5 hover:underline"
                               >
                                 <RefreshCw className="h-3 w-3" />
                                 Resend invite
                               </button>
                             </div>
                           ) : inviteInfo?.status === "deactivated" ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-full px-2.5 py-0.5">
+                            <Badge variant="deactivated" className="gap-1 px-2.5 py-0.5">
                               <ShieldAlert className="h-3 w-3" />
                               Deactivated
-                            </span>
+                            </Badge>
                           ) : inviteInfo?.status === "active" ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5">
+                            <Badge variant="active" className="gap-1 px-2.5 py-0.5">
                               <CheckCircle2 className="h-3 w-3" />
                               Active
-                            </span>
+                            </Badge>
                           ) : (
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
@@ -517,7 +516,7 @@ export default function FacultyPage() {
                       <TableCell className="text-right pr-4 sm:pr-6">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -558,14 +557,15 @@ export default function FacultyPage() {
                                   <>
                                     <DropdownMenuSeparator />
                                     {isDeactivated ? (
-                                      <DropdownMenuItem 
-                                        className="text-emerald-600 font-bold" 
+                                      <DropdownMenuItem
+                                        className="text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50 font-semibold"
                                         onClick={() => handleReactivate(f.user_id)}
                                       >
                                         Reactivate
                                       </DropdownMenuItem>
                                     ) : (
-                                      <DropdownMenuItem 
+                                      <DropdownMenuItem
+                                        className="text-destructive focus:text-destructive focus:bg-destructive/10"
                                         onClick={() => handleDeactivate(f.user_id)}
                                       >
                                         Deactivate
@@ -576,7 +576,7 @@ export default function FacultyPage() {
 
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  className="text-red-600"
+                                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
                                   onClick={async () => {
                                     if (!confirm("Are you sure you want to delete this faculty?")) return;
                                     await axios.delete(`/api/faculty/${f.staff_id}`);

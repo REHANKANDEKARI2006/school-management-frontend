@@ -96,24 +96,24 @@ type StudentListItem = {
   avatar?: string;
 };
 
-const statusVariant = (status: string) => {
+const statusVariant = (status: string): "active" | "inactive" | "rejected" | "pending" | "cancelled" | "outline" => {
   switch (status) {
-    case "Active": return "default";
+    case "Active": return "active";
     case "Suspended":
     case "Rusticated":
     case "Terminated":
     case "Banned":
-      return "destructive";
+      return "rejected";
     case "Inactive":
     case "Alumni":
     case "Retired":
     case "Resigned":
-      return "secondary";
+      return "inactive";
     case "On Leave":
     case "Probation":
     case "Pending Approval":
     case "Transferred":
-      return "outline";
+      return "pending";
     default: return "outline";
   }
 };
@@ -371,23 +371,11 @@ export default function StudentsPage() {
       }
       setDocLoadingId(`${student.id}_idcard`);
       
-      const token = localStorage.getItem("accessToken");
-      if (!token) throw new Error("Authentication missing");
-
-      // Open in new tab or trigger download blob
-      // Using fetch to pass Auth Headers and handle the PDF stream
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/id-card/${student.id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const res = await axios.get(`/api/documents/id-card/${student.id}`, {
+        responseType: "blob"
       });
 
-      if (!res.ok) {
-        toast({ title: "Error", description: "Failed to generate ID Card", variant: "destructive" });
-        return;
-      }
-
-      const blob = await res.blob();
+      const blob = new Blob([res.data]);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -400,7 +388,7 @@ export default function StudentsPage() {
       toast({ title: "Success", description: "ID Card generated successfully." });
     } catch (err) {
       console.error(err);
-      toast({ title: "Error", description: "An error occurred.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to generate ID Card", variant: "destructive" });
     } finally {
       setDocLoadingId(null);
     }
@@ -414,23 +402,11 @@ export default function StudentsPage() {
       }
       setDocLoadingId(`${student.id}_bonafide`);
       
-      const token = localStorage.getItem("accessToken");
-      if (!token) throw new Error("Authentication missing");
-
-      // Open in new tab or trigger download blob
-      // Using fetch to pass Auth Headers and handle the PDF stream
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/bonafide/${student.id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const res = await axios.get(`/api/documents/bonafide/${student.id}`, {
+        responseType: "blob"
       });
 
-      if (!res.ok) {
-        toast({ title: "Error", description: "Failed to generate Bonafide Certificate", variant: "destructive" });
-        return;
-      }
-
-      const blob = await res.blob();
+      const blob = new Blob([res.data]);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -443,7 +419,7 @@ export default function StudentsPage() {
       toast({ title: "Success", description: "Bonafide Certificate generated successfully." });
     } catch (err) {
       console.error(err);
-      toast({ title: "Error", description: "An error occurred.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to generate Bonafide Certificate", variant: "destructive" });
     } finally {
       setDocLoadingId(null);
     }
@@ -452,12 +428,10 @@ export default function StudentsPage() {
   const generateMarkSheet = async (student: any) => {
     try {
       setDocLoadingId(`${student.id}_marksheet`);
-      const token = localStorage.getItem("accessToken");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/mark-sheet/${student.id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await axios.get(`/api/documents/mark-sheet/${student.id}`, {
+        responseType: "blob"
       });
-      if (!res.ok) throw new Error("Failed");
-      const blob = await res.blob();
+      const blob = new Blob([res.data]);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -465,6 +439,7 @@ export default function StudentsPage() {
       a.click();
       toast({ title: "Success", description: "Mark Sheet generated." });
     } catch (err) {
+      console.error(err);
       toast({ title: "Error", description: "Failed to generate mark sheet", variant: "destructive" });
     } finally {
       setDocLoadingId(null);
@@ -474,12 +449,10 @@ export default function StudentsPage() {
   const generateGeneralCertificate = async (student: any) => {
     try {
       setDocLoadingId(`${student.id}_gc`);
-      const token = localStorage.getItem("accessToken");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/general-certificate/${student.id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await axios.get(`/api/documents/general-certificate/${student.id}`, {
+        responseType: "blob"
       });
-      if (!res.ok) throw new Error("Failed");
-      const blob = await res.blob();
+      const blob = new Blob([res.data]);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -487,6 +460,7 @@ export default function StudentsPage() {
       a.click();
       toast({ title: "Success", description: "Certificate generated." });
     } catch (err) {
+      console.error(err);
       toast({ title: "Error", description: "Failed to generate certificate", variant: "destructive" });
     } finally {
       setDocLoadingId(null);
@@ -607,7 +581,7 @@ export default function StudentsPage() {
             </Select>
 
             {canManage && (
-              <Button size="sm" onClick={() => setAddOpen(true)} loading={addLoading} className="w-full sm:w-auto h-9 font-semibold">
+              <Button onClick={() => setAddOpen(true)} loading={addLoading} className="w-full sm:w-auto">
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Add Student
               </Button>
@@ -671,7 +645,7 @@ export default function StudentsPage() {
                   <TableCell className="text-right pr-4 sm:pr-6">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -695,7 +669,7 @@ export default function StudentsPage() {
 
                           {canDelete && (
                             <DropdownMenuItem
-                              className="text-red-600"
+                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
                               onClick={() => handleDelete(s.id)}
                             >
                               <Trash className="h-4 w-4 mr-2" />

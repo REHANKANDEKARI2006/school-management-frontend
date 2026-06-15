@@ -20,8 +20,14 @@ export function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchNotifications = async () => {
+    if (typeof window === "undefined") return;
+    const token = localStorage.getItem("accessToken");
+    if (!token) return; // Skip fetch if the user is not logged in
+
     try {
-      const res = await axios.get("/api/notifications/my-notifications");
+      const res = await axios.get("/api/notifications/my-notifications", {
+        skipGlobalErrorLogging: true,
+      } as any);
       if (res.data.success) {
         setNotifications(res.data.data);
         setUnreadCount(res.data.data.filter((n: any) => !n.is_read).length);

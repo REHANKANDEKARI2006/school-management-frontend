@@ -89,3 +89,30 @@ export const ALL_STAFF_GROUP = [
   ...ACADEMIC_STAFF_GROUP,
   ...OFFICE_STAFF_GROUP
 ];
+
+/** Human-friendly display names for each role ID */
+export const ROLE_DISPLAY_NAME: Record<number, string> = {
+  [ROLE.MASTER_ADMIN]: "Master Admin",
+  [ROLE.INSTITUTE_ADMIN]: "Institute Admin",
+  [ROLE.TEACHER]: "Teacher",
+  [ROLE.CLASS_TEACHER]: "Class Teacher",
+  [ROLE.MENTOR]: "Mentor",
+  [ROLE.LIBRARIAN]: "Librarian",
+  [ROLE.LAB_ASSISTANT]: "Lab Assistant",
+  [ROLE.SPORTS_MANAGER]: "Sports Manager",
+  [ROLE.COUNSELLOR]: "Counsellor",
+  [ROLE.PRINCIPAL]: "Principal",
+  [ROLE.VICE_PRINCIPAL]: "Vice Principal",
+  [ROLE.OFFICE_STAFF]: "Office Staff",
+  [ROLE.CASHIER]: "Cashier",
+  [ROLE.ACCOUNTANT]: "Accountant",
+  [ROLE.ADMISSION_OFFICER]: "Admission Officer",
+  [ROLE.MANAGEMENT_MEMBER]: "Management Member",
+  [ROLE.HR_MANAGER]: "HR Manager",
+  [ROLE.STUDENT]: "Student",
+  [ROLE.CLASS_REPRESENTATIVE]: "Class Representative",
+  [ROLE.GUARDIAN]: "Guardian",
+  [ROLE.IT_SUPPORT]: "IT Support",
+  [ROLE.LIBRARY_ASSISTANT]: "Library Assistant",
+  [ROLE.DEMO_USER]: "Demo User",
+};

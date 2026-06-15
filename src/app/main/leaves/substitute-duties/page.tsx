@@ -1,15 +1,15 @@
-
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
   Users, 
   Clock, 
-  MapPin, 
+  Calendar, 
   BookOpen,
   CheckCircle,
   XCircle,
-  AlertTriangle
+  AlertTriangle,
+  Loader2
 } from "lucide-react";
 import { 
   Card, 
@@ -24,51 +24,169 @@ import axios from "@/lib/axios";
 export default function SubstituteDutiesPage() {
   const [duties, setDuties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [resolving, setResolving] = useState(true);
+  const [staffId, setStaffId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
+  const [respondingId, setRespondingId] = useState<number | null>(null);
 
+  const showToast = useCallback((msg: string, type: "ok" | "err" = "ok") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4500);
+  }, []);
+
+  // ── Step 1: Resolve identity (staff_id) ─────────────────────────
   useEffect(() => {
-    // Simulating API fetch for substitute duties
-    const fetchDuties = async () => {
+    const resolveIdentity = async () => {
+      setResolving(true);
       try {
-        const staffId = localStorage.getItem("staff_id");
-        if (!staffId) return;
-        const res = await axios.get(`/api/leaves/duties/${staffId}`);
-        const data = res.data || [];
-        // Since backend might be empty, providing mockup for demonstration
-        setDuties(data.length > 0 ? data : [
-          {
-            sub_id: 101,
-            original_first_name: "John",
-            original_last_name: "Doe",
-            sub_date: "2026-04-18",
-            period_number: 2,
-            start_time: "09:50 AM",
-            class_name: "Grade 10 - A",
-            subject_name: "Mathematics",
-            status: 1
-          },
-          {
-            sub_id: 102,
-            original_first_name: "Sarah",
-            original_last_name: "Smith",
-            sub_date: "2026-04-18",
-            period_number: 4,
-            start_time: "11:30 AM",
-            class_name: "Grade 11 - B",
-            subject_name: "English Literature",
-            status: 1
+        let resolvedStaffId = localStorage.getItem("staff_id");
+        if (!resolvedStaffId) {
+          try {
+            const profileRes = await axios.get("/api/auth/profile");
+            if (profileRes.data?.data?.staff_id) {
+              resolvedStaffId = String(profileRes.data.data.staff_id);
+              localStorage.setItem("staff_id", resolvedStaffId);
+            }
+          } catch (err) {
+            console.error("Profile fetch failed:", err);
           }
-        ]);
-      } catch (err) {
-        console.error(err);
+        }
+        setStaffId(resolvedStaffId);
       } finally {
-        setLoading(false);
+        setResolving(false);
       }
     };
-    fetchDuties();
+    resolveIdentity();
   }, []);
+
+  // ── Step 2: Fetch and normalize duties ──────────────────────────
+  const fetchDuties = useCallback(async () => {
+    if (!staffId) return;
+    try {
+      const res = await axios.get(`/api/leaves/my-duties?staff_id=${staffId}`);
+      const data = res.data?.data || [];
+      const normalized = data.map((d: any) => ({
+        id: d.id,
+        sub_id: d.id,
+        original_first_name: d.original_first_name,
+        original_last_name: d.original_last_name,
+        sub_date: d.assignment_date ? d.assignment_date.slice(0, 10) : d.sub_date,
+        period_number: d.period_number,
+        start_time: d.period_start_time ? d.period_start_time.slice(0, 5) : d.start_time,
+        class_name: d.class_name || `Class ${d.class_id}`,
+        subject_name: d.subject || d.subject_name || 'Subject',
+        status: d.status === 'accepted' ? 2 : (d.status === 'declined' ? 3 : 1),
+        leave_application_id: d.leave_application_id
+      }));
+      setDuties(normalized);
+    } catch (err) {
+      console.error(err);
+      showToast("Could not load substitute duties.", "err");
+    } finally {
+      setLoading(false);
+    }
+  }, [staffId, showToast]);
+
+  // ── Step 3: SSE stream subscription ─────────────────────────────
+  useEffect(() => {
+    if (!staffId || resolving) return;
+    fetchDuties();
+
+    const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || `http://${hostname}:5000`;
+    let eventSource: EventSource | null = null;
+
+    function connectSSE() {
+      try {
+        eventSource = new EventSource(`${baseUrl}/api/leaves/stream`, { withCredentials: true });
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === "update") {
+              fetchDuties();
+            }
+          } catch (e) {
+            console.error("Error parsing SSE message:", e);
+          }
+        };
+        eventSource.onerror = (err) => {
+          console.warn("EventSource connection lost, browser is retrying automatically...");
+        };
+      } catch (err) {
+        console.error("SSE connection error:", err);
+        // Retry connection after 5 seconds
+        setTimeout(connectSSE, 5000);
+      }
+    }
+
+    connectSSE();
+
+    // Fallback interval
+    const iv = setInterval(fetchDuties, 30000);
+
+    return () => {
+      eventSource?.close();
+      clearInterval(iv);
+    };
+  }, [staffId, resolving, fetchDuties]);
+
+  // ── Step 4: Handle response submission ──────────────────────────
+  const handleDutyRespond = async (duty: any, action: "accept" | "decline") => {
+    if (!staffId) return;
+    setRespondingId(duty.id);
+    try {
+      await axios.patch("/api/leaves/duties/respond", {
+        leave_application_id: duty.leave_application_id,
+        substitute_staff_id: parseInt(staffId),
+        action,
+        assignment_id: duty.id,
+      });
+      showToast(action === "accept" ? "Duty accepted successfully!" : "Duty declined successfully.", "ok");
+      fetchDuties();
+    } catch (err: any) {
+      console.error(err);
+      showToast(err?.response?.data?.error || "Failed to submit response.", "err");
+    } finally {
+      setRespondingId(null);
+    }
+  };
+
+  if (resolving) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span>Resolving user identity…</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!staffId) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <AlertTriangle className="w-12 h-12 text-amber-500" />
+        <div className="text-center">
+          <p className="font-semibold text-lg">No staff record found for your account</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Please make sure you are logged in with a teacher account linked to a staff record.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-2xl text-sm font-medium flex items-center gap-3 transition-all
+          ${toast.type === "ok" ? "bg-emerald-600 text-white" : "bg-rose-600 text-white"}`}>
+          {toast.type === "ok" ? <CheckCircle className="w-4 h-4 shrink-0" /> : <XCircle className="w-4 h-4 shrink-0" />}
+          {toast.msg}
+        </div>
+      )}
+
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold">Substitute Duties</h1>
@@ -126,16 +244,26 @@ export default function SubstituteDutiesPage() {
 
                 {duty.status === 1 ? (
                   <div className="flex gap-2 pt-2">
-                    <Button variant="outline" size="sm" className="flex-1 text-rose-600 border-rose-100 hover:bg-rose-50 gap-2">
+                    <Button 
+                      variant="outline-danger" 
+                      className="flex-1 gap-2"
+                      disabled={respondingId === duty.id}
+                      onClick={() => handleDutyRespond(duty, "decline")}
+                    >
                       <XCircle className="w-4 h-4" /> Decline
                     </Button>
-                    <Button size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700 gap-2">
+                    <Button 
+                      variant="success" 
+                      className="flex-1 gap-2"
+                      disabled={respondingId === duty.id}
+                      onClick={() => handleDutyRespond(duty, "accept")}
+                    >
                       <CheckCircle className="w-4 h-4" /> Accept
                     </Button>
                   </div>
                 ) : (
                   <div className="pt-2">
-                    <Badge className={duty.status === 2 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}>
+                    <Badge variant={duty.status === 2 ? 'active' : 'rejected'}>
                       {duty.status === 2 ? 'Accepted' : 'Declined'}
                     </Badge>
                   </div>

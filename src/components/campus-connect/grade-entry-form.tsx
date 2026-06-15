@@ -14,7 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Check } from "lucide-react";
+import { Loader2, Check, Lock, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface GradeEntryFormProps {
   exam: any; // full exam row from DB
@@ -45,6 +46,8 @@ export function GradeEntryForm({ exam, onSave }: GradeEntryFormProps) {
   const [studentGrades, setStudentGrades] = React.useState<StudentGrade[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
+
+  const isLocked = exam?.marks_status === "Submitted";
 
   /* ---- Load students for the exam's class + existing grades ---- */
   React.useEffect(() => {
@@ -91,20 +94,60 @@ export function GradeEntryForm({ exam, onSave }: GradeEntryFormProps) {
   }, [exam]);
 
   const handleMarksChange = (studentId: number, value: string) => {
+    if (isLocked) return;
     setStudentGrades((prev) =>
       prev.map((sg) => {
         if (sg.student_id !== studentId) return sg;
+        
+        let valToSet = value;
         const numVal = parseFloat(value);
+        if (!isNaN(numVal)) {
+          if (numVal > exam.total_score) {
+            valToSet = String(exam.total_score);
+            toast({
+              title: "Value Capped",
+              description: `Marks cannot exceed the maximum score of ${exam.total_score}.`,
+              variant: "destructive",
+            });
+          } else if (numVal < 0) {
+            valToSet = "0";
+            toast({
+              title: "Value Capped",
+              description: "Marks cannot be less than 0.",
+              variant: "destructive",
+            });
+          }
+        }
+
+        const finalNumVal = parseFloat(valToSet);
         const grade =
-          !isNaN(numVal) && exam.total_score
-            ? calculateGrade(numVal, exam.total_score, exam.min_marks)
+          !isNaN(finalNumVal) && exam.total_score
+            ? calculateGrade(finalNumVal, exam.total_score, exam.min_marks)
             : "";
-        return { ...sg, marks_obtained: value, grade, saved: false };
+        return { ...sg, marks_obtained: valToSet, grade, saved: false };
       })
     );
   };
 
-  const handleSaveAll = async () => {
+  const handleSave = async (status: "Draft" | "Submitted") => {
+    if (isLocked) return;
+
+    // Validate scores do not exceed total_score or go below 0
+    const invalidGrades = studentGrades.filter((sg) => {
+      if (sg.marks_obtained === "") return false;
+      const val = parseFloat(sg.marks_obtained);
+      return isNaN(val) || val < 0 || val > exam.total_score;
+    });
+
+    if (invalidGrades.length > 0) {
+      toast({
+        title: "Validation Error",
+        description: `Marks must be between 0 and the max score of ${exam.total_score}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     const toSave = studentGrades.filter((sg) => sg.marks_obtained !== "");
     if (toSave.length === 0) {
       toast({ title: "No grades to save", description: "Enter at least one student's marks." });
@@ -119,6 +162,7 @@ export function GradeEntryForm({ exam, onSave }: GradeEntryFormProps) {
           marks_obtained: parseFloat(sg.marks_obtained),
           grade: sg.grade,
         })),
+        status,
       });
 
       setStudentGrades((prev) =>
@@ -128,8 +172,10 @@ export function GradeEntryForm({ exam, onSave }: GradeEntryFormProps) {
       );
 
       toast({
-        title: "Grades Saved",
-        description: `${toSave.length} grade(s) saved for ${exam.exam_name}.`,
+        title: status === "Submitted" ? "Grades Submitted" : "Draft Saved",
+        description: status === "Submitted"
+          ? `${toSave.length} grade(s) finalized and locked.`
+          : `${toSave.length} grade(s) saved as draft.`,
       });
       onSave();
     } catch (err: any) {
@@ -161,14 +207,31 @@ export function GradeEntryForm({ exam, onSave }: GradeEntryFormProps) {
 
   return (
     <div className="space-y-4">
-      <div className="text-sm text-muted-foreground">
-        Total Score: <span className="font-semibold text-foreground">{exam.total_score}</span>
-        {exam.min_marks && (
-          <> &nbsp;|&nbsp; Pass Marks: <span className="font-semibold text-foreground">{exam.min_marks}</span></>
+      {isLocked && (
+        <Alert variant="default" className="border-red-200 bg-red-50 text-red-950">
+          <Lock className="h-4 w-4 text-red-600" />
+          <AlertTitle className="font-semibold text-red-950">Marks Locked</AlertTitle>
+          <AlertDescription className="text-red-700 text-xs">
+            These grades have been finalized and locked. Editing is disabled unless an administrator unlocks this entry.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="text-sm text-muted-foreground flex justify-between items-center">
+        <div>
+          Total Score: <span className="font-semibold text-foreground">{exam.total_score}</span>
+          {exam.min_marks && (
+            <> &nbsp;|&nbsp; Pass Marks: <span className="font-semibold text-foreground">{exam.min_marks}</span></>
+          )}
+        </div>
+        {exam.marks_status && (
+          <Badge variant={exam.marks_status === "Submitted" ? "default" : "outline"} className={exam.marks_status === "Submitted" ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-100" : "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100"}>
+            Status: {exam.marks_status}
+          </Badge>
         )}
       </div>
 
-      <div className="max-h-[55vh] overflow-auto rounded-md border">
+      <div className="max-h-[50vh] overflow-auto rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -193,11 +256,12 @@ export function GradeEntryForm({ exam, onSave }: GradeEntryFormProps) {
                     className="text-center h-8"
                     min={0}
                     max={exam.total_score}
+                    disabled={isLocked}
                   />
                 </TableCell>
                 <TableCell className="text-center">
                   {sg.grade && (
-                    <Badge variant={sg.grade === "F" ? "destructive" : "default"}>
+                    <Badge variant={sg.grade === "F" || sg.grade === "Fail" ? "destructive" : "default"}>
                       {sg.grade}
                     </Badge>
                   )}
@@ -211,9 +275,26 @@ export function GradeEntryForm({ exam, onSave }: GradeEntryFormProps) {
         </Table>
       </div>
 
-      <Button onClick={handleSaveAll} className="w-full" loading={saving}>
-        Save All Grades
-      </Button>
+      {!isLocked && (
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => handleSave("Draft")}
+            disabled={saving}
+            className="flex-1"
+          >
+            Save as Draft
+          </Button>
+          <Button
+            onClick={() => handleSave("Submitted")}
+            disabled={saving}
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium flex items-center justify-center gap-2"
+          >
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+            Final Submit & Lock
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

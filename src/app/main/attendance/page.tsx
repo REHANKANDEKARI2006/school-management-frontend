@@ -520,14 +520,10 @@ export default function AttendanceDashboardPage() {
             </Popover>
 
             {!isTeacher && (
-              <Button 
-                onClick={() => router.push('/main/attendance/new')} 
+              <Button
+                onClick={() => router.push('/main/attendance/new')}
                 disabled={isHoliday}
-                className={`w-full xs:w-auto h-10 px-6 rounded-xl font-bold text-[11px] uppercase tracking-wider shadow-md shadow-indigo-100 ${
-                  isHoliday 
-                    ? 'bg-slate-300 hover:bg-slate-300 cursor-not-allowed opacity-50' 
-                    : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                }`}
+                className="w-full xs:w-auto h-10 px-6 rounded-xl font-bold text-[11px] uppercase tracking-wider"
               >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Take Attendance

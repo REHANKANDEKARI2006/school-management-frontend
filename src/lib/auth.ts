@@ -6,5 +6,5 @@ export const getRefreshToken = () =>
 
 export const logout = () => {
   localStorage.clear();
-  window.location.href = "/";
+  window.location.href = "/auth/login";
 };

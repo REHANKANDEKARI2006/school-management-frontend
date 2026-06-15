@@ -51,7 +51,7 @@ export function MaterialForm({ onSubmit, onCancel, material }: MaterialFormProps
   const { toast } = useToast();
   const [classes, setClasses] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
@@ -82,42 +82,76 @@ export function MaterialForm({ onSubmit, onCancel, material }: MaterialFormProps
   });
 
   const handleSubmit = async (values: Material) => {
-    if (!selectedFile && !material) {
-      toast({ title: "Error", description: "Please select a file to upload", variant: "destructive" });
+    if (selectedFiles.length === 0 && !material) {
+      toast({ title: "Error", description: "Please select at least one file to upload", variant: "destructive" });
       return;
     }
 
     setIsUploading(true);
     try {
-      let fileUrl = (material as any)?.file_path || "";
+      if (material) {
+        // Edit mode
+        let fileUrl = (material as any)?.file_path || "";
+        if (selectedFiles.length > 0) {
+          const fileUrls: string[] = [];
+          for (const file of selectedFiles) {
+            const formData = new FormData();
+            formData.append("file", file);
 
-      if (selectedFile) {
-        const formData = new FormData();
-        formData.append("file", selectedFile);
+            const uploadRes = await axios.post('/api/materials/upload', formData, {
+              headers: {
+                "Content-Type": "multipart/form-data"
+              }
+            });
 
-        const uploadRes = await axios.post('/api/materials/upload', formData, {
-          headers: {
-            // Unset the default JSON content-type so the browser can set the multipart boundary
-            "Content-Type": undefined
+            if (uploadRes.data.success) {
+              fileUrls.push(uploadRes.data.fileUrl);
+            } else {
+              throw new Error("File upload failed");
+            }
           }
-        });
-
-        if (uploadRes.data.success) {
-          fileUrl = uploadRes.data.fileUrl;
-        } else {
-          throw new Error("File upload failed");
+          fileUrl = fileUrls.join(",");
         }
+
+        const dataToSend = {
+          material_name: values.name,
+          subject_id: parseInt(values.subject_id),
+          class_id: parseInt(values.class_id),
+          upload_date: format(values.date, 'yyyy-MM-dd'),
+          file_path: fileUrl
+        };
+
+        await onSubmit(dataToSend as any);
+      } else {
+        // Create mode (can be multiple files)
+        const fileUrls: string[] = [];
+        for (const file of selectedFiles) {
+          const formData = new FormData();
+          formData.append("file", file);
+
+          const uploadRes = await axios.post('/api/materials/upload', formData, {
+            headers: {
+              "Content-Type": "multipart/form-data"
+            }
+          });
+
+          if (uploadRes.data.success) {
+            fileUrls.push(uploadRes.data.fileUrl);
+          } else {
+            throw new Error(`File upload failed for ${file.name}`);
+          }
+        }
+
+        const dataToSend = {
+          material_name: values.name,
+          subject_id: parseInt(values.subject_id),
+          class_id: parseInt(values.class_id),
+          upload_date: format(values.date, 'yyyy-MM-dd'),
+          file_path: fileUrls.join(",")
+        };
+
+        await onSubmit(dataToSend as any);
       }
-
-      const dataToSend = {
-        material_name: values.name,
-        subject_id: parseInt(values.subject_id),
-        class_id: parseInt(values.class_id),
-        upload_date: format(values.date, 'yyyy-MM-dd'),
-        file_path: fileUrl
-      };
-
-      onSubmit(dataToSend as any);
     } catch (err: any) {
       console.error("Failed to upload material", err);
       const errorMessage = err.response?.data?.message || err.message || "Failed to upload material";
@@ -194,16 +228,28 @@ export function MaterialForm({ onSubmit, onCancel, material }: MaterialFormProps
         </div>
 
         <FormItem className="space-y-2">
-          <FormLabel className="text-sm font-semibold text-slate-700">File</FormLabel>
+          <FormLabel className="text-sm font-semibold text-slate-700">Files</FormLabel>
           <FormControl>
             <div className="relative">
               <Input
                 type="file"
-                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                multiple={true}
+                onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
                 className="cursor-pointer"
               />
             </div>
           </FormControl>
+          {selectedFiles.length > 0 && (
+            <div className="mt-2 space-y-1 bg-slate-50 p-2.5 rounded-xl border border-slate-100 max-h-[120px] overflow-y-auto">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Selected Files ({selectedFiles.length}):</p>
+              {selectedFiles.map((f, idx) => (
+                <div key={idx} className="text-xs font-semibold text-slate-650 truncate flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 shrink-0" />
+                  {f.name} <span className="text-[10px] font-normal text-slate-400">({(f.size / (1024 * 1024)).toFixed(2)} MB)</span>
+                </div>
+              ))}
+            </div>
+          )}
         </FormItem>
 
         <FormField

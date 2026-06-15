@@ -23,7 +23,8 @@ import {
 import axios from "@/lib/axios";
 
 
-import { LogOut, User, Settings } from "lucide-react";
+import { LogOut, User, Settings, ShieldCheck } from "lucide-react";
+import { ROLE } from "@/config/roles";
 
 export function UserNav() {
   const router = useRouter();
@@ -117,6 +118,13 @@ export function UserNav() {
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </DropdownMenuItem>
+
+          {roleId === ROLE.MASTER_ADMIN && (
+            <DropdownMenuItem onClick={() => router.push("/main/user-management/admins")}>
+              <ShieldCheck className="mr-2 h-4 w-4" />
+              <span>Manage Admins</span>
+            </DropdownMenuItem>
+          )}
 
           {roleId !== 18 && (
             <DropdownMenuItem onClick={() => router.push("/main/profile/settings")}>

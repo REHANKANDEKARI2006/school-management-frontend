@@ -171,7 +171,7 @@ export default function ClassesPage() {
               </div>
               {isAdmin && (
                 <Button
-                  className="w-full sm:w-auto h-9 font-semibold"
+                  className="w-full sm:w-auto"
                   onClick={() => {
                     setSelectedClass(undefined);
                     setIsFormOpen(true);
@@ -258,7 +258,7 @@ export default function ClassesPage() {
                       <TableCell className="text-right pr-4 sm:pr-6">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button size="icon" variant="ghost" className="h-8 w-8">
+                            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-slate-100" onClick={(e) => e.stopPropagation()}>
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -285,7 +285,7 @@ export default function ClassesPage() {
                             </DropdownMenuItem>
 
                             <DropdownMenuItem
-                              className="text-red-600"
+                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 if (!confirm("Delete this class?")) return;

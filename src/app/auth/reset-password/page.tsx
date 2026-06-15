@@ -109,7 +109,7 @@ export default function ResetPasswordPage() {
           </div>
           <h1 className="text-2xl font-bold mb-3">Link Invalid</h1>
           <p className="text-muted-foreground text-sm mb-8 leading-relaxed">{error}</p>
-          <Button onClick={() => router.push("/")} className="w-full h-12 rounded-xl">
+          <Button onClick={() => router.push("/auth/login")} className="w-full h-12 rounded-xl">
             Back to Login
           </Button>
         </motion.div>
@@ -134,7 +134,7 @@ export default function ResetPasswordPage() {
           </p>
           <Button
             className="w-full h-12 rounded-xl text-base font-semibold"
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/auth/login")}
           >
             Go to Login
           </Button>

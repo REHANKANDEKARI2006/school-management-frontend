@@ -177,8 +177,43 @@ export default function TeacherLeavePage() {
   useEffect(() => {
     if (!staffId || resolving) return;
     fetchAll();
+
+    const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || `http://${hostname}:5000`;
+    let eventSource: EventSource | null = null;
+
+    function connectSSE() {
+      try {
+        eventSource = new EventSource(`${baseUrl}/api/leaves/stream`, { withCredentials: true });
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === "update") {
+              fetchAll();
+            }
+          } catch (e) {
+            console.error("Error parsing SSE message:", e);
+          }
+        };
+        eventSource.onerror = (err) => {
+          console.warn("EventSource connection lost, browser is retrying automatically...");
+        };
+      } catch (err) {
+        console.error("SSE connection error:", err);
+        // Retry connection after 5 seconds
+        setTimeout(connectSSE, 5000);
+      }
+    }
+
+    connectSSE();
+
+    // Fallback interval
     const interval = setInterval(fetchAll, 30000);
-    return () => clearInterval(interval);
+
+    return () => {
+      eventSource?.close();
+      clearInterval(interval);
+    };
   }, [staffId, resolving, fetchAll]);
 
   // ── Computed ──────────────────────────────────────────────────────────────
@@ -308,7 +343,7 @@ export default function TeacherLeavePage() {
         </div>
         <Button
           onClick={() => setApplyOpen(true)}
-          className="gap-2 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white shadow-lg"
+          className="gap-2"
         >
           <Plus className="w-4 h-4" /> Apply for Leave
         </Button>
@@ -449,7 +484,8 @@ export default function TeacherLeavePage() {
                           <div className="flex justify-end gap-2">
                             <Button
                               size="sm"
-                              className="h-7 gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
+                              variant="success"
+                              className="h-7 gap-1 text-xs"
                               onClick={() => handleDutyRespond(duty, "accept")}
                               disabled={isResponding}
                             >
@@ -457,8 +493,8 @@ export default function TeacherLeavePage() {
                               {isResponding ? "…" : "Accept"}
                             </Button>
                             <Button
-                              size="sm" variant="outline"
-                              className="h-7 gap-1 border-rose-300 text-rose-600 hover:bg-rose-50 text-xs"
+                              size="sm" variant="outline-danger"
+                              className="h-7 gap-1 text-xs"
                               onClick={() => handleDutyRespond(duty, "decline")}
                               disabled={isResponding}
                             >
@@ -547,8 +583,8 @@ export default function TeacherLeavePage() {
                           </Button>
                           {app.status === "pending" && (
                             <Button
-                              variant="ghost" size="sm"
-                              className="h-7 gap-1 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                              variant="ghost-danger" size="sm"
+                              className="h-7 gap-1 text-xs"
                               onClick={() => { setSelectedLeave(app); setCancelOpen(true); }}
                             >
                               <X className="w-3 h-3" /> Cancel
@@ -681,7 +717,6 @@ export default function TeacherLeavePage() {
             <Button
               onClick={handleApply}
               disabled={submitting}
-              className="bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white"
             >
               {submitting && <RefreshCw className="w-4 h-4 animate-spin mr-2" />}
               Submit Application

@@ -10,6 +10,8 @@ import { HeaderLogo } from "@/components/campus-connect/logo";
 import { MainNav } from "@/components/campus-connect/main-nav";
 import { UserNav } from "@/components/campus-connect/user-nav";
 import { NotificationBell } from "@/components/campus-connect/notification-bell";
+import { SchoolSwitcher } from "@/components/campus-connect/school-switcher";
+
 
 import {
   SidebarProvider,
@@ -39,11 +41,10 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
     const token = localStorage.getItem("accessToken");
 
     if (!token) {
-      router.replace("/");
+      router.replace("/auth/login");
       return;
     }
 
-    // auth checked → allow render
     setCheckedAuth(true);
   }, [router]);
 
@@ -86,12 +87,13 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
                 <SidebarTrigger className="md:hidden" />
                 <SearchInput />
                 <div className="ml-auto flex items-center gap-2">
+                   <SchoolSwitcher />
                    <NotificationBell />
                    <UserNav />
                 </div>
               </header>
 
-              <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+              <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F8FAFC]">
                 {children}
               </main>
             </div>

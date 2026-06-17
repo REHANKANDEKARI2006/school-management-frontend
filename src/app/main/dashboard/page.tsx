@@ -40,7 +40,7 @@ const chartConfig = {
   },
 };
 
-import { ROLE, ADMIN_GROUP, TEACHING_STAFF_GROUP, STUDENT_PARENT_GROUP, RoleId } from "@/config/roles";
+import { ROLE, ADMIN_GROUP, TEACHING_STAFF_GROUP, STUDENT_PARENT_GROUP, OFFICE_STAFF_GROUP, ACADEMIC_STAFF_GROUP, RoleId } from "@/config/roles";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { TeacherDashboard } from "@/components/dashboard/TeacherDashboard";
 import { StudentDashboard } from "@/components/dashboard/StudentDashboard";
@@ -82,7 +82,7 @@ export default function Dashboard() {
   }
 
   return (
-    <RouteGuard allowedRoles={[...ADMIN_GROUP, ...TEACHING_STAFF_GROUP, ...STUDENT_PARENT_GROUP]}>
+    <RouteGuard allowedRoles={[...ADMIN_GROUP, ...TEACHING_STAFF_GROUP, ...STUDENT_PARENT_GROUP, ...OFFICE_STAFF_GROUP, ...ACADEMIC_STAFF_GROUP]}>
       <div className="flex flex-col gap-4">
         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
           {canSeeStats && (

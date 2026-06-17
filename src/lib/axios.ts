@@ -27,7 +27,17 @@ instance.interceptors.request.use(
       // Dynamically use the hostname of the browser. 
       // If viewed on phone via 172.x.x.x, the API will hit 172.x.x.x:5000 automatically.
       const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
-      config.baseURL = `http://${hostname}:5000`;
+      const isLocal = hostname === "localhost" || 
+                      hostname === "127.0.0.1" || 
+                      hostname.startsWith("192.168.") || 
+                      hostname.startsWith("10.") || 
+                      hostname.startsWith("172.");
+      
+      if (isLocal) {
+        config.baseURL = `http://${hostname}:5000`;
+      } else {
+        config.baseURL = "https://school-management-backend-production-3a75.up.railway.app";
+      }
     }
 
     if (typeof window !== "undefined") {
@@ -133,9 +143,17 @@ instance.interceptors.response.use(
         try {
           const hostname = window.location.hostname;
           const envUrl = process.env.NEXT_PUBLIC_API_URL;
+          const isLocal = hostname === "localhost" || 
+                          hostname === "127.0.0.1" || 
+                          hostname.startsWith("192.168.") || 
+                          hostname.startsWith("10.") || 
+                          hostname.startsWith("172.");
           const API_URL = envUrl && envUrl.includes('://')
             ? (envUrl.endsWith('/api') ? envUrl.slice(0, -4) : envUrl)
-            : `http://${hostname}:5000`;
+            : (isLocal 
+                ? `http://${hostname}:5000` 
+                : "https://school-management-backend-production-3a75.up.railway.app"
+              );
           const res = await axios.post(`${API_URL}/api/auth/refresh-token`, {
             refreshToken,
           });

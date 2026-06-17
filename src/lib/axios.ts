@@ -58,8 +58,12 @@ instance.interceptors.request.use(
       }
 
       // Trigger global loader for process executions (mutations)
-      if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
-        useGlobalLoaderStore.getState().increment();
+      try {
+        if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
+          useGlobalLoaderStore.getState().increment();
+        }
+      } catch (storeErr) {
+        console.error("Global loader increment error:", storeErr);
       }
     }
     return config;
@@ -93,8 +97,12 @@ const processQueue = (error: any, token: string | null = null) => {
 
 instance.interceptors.response.use(
   (response) => {
-    if (typeof window !== "undefined" && ['post', 'put', 'patch', 'delete'].includes(response.config?.method?.toLowerCase() || '')) {
-      useGlobalLoaderStore.getState().decrement();
+    try {
+      if (typeof window !== "undefined" && ['post', 'put', 'patch', 'delete'].includes(response.config?.method?.toLowerCase() || '')) {
+        useGlobalLoaderStore.getState().decrement();
+      }
+    } catch (storeErr) {
+      console.error("Global loader decrement error:", storeErr);
     }
     return response;
   },
@@ -203,8 +211,12 @@ instance.interceptors.response.use(
       console.error("Axios Error Detail:", JSON.stringify(errorDetail, null, 2));
     }
 
-    if (typeof window !== "undefined" && ['post', 'put', 'patch', 'delete'].includes(originalRequest?.method?.toLowerCase() || '')) {
-      useGlobalLoaderStore.getState().decrement();
+    try {
+      if (typeof window !== "undefined" && ['post', 'put', 'patch', 'delete'].includes(originalRequest?.method?.toLowerCase() || '')) {
+        useGlobalLoaderStore.getState().decrement();
+      }
+    } catch (storeErr) {
+      console.error("Global loader decrement error:", storeErr);
     }
 
     return Promise.reject(error);

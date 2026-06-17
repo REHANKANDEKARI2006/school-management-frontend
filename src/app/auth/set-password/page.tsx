@@ -70,8 +70,14 @@ function SetPasswordForm() {
 
   // ── Submit ─────────────────────────────────────────────────────────────
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSubmit(e);
+    }
+  };
+
+  const handleSubmit = async (e?: React.SyntheticEvent) => {
+    if (e) e.preventDefault();
     setFormError("");
 
     if (password !== confirmPassword) {
@@ -90,6 +96,9 @@ function SetPasswordForm() {
       const res = await axios.post("/api/auth/set-password", { token, password });
       if (res.data.success) {
         setSuccess(true);
+        setTimeout(() => {
+          router.push("/auth/login?activated=true");
+        }, 3000);
       }
     } catch (err: any) {
       setFormError(err?.response?.data?.message || "Failed to set password. Please try again.");
@@ -153,17 +162,26 @@ function SetPasswordForm() {
             Your password has been set successfully.
           </p>
           {userEmail && (
-            <p className="text-sm font-medium text-slate-700 bg-slate-100 rounded-lg px-4 py-2 inline-block mb-6">
+            <p className="text-sm font-medium text-slate-700 bg-slate-100 rounded-lg px-4 py-2 inline-block mb-4">
               {userEmail}
             </p>
           )}
-          <p className="text-muted-foreground text-sm mb-8">
-            You can now log in using your email and the password you just created.
+          <p className="text-muted-foreground text-sm mb-6">
+            You will be redirected to the login page in a few seconds.
           </p>
+
+          <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden mb-8">
+            <motion.div
+              initial={{ width: "0%" }}
+              animate={{ width: "100%" }}
+              transition={{ duration: 3, ease: "linear" }}
+              className="h-full bg-primary"
+            />
+          </div>
 
           <Button
             className="w-full h-12 rounded-xl gap-2 text-base font-semibold"
-            onClick={() => router.push("/auth/login")}
+            onClick={() => router.push("/auth/login?activated=true")}
           >
             Go to Login
             <ArrowRight className="h-4 w-4" />
@@ -197,7 +215,7 @@ function SetPasswordForm() {
         </div>
 
         {/* Form card */}
-        <form onSubmit={handleSubmit} className="bg-card border p-8 rounded-2xl shadow-xl space-y-5">
+        <div className="bg-card border p-8 rounded-2xl shadow-xl space-y-5">
 
           {/* New Password */}
           <div className="space-y-2">
@@ -213,6 +231,7 @@ function SetPasswordForm() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="pl-9 pr-10 h-11"
                 placeholder="Create a strong password"
                 required
@@ -243,6 +262,7 @@ function SetPasswordForm() {
                 type={showConfirm ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className={`pl-9 pr-10 h-11 transition-colors ${
                   passwordsMismatch
                     ? "border-red-400 focus:ring-red-300"
@@ -327,7 +347,8 @@ function SetPasswordForm() {
 
           {/* Submit button */}
           <Button
-            type="submit"
+            type="button"
+            onClick={() => handleSubmit()}
             className="w-full h-12 rounded-xl text-base font-bold gap-2"
             disabled={submitting || passwordsMismatch}
           >
@@ -348,7 +369,7 @@ function SetPasswordForm() {
               Sign in
             </button>
           </p>
-        </form>
+        </div>
       </motion.div>
     </div>
   );

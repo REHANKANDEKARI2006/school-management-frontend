@@ -31,6 +31,10 @@ export default function LoginPage() {
         alert("Your account is deactivated!");
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
+      } else if (params.get("activated") === "true") {
+        alert("Account activated successfully! You can now log in.");
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
       }
     }
   }, []);

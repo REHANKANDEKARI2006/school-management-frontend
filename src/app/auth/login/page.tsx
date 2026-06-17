@@ -43,8 +43,14 @@ export default function LoginPage() {
     (image) => image.id === "login-background"
   );
 
-  const handleLogin = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleLogin();
+    }
+  };
+
+  const handleLogin = async (e?: React.FormEvent | React.KeyboardEvent) => {
+    if (e && 'preventDefault' in e) e.preventDefault();
     
     if (!identifier || !password) {
       alert("Please enter your credentials.");
@@ -53,13 +59,20 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
+      console.log("=== LOGIN FLOW START ===");
+      console.log("Browser Location Hostname:", typeof window !== "undefined" ? window.location.hostname : "unknown");
+      console.log("Identifier/Email:", identifier);
+      console.log("Axios resolved baseURL:", axios.defaults.baseURL);
 
       const res = await axios.post("/api/auth/login", {
-        email: identifier,
+        email: identifier.trim(),
         password,
       });
 
+      console.log("Login API success response received:", res.status, res.data);
+
       if (!res.data?.success) {
+        console.error("Login API returned success: false", res.data);
         alert(res.data?.message || "Login failed");
         return;
       }
@@ -70,6 +83,7 @@ export default function LoginPage() {
         localStorage.removeItem("rememberedId");
       }
 
+      console.log("Setting localStorage/sessionStorage auth tokens...");
       localStorage.setItem("isAuthenticated", "true");
       sessionStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("accessToken", res.data.accessToken);
@@ -83,11 +97,29 @@ export default function LoginPage() {
         localStorage.setItem("class_id", String(res.data.student_details.class_id));
       }
 
+      console.log("Redirecting user to /main/dashboard...");
       router.push("/main/dashboard");
     } catch (error: any) {
-      alert(error?.response?.data?.message || "Invalid credentials. Please try again.");
+      console.error("=== LOGIN EXCEPTION CAUGHT ===");
+      console.error("Error Message:", error.message);
+      if (error.response) {
+        console.error("HTTP Status:", error.response.status);
+        console.error("Response Headers:", error.response.headers);
+        console.error("Response Data:", error.response.data);
+      } else if (error.request) {
+        console.error("No HTTP response received. Request details:", error.request);
+      } else {
+        console.error("Axios setup/config error:", error.config);
+      }
+      console.error("Full Error Object:", error);
+
+      const displayMessage = error?.response?.data?.message || 
+                             error?.response?.data?.error || 
+                             (error.message ? `Connection error: ${error.message}` : "Invalid credentials. Please try again.");
+      alert(displayMessage);
     } finally {
       setLoading(false);
+      console.log("=== LOGIN FLOW END ===");
     }
   };
 
@@ -111,7 +143,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          <div className="space-y-6">
             <div className="space-y-5">
               {/* Identity Field */}
               <div className="space-y-2">
@@ -128,6 +160,7 @@ export default function LoginPage() {
                     placeholder="Enter your student ID or email"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     className="h-12 pl-11 bg-white border-slate-200 shadow-sm focus:border-primary focus:ring-primary/10 transition-all rounded-xl"
                   />
                 </div>
@@ -155,6 +188,7 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     className="h-12 pl-11 pr-11 bg-white border-slate-200 shadow-sm focus:border-primary focus:ring-primary/10 transition-all rounded-xl"
                     placeholder="Enter your password"
                   />
@@ -185,13 +219,14 @@ export default function LoginPage() {
             </div>
 
             <Button
-              type="submit"
+              type="button"
+              onClick={() => handleLogin()}
               className="w-full h-12 text-base font-bold bg-primary hover:bg-primary/90 text-white rounded-xl shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
               disabled={loading}
             >
               {loading ? "Logging in..." : "Login"}
             </Button>
-          </form>
+          </div>
 
           <p className="text-center text-sm text-slate-500">
             Having trouble logging in? <Link href="#" className="text-primary font-semibold hover:underline">Contact Support</Link>

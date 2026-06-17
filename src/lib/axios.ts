@@ -43,6 +43,7 @@ instance.interceptors.request.use(
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("accessToken");
       if (token) {
+        config.headers = config.headers || {};
         config.headers.Authorization = `Bearer ${token}`;
         try {
           const parts = token.split(".");
@@ -69,8 +70,12 @@ instance.interceptors.request.use(
     return config;
   },
   (error) => {
-    if (typeof window !== "undefined" && ['post', 'put', 'patch', 'delete'].includes(error.config?.method?.toLowerCase() || '')) {
-      useGlobalLoaderStore.getState().decrement();
+    try {
+      if (typeof window !== "undefined" && ['post', 'put', 'patch', 'delete'].includes(error.config?.method?.toLowerCase() || '')) {
+        useGlobalLoaderStore.getState().decrement();
+      }
+    } catch (storeErr) {
+      console.error("Global loader decrement error in request interceptor:", storeErr);
     }
     return Promise.reject(error);
   }

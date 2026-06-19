@@ -87,14 +87,19 @@ export function UserNav() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-offset-background transition-all hover:ring-2 hover:ring-primary/20">
+        <Button
+          variant="ghost"
+          className="relative h-9 w-9 rounded-full p-0 ring-offset-background transition-all hover:ring-2 hover:ring-primary/20 focus-visible:ring-2 focus-visible:ring-primary/30"
+        >
           <Avatar className="h-9 w-9 border-2 border-background shadow-sm">
             <AvatarImage
-              src={profileUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`}
+              src={profileUrl ?? undefined}
               alt={name}
               className="object-cover"
+              crossOrigin="anonymous"
+              referrerPolicy="no-referrer"
             />
-            <AvatarFallback className="bg-primary/10 text-primary font-bold">
+            <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
               {initials}
             </AvatarFallback>
           </Avatar>

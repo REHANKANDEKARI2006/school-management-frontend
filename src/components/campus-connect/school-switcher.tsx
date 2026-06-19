@@ -187,13 +187,14 @@ export function SchoolSwitcher() {
           <Button
             variant="outline"
             size="sm"
-            className="h-9 gap-2 px-3 border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-primary/20"
+            className="h-9 gap-1.5 px-2.5 border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-primary/20"
           >
-            <School size={16} className="text-primary" />
-            <span className="max-w-[150px] truncate">
+            <School size={16} className="text-primary shrink-0" />
+            {/* Show school name only on sm+ screens */}
+            <span className="hidden sm:inline max-w-[130px] truncate">
               {activeSchool?.name || "Select School"}
             </span>
-            <ChevronDown size={14} className="text-slate-400" />
+            <ChevronDown size={14} className="text-slate-400 hidden sm:inline" />
           </Button>
         </DropdownMenuTrigger>
 

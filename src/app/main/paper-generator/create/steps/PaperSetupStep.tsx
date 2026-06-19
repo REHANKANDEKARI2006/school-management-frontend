@@ -155,6 +155,42 @@ function normalizeClassName(raw: string | null | undefined): string {
   return trimmed;
 }
 
+export interface ParsedSection {
+  title: string;
+  group: string;
+  name: string;
+}
+
+export function parseSectionName(raw: string): ParsedSection {
+  if (!raw) {
+    return { title: "", group: "", name: "" };
+  }
+  const parts = raw.split("///");
+  if (parts.length >= 3) {
+    return {
+      title: parts[0] || "",
+      group: parts[1] || "",
+      name: parts[2] || "",
+    };
+  }
+  if (parts.length === 2) {
+    return {
+      title: parts[0] || "",
+      group: parts[1] || "",
+      name: "",
+    };
+  }
+  return {
+    title: raw,
+    group: "",
+    name: "",
+  };
+}
+
+export function serializeSectionName(parsed: ParsedSection): string {
+  return `${parsed.title.trim()}///${parsed.group.trim()}///${parsed.name.trim()}`;
+}
+
 export default function PaperSetupStep({ paper, onChange }: Props) {
   const [exams, setExams] = useState<any[]>([]);
 
@@ -219,9 +255,9 @@ export default function PaperSetupStep({ paper, onChange }: Props) {
     if (paper.sections.length === 0) {
       onChange({
         sections: [
-          { section_id: null, section_name: "SECTION A", section_order: 1, total_section_marks: 0, questions: [] },
-          { section_id: null, section_name: "SECTION B", section_order: 2, total_section_marks: 0, questions: [] },
-          { section_id: null, section_name: "SECTION C", section_order: 3, total_section_marks: 0, questions: [] }
+          { section_id: null, section_name: "SECTION A///Section - A///", section_order: 1, total_section_marks: 0, questions: [] },
+          { section_id: null, section_name: "SECTION B///Section - B///", section_order: 2, total_section_marks: 0, questions: [] },
+          { section_id: null, section_name: "SECTION C///Section - C///", section_order: 3, total_section_marks: 0, questions: [] }
         ]
       });
     }
@@ -382,68 +418,105 @@ export default function PaperSetupStep({ paper, onChange }: Props) {
         </div>
       </div>
 
-      {/* ── Section 2: Board Paper Sections ── */}
+      {/* ── Section 2: Main Question Headings ── */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">
-            Board Paper Sections
+            Main Question Headings
           </h2>
           <span className="text-xs font-semibold text-slate-500">
-            {paper.sections.length} sections
+            {paper.sections.length} headings
           </span>
         </div>
         <p className="text-xs text-slate-500 mb-6">
-          Define the sections of your board paper (e.g. SECTION A, SECTION B). Questions can be assigned to these sections in Step 2.
+          Define the main question headings of your paper (e.g. Q.1 Multiple Choice Questions, Q.2 Fill in the Blanks).
         </p>
 
         {/* Sections List */}
         <div className="space-y-3.5 mb-6">
-          {paper.sections.map((sec, idx) => (
-            <div key={idx} className="flex items-center gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
-              <span className="text-xs font-black text-slate-400 w-6">#{idx + 1}</span>
-              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  value={sec.section_name}
-                  onChange={e => {
-                    const newSecs = [...paper.sections];
-                    newSecs[idx].section_name = e.target.value;
+          {paper.sections.map((sec, idx) => {
+            const parsed = parseSectionName(sec.section_name);
+            return (
+              <div key={idx} className="flex flex-col md:flex-row items-start md:items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <span className="text-xs font-black text-slate-400 w-6">#{idx + 1}</span>
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Question Heading</span>
+                    <input
+                      type="text"
+                      value={parsed.title}
+                      onChange={e => {
+                        const newSecs = [...paper.sections];
+                        const newParsed = { ...parsed, title: e.target.value };
+                        newSecs[idx].section_name = serializeSectionName(newParsed);
+                        onChange({ sections: newSecs });
+                      }}
+                      className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3]"
+                      placeholder="e.g. Multiple Choice Questions."
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Section Group (Optional)</span>
+                    <input
+                      type="text"
+                      value={parsed.group}
+                      onChange={e => {
+                        const newSecs = [...paper.sections];
+                        const newParsed = { ...parsed, group: e.target.value };
+                        newSecs[idx].section_name = serializeSectionName(newParsed);
+                        onChange({ sections: newSecs });
+                      }}
+                      className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3]"
+                      placeholder="e.g. Section - A"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Section Name (Optional)</span>
+                    <input
+                      type="text"
+                      value={parsed.name}
+                      onChange={e => {
+                        const newSecs = [...paper.sections];
+                        const newParsed = { ...parsed, name: e.target.value };
+                        newSecs[idx].section_name = serializeSectionName(newParsed);
+                        onChange({ sections: newSecs });
+                      }}
+                      className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3]"
+                      placeholder="e.g. Grammar"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newSecs = paper.sections.filter((_, i) => i !== idx);
                     onChange({ sections: newSecs });
                   }}
-                  className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3]"
-                  placeholder="e.g. SECTION A"
-                />
+                  className="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 px-3 py-2 rounded-lg border border-red-100 self-end md:self-center"
+                >
+                  Delete
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const newSecs = paper.sections.filter((_, i) => i !== idx);
-                  onChange({ sections: newSecs });
-                }}
-                className="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 px-3 py-2 rounded-lg border border-red-100"
-              >
-                Delete
-              </button>
-            </div>
-          ))}
+            );
+          })}
 
           {paper.sections.length === 0 && (
             <div className="text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-              <p className="text-xs text-slate-500 mb-2">No sections defined yet</p>
+              <p className="text-xs text-slate-500 mb-2">No headings defined yet</p>
               <button
                 type="button"
                 onClick={() => {
                   onChange({
                     sections: [
-                      { section_id: null, section_name: "SECTION A", section_order: 1, total_section_marks: 0, questions: [] },
-                      { section_id: null, section_name: "SECTION B", section_order: 2, total_section_marks: 0, questions: [] },
-                      { section_id: null, section_name: "SECTION C", section_order: 3, total_section_marks: 0, questions: [] }
+                      { section_id: null, section_name: "SECTION A///Section - A///", section_order: 1, total_section_marks: 0, questions: [] },
+                      { section_id: null, section_name: "SECTION B///Section - B///", section_order: 2, total_section_marks: 0, questions: [] },
+                      { section_id: null, section_name: "SECTION C///Section - C///", section_order: 3, total_section_marks: 0, questions: [] }
                     ]
                   });
                 }}
                 className="text-xs font-bold text-[#3335e3] hover:underline"
               >
-                Initialize Default Sections (A, B, C)
+                Initialize Default Question Headings (A, B, C)
               </button>
             </div>
           )}
@@ -459,7 +532,7 @@ export default function PaperSetupStep({ paper, onChange }: Props) {
                 ...paper.sections,
                 {
                   section_id: null,
-                  section_name: `SECTION ${nextLetter}`,
+                  section_name: `SECTION ${nextLetter}///Section - ${nextLetter}///`,
                   section_order: paper.sections.length + 1,
                   total_section_marks: 0,
                   questions: [],
@@ -469,7 +542,7 @@ export default function PaperSetupStep({ paper, onChange }: Props) {
           }}
           className="flex items-center justify-center gap-2 h-10 px-4 border border-dashed border-slate-300 rounded-lg text-xs font-bold text-slate-700 hover:border-[#3335e3] hover:text-[#3335e3] transition-all bg-white"
         >
-          + Add Board Section
+          + Add Main Question Heading
         </button>
       </div>
 

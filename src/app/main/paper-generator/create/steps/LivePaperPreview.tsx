@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { PaperState, getAllQuestions } from "../page";
-import { BOARD_QUESTION_TYPES } from "./PaperSetupStep";
+import { BOARD_QUESTION_TYPES, parseSectionName } from "./PaperSetupStep";
 import axios from "@/lib/axios";
 import { formatDate } from "@/lib/utils";
 
@@ -59,13 +59,26 @@ const getActivityHeading = (act: any): string => {
   return lookup[act.type] || act.type || "Activity";
 };
 
+const getSubQuestionObj = (subQ: any): { text: string; marks: number; answer?: string } => {
+  if (typeof subQ === "string") {
+    return { text: subQ, marks: 1, answer: "" };
+  }
+  return {
+    text: subQ?.text || "",
+    marks: typeof subQ?.marks === "number" ? subQ.marks : 1,
+    answer: subQ?.answer || ""
+  };
+};
+
 interface Props {
   paper: PaperState;
   fullSize?: boolean;
+  showAnswers?: boolean;
 }
 
-export default function LivePaperPreview({ paper, fullSize = false }: Props) {
+export default function LivePaperPreview({ paper, fullSize = false, showAnswers = false }: Props) {
   const [school, setSchool] = useState<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     axios.get("/api/school-profile").then(res => {
@@ -205,7 +218,8 @@ export default function LivePaperPreview({ paper, fullSize = false }: Props) {
     .forEach((sec, secIdx) => {
       globalQNum++;
       const currentQNum = globalQNum;
-      const secTitle = getSectionTitle(sec.section_name);
+      const parsed = parseSectionName(sec.section_name);
+      const secTitle = getSectionTitle(parsed.title);
       const secMarks = sec.questions.reduce((sum, q) => sum + (q.marks || 0), 0);
 
       // Section Header block
@@ -213,14 +227,30 @@ export default function LivePaperPreview({ paper, fullSize = false }: Props) {
         type: "section_header",
         key: `sec-${sec.section_id || secIdx}`,
         render: () => (
-          <div className="flex justify-between items-baseline pb-0.5 mb-1.5 gap-8 w-full pt-3">
-            <span className="font-black text-[10.5pt] text-slate-900 tracking-wide flex-1 min-w-0">
-              Q.{currentQNum} {secTitle}
-            </span>
-            <div className="w-[70px] text-right shrink-0">
-              <span className="text-[10pt] font-black text-slate-800 whitespace-nowrap">
-                [{secMarks} Marks]
+          <div className="w-full pt-3">
+            {(parsed.group || parsed.name) && (
+              <div className="w-full text-center mb-2 flex flex-col items-center justify-center">
+                {parsed.group && (
+                  <span className="font-bold text-[11pt] text-slate-900 block w-full text-center">
+                    {parsed.group}
+                  </span>
+                )}
+                {parsed.name && (
+                  <span className="font-bold text-[10pt] text-slate-900 block w-full text-center mt-0.5">
+                    {parsed.name}
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="flex justify-between items-baseline pb-0.5 mb-1.5 gap-8 w-full">
+              <span className="font-black text-[10.5pt] text-slate-900 tracking-wide flex-1 min-w-0">
+                Q.{currentQNum} {secTitle}
               </span>
+              <div className="w-[70px] text-right shrink-0">
+                <span className="text-[10pt] font-black text-slate-800 whitespace-nowrap">
+                  [{secMarks} Marks]
+                </span>
+              </div>
             </div>
           </div>
         )
@@ -240,7 +270,11 @@ export default function LivePaperPreview({ paper, fullSize = false }: Props) {
                   <div className="flex-1 min-w-0">
                     <div className="text-[10pt] font-normal text-slate-900 whitespace-pre-wrap" style={{ lineHeight: 1.2 }}>
                       {q.question_text ? (
-                        <span dangerouslySetInnerHTML={{ __html: q.question_text }} />
+                        <span dangerouslySetInnerHTML={{
+                          __html: q.question_type === "PASSAGE_BASED"
+                            ? q.question_text.replace(/^\s*\([A-Z]\)\s*/i, "")
+                            : q.question_text
+                        }} />
                       ) : q.question_type !== "MATCH_FOLLOWING" ? (
                         <span>…</span>
                       ) : null}
@@ -274,6 +308,23 @@ export default function LivePaperPreview({ paper, fullSize = false }: Props) {
                         ))}
                       </div>
                     )}
+                    {q.question_type === "MCQ" && showAnswers && (q.answer_key || q.question_data?.correct) && (() => {
+                      const ans = q.answer_key || q.question_data?.correct;
+                      const optIdx = ans.charCodeAt(0) - 65;
+                      const optText = q.question_data?.options?.[optIdx];
+                      return (
+                        <div className="text-[9.5pt] font-bold text-green-700 mt-1.5 break-inside-avoid" style={{ color: "#15803d" }}>
+                          Answer: {ans}{optText ? `) ${optText}` : ""}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Fill Blanks */}
+                    {q.question_type === "FILL_BLANKS" && showAnswers && (q.answer_key || q.question_data?.correct_answer) && (
+                      <div className="text-[9.5pt] font-bold text-green-700 mt-1 break-inside-avoid" style={{ color: "#15803d" }}>
+                        Answer: {q.answer_key || q.question_data?.correct_answer}
+                      </div>
+                    )}
 
                     {/* True/False */}
                     {q.question_type === "TRUE_FALSE" && (
@@ -286,45 +337,83 @@ export default function LivePaperPreview({ paper, fullSize = false }: Props) {
                         ))}
                       </div>
                     )}
+                    {q.question_type === "TRUE_FALSE" && showAnswers && (q.answer_key || q.question_data?.correct) && (
+                      <div className="text-[9.5pt] font-bold text-green-700 mt-1 break-inside-avoid" style={{ color: "#15803d" }}>
+                        Answer: {q.answer_key || q.question_data?.correct}
+                      </div>
+                    )}
 
                     {/* Match the Following */}
                     {q.question_type === "MATCH_FOLLOWING" && q.question_data?.col_a && (
                       <table className="match-table" style={{ width: "100%", borderCollapse: "collapse", marginTop: "4pt", fontSize: "9pt" }}>
                         <thead>
                           <tr style={{ backgroundColor: "#f8fafc" }}>
-                            <th style={{ border: "1px solid #000", padding: "3pt 8pt", textAlign: "left", fontWeight: 900, width: "50%" }}>Column A</th>
-                            <th style={{ border: "1px solid #000", padding: "3pt 8pt", textAlign: "left", fontWeight: 900, width: "50%" }}>Column B</th>
+                            <th style={{ border: "1px solid #000", padding: "3pt 8pt", textAlign: "left", fontWeight: 900, width: showAnswers ? "40%" : "50%" }}>Column A</th>
+                            <th style={{ border: "1px solid #000", padding: "3pt 8pt", textAlign: "left", fontWeight: 900, width: showAnswers ? "40%" : "50%" }}>Column B</th>
+                            {showAnswers && (
+                              <th style={{ border: "1px solid #000", padding: "3pt 8pt", textAlign: "left", fontWeight: 900, width: "20%", color: "#15803d" }}>Answer</th>
+                            )}
                           </tr>
                         </thead>
                         <tbody>
-                          {(q.question_data.col_a || []).map((a: string, i: number) => (
-                            <tr key={i}>
-                              <td style={{ border: "1px solid #000", padding: "3pt 8pt", textAlign: "left", fontWeight: "normal" }}>
-                                <span style={{ fontWeight: 900, marginRight: "4px" }}>{i + 1}.</span>
-                                <span>{a}</span>
-                              </td>
-                              <td style={{ border: "1px solid #000", padding: "3pt 8pt", textAlign: "left", fontWeight: "normal" }}>
-                                <span style={{ fontWeight: 900, marginRight: "4px" }}>({String.fromCharCode(97 + i)})</span>
-                                <span>{q.question_data.col_b?.[i] || ""}</span>
-                              </td>
-                            </tr>
-                          ))}
+                          {(q.question_data.col_a || []).map((a: string, i: number) => {
+                            let rowAns = "";
+                            if (q.question_data.correct_mapping?.[i]) {
+                              rowAns = `${i + 1} - (${q.question_data.correct_mapping[i]})`;
+                            } else if (q.answer_key) {
+                              const parts = q.answer_key.split(",").map((s: any) => s.trim());
+                              const matchingPart = parts.find((p: any) => p.startsWith(`${i + 1} -`));
+                              if (matchingPart) rowAns = matchingPart;
+                            }
+                            if (!rowAns) rowAns = `${i + 1} - (?)`;
+                            return (
+                              <tr key={i}>
+                                <td style={{ border: "1px solid #000", padding: "3pt 8pt", textAlign: "left", fontWeight: "normal" }}>
+                                  <span style={{ fontWeight: 900, marginRight: "4px" }}>{i + 1}.</span>
+                                  <span>{a}</span>
+                                </td>
+                                <td style={{ border: "1px solid #000", padding: "3pt 8pt", textAlign: "left", fontWeight: "normal" }}>
+                                  <span style={{ fontWeight: 900, marginRight: "4px" }}>({String.fromCharCode(97 + i)})</span>
+                                  <span>{q.question_data.col_b?.[i] || ""}</span>
+                                </td>
+                                {showAnswers && (
+                                  <td style={{ border: "1px solid #000", padding: "3pt 8pt", textAlign: "left", fontWeight: "bold", color: "#15803d" }}>
+                                    {rowAns}
+                                  </td>
+                                )}
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
+                    )}
+
+                    {/* General Answers (One Line, Short, Long, Numerical, Word Problem, Give Reasons) */}
+                    {(q.question_type === "VERY_SHORT" || q.question_type === "SHORT_ANSWER" || q.question_type === "LONG_ANSWER" || q.question_type === "NUMERICAL" || q.question_type === "WORD_PROBLEM" || q.question_type === "GIVE_REASONS") && showAnswers && q.answer_key && (
+                      <div className="text-[9.5pt] font-bold text-green-700 mt-1 whitespace-pre-wrap break-inside-avoid" style={{ color: "#15803d" }}>
+                        Answer: {q.answer_key}
+                      </div>
                     )}
 
                     {/* CASE_BASED Legacy Rendering */}
                     {q.question_type === "CASE_BASED" && q.question_data?.sub_questions?.length > 0 && (
                       <div className="mt-2 ml-3 block">
                         {q.question_data.sub_questions.map((sq: any, i: number) => (
-                          <div key={i} className="flex items-start justify-between gap-8 mt-1 break-inside-avoid">
-                            <div className="flex items-start gap-1.5 flex-1">
-                              <span className="font-normal text-[9.5pt] shrink-0">({String.fromCharCode(97 + i)})</span>
-                              <span className="text-[9.5pt] font-normal text-slate-900" style={{ lineHeight: 1.2 }}>
-                                {sq.text || "Sub-question"}
-                              </span>
+                          <div key={i} className="w-full">
+                            <div className="flex items-start justify-between gap-8 mt-1 break-inside-avoid">
+                              <div className="flex items-start gap-1.5 flex-1">
+                                <span className="font-normal text-[9.5pt] shrink-0">({String.fromCharCode(97 + i)})</span>
+                                <span className="text-[9.5pt] font-normal text-slate-900" style={{ lineHeight: 1.2 }}>
+                                  {sq.text || "Sub-question"}
+                                </span>
+                              </div>
+                              <span className="text-[9pt] font-normal text-slate-600 shrink-0">[{sq.marks}M]</span>
                             </div>
-                            <span className="text-[9pt] font-normal text-slate-600 shrink-0">[{sq.marks}M]</span>
+                            {showAnswers && sq.answer && (
+                              <div className="text-[9.5pt] font-bold text-green-700 mt-0.5 pl-6 break-inside-avoid" style={{ color: "#15803d", lineHeight: 1.2 }}>
+                                Answer: {sq.answer}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -348,12 +437,12 @@ export default function LivePaperPreview({ paper, fullSize = false }: Props) {
                       }
 
                       const renderAct = (act: any, actIdx: number) => {
-                        const headingNum = `${qLetter}${actIdx + 1}`;
+                        const headingNum = `${romanize(actIdx + 1)})`;
                         return (
                           <div key={act.id || actIdx} className="mt-3 break-inside-avoid">
                             <div className="flex justify-between items-baseline gap-8 mb-1">
                               <span className="text-[9.5pt] font-black text-slate-900">
-                                {headingNum}. {getActivityHeading(act)}
+                                {headingNum} {getActivityHeading(act)}
                               </span>
                               <span className="text-[9.5pt] font-black text-slate-800 shrink-0">
                                 ({act.marks || 2})
@@ -365,18 +454,26 @@ export default function LivePaperPreview({ paper, fullSize = false }: Props) {
                                   const romanSub = `(${romanize(subIdx + 1)})`;
                                   const sqText = typeof subQ === "string" ? subQ : subQ?.text || "";
                                   const sqMarks = typeof subQ === "string" ? null : subQ?.marks;
+                                  const sqObj = getSubQuestionObj(subQ);
                                   return (
-                                    <div key={subIdx} className="flex items-start justify-between gap-8 mt-1 break-inside-avoid w-full">
-                                      <div className="flex items-start gap-2 flex-1">
-                                        <span className="font-normal text-[9.5pt] text-slate-800 shrink-0 w-8 text-right">
-                                          {romanSub}
-                                        </span>
-                                        <div className="flex-1 text-[9.5pt] font-normal text-slate-900 whitespace-pre-wrap" style={{ lineHeight: 1.2 }}>
-                                          {sqText || "…"}
+                                    <div key={subIdx} className="w-full">
+                                      <div className="flex items-start justify-between gap-8 mt-1 break-inside-avoid w-full">
+                                        <div className="flex items-start gap-2 flex-1">
+                                          <span className="font-normal text-[9.5pt] text-slate-800 shrink-0 w-8 text-right">
+                                            {romanSub}
+                                          </span>
+                                          <div className="flex-1 text-[9.5pt] font-normal text-slate-900 whitespace-pre-wrap" style={{ lineHeight: 1.2 }}>
+                                            {sqText || "…"}
+                                          </div>
                                         </div>
+                                        {sqMarks !== null && sqMarks !== undefined && (
+                                          <span className="text-[9pt] font-normal text-slate-600 shrink-0">[{sqMarks}M]</span>
+                                        )}
                                       </div>
-                                      {sqMarks !== null && sqMarks !== undefined && (
-                                        <span className="text-[9pt] font-normal text-slate-600 shrink-0">[{sqMarks}M]</span>
+                                      {showAnswers && sqObj.answer && (
+                                        <div className="text-[9.5pt] font-bold text-green-700 mt-0.5 pl-10 break-inside-avoid" style={{ color: "#15803d", lineHeight: 1.2 }}>
+                                          Answer: {sqObj.answer}
+                                        </div>
                                       )}
                                     </div>
                                   );
@@ -400,15 +497,15 @@ export default function LivePaperPreview({ paper, fullSize = false }: Props) {
                     })()}
 
                     {/* Diagram Labels */}
-                    {q.question_type === "DIAGRAM_LABEL" && q.question_data?.labels?.length > 0 && (
+                    {q.question_type === "DIAGRAM_LABEL" && q.question_data?.labels?.length > 0 && showAnswers && (
                       <div className="mt-2 ml-3 block">
-                        <p className="text-[9pt] font-normal italic text-slate-600 mb-1">
-                          Label the following in the given diagram:
+                        <p className="text-[9pt] font-bold text-green-700 mb-1" style={{ color: "#15803d" }}>
+                          Answer / Labels:
                         </p>
                         <div className="grid grid-cols-2 gap-1">
                           {q.question_data.labels.map((lbl: string, i: number) => (
                             lbl.trim() ? (
-                              <div key={i} className="flex gap-1.5 text-[9.5pt] font-normal break-inside-avoid" style={{ lineHeight: 1.2 }}>
+                              <div key={i} className="flex gap-1.5 text-[9.5pt] font-bold text-green-700 break-inside-avoid" style={{ lineHeight: 1.2, color: "#15803d" }}>
                                 <span className="font-bold shrink-0">{i + 1}.</span>
                                 <span>{lbl}</span>
                               </div>
@@ -418,7 +515,7 @@ export default function LivePaperPreview({ paper, fullSize = false }: Props) {
                       </div>
                     )}
 
-                    {/* Letter — Bullet Points */}
+                    {/* Letter — Bullet Points + Sample Letter */}
                     {q.question_type === "LETTER" && q.question_data?.bullet_points?.some((p: string) => p.trim()) && (
                       <div className="mt-2 ml-3 border-l-2 border-slate-300 pl-3 block">
                         <p className="text-[9pt] font-bold text-slate-600 mb-0.5">Points to cover:</p>
@@ -429,6 +526,24 @@ export default function LivePaperPreview({ paper, fullSize = false }: Props) {
                             </li>
                           ))}
                         </ul>
+                      </div>
+                    )}
+                    {q.question_type === "LETTER" && showAnswers && q.answer_key && (
+                      <div className="mt-3 ml-3 border border-green-200 bg-green-50/30 p-3 rounded-lg block break-inside-avoid" style={{ borderColor: "#bbf7d0" }}>
+                        <p className="text-[9pt] font-bold text-green-700 mb-1" style={{ color: "#15803d" }}>Answer (Sample Letter):</p>
+                        <div className="text-[9.5pt] font-bold text-green-700 whitespace-pre-wrap font-serif leading-snug" style={{ color: "#15803d" }}>
+                          {q.answer_key}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Essay — Word Limit + Sample Essay */}
+                    {q.question_type === "ESSAY" && showAnswers && q.answer_key && (
+                      <div className="mt-3 ml-3 border border-green-200 bg-green-50/30 p-3 rounded-lg block break-inside-avoid" style={{ borderColor: "#bbf7d0" }}>
+                        <p className="text-[9pt] font-bold text-green-700 mb-1" style={{ color: "#15803d" }}>Answer (Sample Essay):</p>
+                        <div className="text-[9.5pt] font-bold text-green-700 whitespace-pre-wrap leading-relaxed" style={{ color: "#15803d" }}>
+                          {q.answer_key}
+                        </div>
                       </div>
                     )}
 
@@ -461,12 +576,14 @@ export default function LivePaperPreview({ paper, fullSize = false }: Props) {
   useEffect(() => {
     const timer = setTimeout(() => {
       const heights: Record<string, number> = {};
-      blocks.forEach(block => {
-        const el = document.getElementById(`measure-${block.key}`);
-        if (el) {
-          heights[block.key] = el.offsetHeight;
-        }
-      });
+      if (containerRef.current) {
+        blocks.forEach(block => {
+          const el = containerRef.current!.querySelector(`[data-measure="${block.key}"]`) as HTMLElement;
+          if (el) {
+            heights[block.key] = el.offsetHeight;
+          }
+        });
+      }
 
       const pages: any[][] = [];
       let currentPage: any[] = [];
@@ -500,19 +617,20 @@ export default function LivePaperPreview({ paper, fullSize = false }: Props) {
     }, 150);
 
     return () => clearTimeout(timer);
-  }, [paper, school]);
+  }, [paper, school, showAnswers]);
 
   // 3. Fallback Render during measurements
   if (paginatedPages.length === 0) {
     return (
       <div
+        ref={containerRef}
         className={`mx-auto shadow-2xl relative print:shadow-none print:m-0 print:border-none ${paperCls}`}
         style={paperStyle}
       >
         {/* Hidden measurement container */}
         <div className="absolute top-0 left-0 opacity-0 pointer-events-none w-[210mm] pt-[9mm] px-[15mm] pb-[15mm] z-0" style={paperStyle}>
           {blocks.map(block => (
-            <div id={`measure-${block.key}`} key={block.key} className="w-full block">
+            <div data-measure={block.key} key={block.key} className="w-full block">
               {block.render()}
             </div>
           ))}
@@ -533,11 +651,11 @@ export default function LivePaperPreview({ paper, fullSize = false }: Props) {
 
   // 4. Premium Paginated A4 Sheets Preview Render
   return (
-    <div className="space-y-6 print:space-y-0 print:gap-0">
+    <div ref={containerRef} className="space-y-6 print:space-y-0 print:gap-0">
       {/* Hidden measurement container */}
       <div className="absolute top-0 left-0 opacity-0 pointer-events-none w-[210mm] pt-[9mm] px-[15mm] pb-[15mm] z-0" style={paperStyle}>
         {blocks.map(block => (
-          <div id={`measure-${block.key}`} key={block.key} className="w-full block">
+          <div data-measure={block.key} key={block.key} className="w-full block">
             {block.render()}
           </div>
         ))}

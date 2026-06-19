@@ -44,12 +44,12 @@ export const AdminQuickActions = () => {
             <motion.div
               whileHover={{ y: -3, scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
-              className="flex flex-col items-center justify-center gap-3.5 p-5 rounded-2xl bg-white border border-slate-100/80 hover:bg-slate-50/20 hover:border-slate-200 transition-all duration-300 group cursor-pointer h-full"
+              className="flex flex-col items-center justify-center gap-3 p-4 sm:p-5 rounded-2xl bg-white border border-slate-100/80 hover:bg-slate-50 hover:border-slate-200 transition-all duration-300 group cursor-pointer h-full"
             >
               <div className={cn("p-2.5 rounded-xl border", action.bg, action.bg.replace("bg-", "border-").replace("50", "100"))}>
                 <action.icon className={cn("h-5 w-5", action.color)} />
               </div>
-              <span className="text-[11px] font-extrabold text-slate-655 text-center leading-none group-hover:text-primary transition-colors">
+              <span className="text-[11px] font-extrabold text-slate-600 text-center leading-tight group-hover:text-primary transition-colors">
                 {action.label}
               </span>
             </motion.div>

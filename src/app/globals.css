@@ -222,10 +222,10 @@ body {
      GLOBAL FORM & CONTROL SYSTEM
      ========================================================================== */
   .input-standard {
-    @apply flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200 shadow-sm;
+    @apply flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-base md:text-sm text-slate-800 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200 shadow-sm;
   }
   .select-standard {
-    @apply h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-200 shadow-sm;
+    @apply h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-base md:text-sm focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-200 shadow-sm;
   }
   .card-standard {
     @apply rounded-2xl border border-slate-100/80 shadow-sm bg-white hover:shadow-md transition-all duration-300 overflow-hidden;

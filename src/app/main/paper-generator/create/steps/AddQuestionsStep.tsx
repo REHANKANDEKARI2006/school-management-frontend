@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef } from "react";
 import { PaperState, Question, getAllQuestions, getTotalAssignedMarks } from "../page";
-import { BOARD_QUESTION_TYPES } from "./PaperSetupStep";
+import { BOARD_QUESTION_TYPES, parseSectionName, serializeSectionName } from "./PaperSetupStep";
 import { upsertQuestion, deleteQuestion, upsertSection } from "@/lib/api/question-paper";
 import { Plus, Trash2, Edit2, Loader2, Upload } from "lucide-react";
 import axios from "@/lib/axios";
@@ -32,14 +32,28 @@ const getMediaUrl = (path: string) => {
   return `${base}${path}`;
 };
 
-const getSubQuestionObj = (subQ: any): { text: string; marks: number } => {
+const getSubQuestionObj = (subQ: any): { text: string; marks: number; answer?: string } => {
   if (typeof subQ === "string") {
-    return { text: subQ, marks: 1 };
+    return { text: subQ, marks: 1, answer: "" };
   }
   return {
     text: subQ?.text || "",
-    marks: typeof subQ?.marks === "number" ? subQ.marks : 1
+    marks: typeof subQ?.marks === "number" ? subQ.marks : 1,
+    answer: subQ?.answer || ""
   };
+};
+
+const compilePassageAnswers = (acts: any[]): string => {
+  const result: string[] = [];
+  (acts || []).forEach((act: any) => {
+    (act.sub_questions || []).forEach((sq: any, subIdx: number) => {
+      const sqObj = getSubQuestionObj(sq);
+      if (sqObj.answer) {
+        result.push(`(${subIdx + 1}) ${sqObj.answer}`);
+      }
+    });
+  });
+  return result.join(", ");
 };
 
 // ─── Empty state builder for each type ────────────────────────────────────────
@@ -64,7 +78,7 @@ function makeEmptyQuestion(type: string, order: number): Partial<Question> {
       return {
         ...base,
         marks: 10,
-        question_text: "(B) Read the following passage and do the activities:",
+        question_text: "Read the following passage and do the activities:",
         question_data: {
           passage: "",
           activities: [
@@ -266,10 +280,10 @@ function QuestionForm({
             ))}
           </div>
           <div className="mt-3 flex items-center gap-2">
-            <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">Correct Answer</label>
+            <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">Correct Option</label>
             <select
-              value={qd.correct || ""}
-              onChange={e => set({ correct: e.target.value })}
+              value={q.answer_key || qd.correct || ""}
+              onChange={e => onChange({ answer_key: e.target.value, question_data: { ...qd, correct: e.target.value } })}
               className="h-9 px-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 bg-white"
             >
               <option value="">Select</option>
@@ -285,8 +299,8 @@ function QuestionForm({
           <input
             type="text"
             placeholder="e.g. New Delhi"
-            value={qd.correct_answer || ""}
-            onChange={e => set({ correct_answer: e.target.value })}
+            value={q.answer_key || qd.correct_answer || ""}
+            onChange={e => onChange({ answer_key: e.target.value, question_data: { ...qd, correct_answer: e.target.value } })}
             className={inputCls}
           />
         </Field>
@@ -296,8 +310,8 @@ function QuestionForm({
       {type === "TRUE_FALSE" && (
         <Field label="Correct Answer">
           <select
-            value={qd.correct || "True"}
-            onChange={e => set({ correct: e.target.value })}
+            value={q.answer_key || qd.correct || "True"}
+            onChange={e => onChange({ answer_key: e.target.value, question_data: { ...qd, correct: e.target.value } })}
             className="h-9 px-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 bg-white w-40"
           >
             <option value="True">True</option>
@@ -360,44 +374,127 @@ function QuestionForm({
           >
             + Add Row
           </button>
+
+          {/* Mappings selection */}
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 mt-2 space-y-2">
+            <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide block">Correct Mappings</label>
+            <div className="space-y-2">
+              {(qd.col_a || []).map((_: string, idx: number) => (
+                <div key={idx} className="flex items-center gap-2 text-xs">
+                  <span className="font-bold text-slate-600">Item {idx + 1} matches:</span>
+                  <select
+                    value={qd.correct_mapping?.[idx] || ""}
+                    onChange={e => {
+                      const mapping = [...(qd.correct_mapping || [])];
+                      while (mapping.length <= idx) mapping.push("");
+                      mapping[idx] = e.target.value;
+                      const answerKey = ((qd.col_a || []) as string[]).map((_, i: number) => `${i + 1} - (${mapping[i] || '?'})`).join(", ");
+                      onChange({
+                        answer_key: answerKey,
+                        question_data: { ...qd, correct_mapping: mapping }
+                      });
+                    }}
+                    className="h-8 px-2 text-xs border border-slate-200 rounded-lg focus:outline-none bg-white font-medium"
+                  >
+                    <option value="">Select Option</option>
+                    {(qd.col_b || []).map((_: string, bIdx: number) => {
+                      const letter = String.fromCharCode(97 + bIdx);
+                      return (
+                        <option key={letter} value={letter}>
+                          ({letter}) {qd.col_b[bIdx] || `Item ${letter}`}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* Model Answer inputs for VERY_SHORT, SHORT_ANSWER, LONG_ANSWER, NUMERICAL, WORD_PROBLEM, GIVE_REASONS */}
+      {(type === "VERY_SHORT" || type === "SHORT_ANSWER" || type === "LONG_ANSWER" || type === "NUMERICAL" || type === "WORD_PROBLEM" || type === "GIVE_REASONS") && (
+        <Field label={type === "GIVE_REASONS" ? "Reason Answer" : type === "NUMERICAL" || type === "WORD_PROBLEM" ? "Correct Solution" : "Correct / Model Answer"}>
+          <textarea
+            value={q.answer_key || ""}
+            onChange={e => onChange({ answer_key: e.target.value })}
+            className={textareaCls}
+            placeholder={
+              type === "GIVE_REASONS" ? "e.g. Plants are green because they contain chlorophyll." :
+              type === "NUMERICAL" ? "e.g. x = 5" :
+              type === "WORD_PROBLEM" ? "e.g. Step 1: Distance = Speed * Time = 60 * 3 = 180 km." :
+              "Enter correct/model answer..."
+            }
+          />
+        </Field>
       )}
 
       {/* Case Based — Legacy Sub Questions */}
       {type === "CASE_BASED" && (
         <div className="space-y-3">
-          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide block">Sub Questions</label>
+          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide block">Sub Questions &amp; Answers</label>
           {(qd.sub_questions || []).map((sq: any, i: number) => (
-            <div key={i} className="flex gap-2 items-start">
-              <span className="text-xs font-black text-slate-500 mt-2.5 w-6 shrink-0">({String.fromCharCode(97 + i)})</span>
-              <input
-                type="text"
-                placeholder={`Sub-question ${i + 1}`}
-                value={sq.text || ""}
-                onChange={e => {
-                  const sqs = [...(qd.sub_questions || [])];
-                  sqs[i] = { ...sqs[i], text: e.target.value };
-                  set({ sub_questions: sqs });
-                }}
-                className={`${inputCls} flex-1`}
-              />
-              <input
-                type="number"
-                min={1}
-                value={sq.marks || 2}
-                onChange={e => {
-                  const sqs = [...(qd.sub_questions || [])];
-                  sqs[i] = { ...sqs[i], marks: parseInt(e.target.value) || 1 };
-                  set({ sub_questions: sqs });
-                }}
-                className="h-9 w-16 px-2 text-sm border border-slate-200 rounded-lg focus:outline-none text-center"
-                title="Marks"
-              />
+            <div key={i} className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="flex gap-2 items-start">
+                <span className="text-xs font-black text-slate-500 mt-2.5 w-6 shrink-0">({String.fromCharCode(97 + i)})</span>
+                <input
+                  type="text"
+                  placeholder={`Sub-question ${i + 1}`}
+                  value={sq.text || ""}
+                  onChange={e => {
+                    const sqs = [...(qd.sub_questions || [])];
+                    sqs[i] = { ...sqs[i], text: e.target.value };
+                    const compiledAns = sqs.map((subQ, idx) => `(${String.fromCharCode(97 + idx)}) ${subQ.answer || ""}`).filter(a => a.length > 5).join(", ");
+                    onChange({
+                      answer_key: compiledAns,
+                      question_data: { ...qd, sub_questions: sqs }
+                    });
+                  }}
+                  className={`${inputCls} flex-1`}
+                />
+                <input
+                  type="number"
+                  min={1}
+                  value={sq.marks || 2}
+                  onChange={e => {
+                    const sqs = [...(qd.sub_questions || [])];
+                    sqs[i] = { ...sqs[i], marks: parseInt(e.target.value) || 1 };
+                    onChange({
+                      question_data: { ...qd, sub_questions: sqs }
+                    });
+                  }}
+                  className="h-9 w-16 px-2 text-sm border border-slate-200 rounded-lg focus:outline-none text-center"
+                  title="Marks"
+                />
+              </div>
+              <div className="pl-8">
+                <input
+                  type="text"
+                  placeholder="Correct Answer"
+                  value={sq.answer || ""}
+                  onChange={e => {
+                    const sqs = [...(qd.sub_questions || [])];
+                    sqs[i] = { ...sqs[i], answer: e.target.value };
+                    const compiledAns = sqs.map((subQ, idx) => `(${String.fromCharCode(97 + idx)}) ${subQ.answer || ""}`).filter(a => a.length > 5).join(", ");
+                    onChange({
+                      answer_key: compiledAns,
+                      question_data: { ...qd, sub_questions: sqs }
+                    });
+                  }}
+                  className={inputCls}
+                />
+              </div>
             </div>
           ))}
           <button
             type="button"
-            onClick={() => set({ sub_questions: [...(qd.sub_questions || []), { text: "", marks: 2 }] })}
+            onClick={() => {
+              const sqs = [...(qd.sub_questions || []), { text: "", marks: 2, answer: "" }];
+              onChange({
+                question_data: { ...qd, sub_questions: sqs }
+              });
+            }}
             className="text-xs font-semibold text-[#3335e3] hover:underline"
           >
             + Add Sub Question
@@ -444,8 +541,8 @@ function QuestionForm({
                     marks: 2,
                     type: autoType,
                     sub_questions: [
-                      { text: "", marks: 1 },
-                      { text: "", marks: 1 }
+                      { text: "", marks: 1, answer: "" },
+                      { text: "", marks: 1, answer: "" }
                     ]
                   };
                   const nextActs = [...acts, newAct];
@@ -469,9 +566,6 @@ function QuestionForm({
             ) : (
               <div className="space-y-4">
                 {qd.activities.map((act: any, actIdx: number) => {
-                  const qLetter = getQuestionLetter(q.question_text || "", "B");
-                  const actLabel = `${qLetter}${actIdx + 1}`; // e.g. B1, B2
-                  
                   return (
                     <div key={act.id || actIdx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative space-y-3">
                       {/* Delete button */}
@@ -503,73 +597,95 @@ function QuestionForm({
 
                       {/* Sub questions */}
                       <div className="space-y-2 pt-1">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide block">Sub-Questions / Items</label>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide block">Sub-Questions &amp; Answers</label>
                         {(act.sub_questions || []).map((subQ: any, subIdx: number) => {
                           const roman = `(${romanize(subIdx + 1)})`;
                           const sqObj = getSubQuestionObj(subQ);
                           return (
-                            <div key={subIdx} className="flex flex-col sm:flex-row gap-2 items-start sm:items-center bg-slate-50 sm:bg-transparent p-2 sm:p-0 rounded-lg sm:rounded-none border border-slate-100 sm:border-none w-full">
-                              <div className="flex items-center gap-2 w-full">
-                                <span className="text-xs font-black text-slate-400 w-6 sm:w-8 text-right shrink-0">{roman}</span>
+                            <div key={subIdx} className="space-y-1.5 p-3 bg-slate-50 rounded-xl border border-slate-100 w-full animate-in fade-in">
+                              <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center w-full">
+                                <div className="flex items-center gap-2 w-full">
+                                  <span className="text-xs font-black text-slate-400 w-6 sm:w-8 text-right shrink-0">{roman}</span>
+                                  <input
+                                    type="text"
+                                    value={sqObj.text}
+                                    onChange={e => {
+                                      const acts = [...qd.activities];
+                                      const subQs = [...act.sub_questions];
+                                      subQs[subIdx] = { text: e.target.value, marks: sqObj.marks, answer: sqObj.answer || "" };
+                                      acts[actIdx] = { ...act, sub_questions: subQs };
+                                      onChange({
+                                        question_data: { ...qd, activities: acts }
+                                      });
+                                    }}
+                                    className={`${inputCls} flex-1`}
+                                    placeholder="Enter sub-question text..."
+                                  />
+                                </div>
+                                <div className="flex items-center justify-end w-full sm:w-auto pl-8 sm:pl-0 gap-2 shrink-0">
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={sqObj.marks}
+                                    onChange={e => {
+                                      const nextMarks = parseInt(e.target.value) || 1;
+                                      const acts = [...qd.activities];
+                                      const subQs = [...act.sub_questions];
+                                      subQs[subIdx] = { text: sqObj.text, marks: nextMarks, answer: sqObj.answer || "" };
+                                      
+                                      const actTotal = subQs.reduce((sum: number, sq: any) => sum + getSubQuestionObj(sq).marks, 0);
+                                      acts[actIdx] = { ...act, sub_questions: subQs, marks: actTotal };
+                                      
+                                      const overallTotal = acts.reduce((sum: number, a: any) => sum + (a.marks || 0), 0);
+                                      onChange({
+                                        question_data: { ...qd, activities: acts },
+                                        marks: overallTotal
+                                      });
+                                    }}
+                                    className="h-9 w-16 px-2 text-sm border border-slate-200 rounded-lg focus:outline-none text-center"
+                                    title="Marks"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const acts = [...qd.activities];
+                                      const subQs = act.sub_questions.filter((_: any, si: number) => si !== subIdx);
+                                      
+                                      const actTotal = subQs.reduce((sum: number, sq: any) => sum + getSubQuestionObj(sq).marks, 0);
+                                      acts[actIdx] = { ...act, sub_questions: subQs, marks: actTotal };
+                                      
+                                      const overallTotal = acts.reduce((sum: number, a: any) => sum + (a.marks || 0), 0);
+                                      onChange({
+                                        question_data: { ...qd, activities: acts },
+                                        marks: overallTotal
+                                      });
+                                    }}
+                                    className="text-slate-400 hover:text-red-500 p-1 bg-white rounded shadow-sm border border-slate-100 sm:border-none sm:shadow-none sm:bg-transparent"
+                                    title="Remove sub-question"
+                                  >
+                                    <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="pl-8 sm:pl-10">
                                 <input
                                   type="text"
-                                  value={sqObj.text}
+                                  placeholder="Correct Answer"
+                                  value={sqObj.answer || ""}
                                   onChange={e => {
                                     const acts = [...qd.activities];
                                     const subQs = [...act.sub_questions];
-                                    subQs[subIdx] = { text: e.target.value, marks: sqObj.marks };
+                                    subQs[subIdx] = { text: sqObj.text, marks: sqObj.marks, answer: e.target.value };
                                     acts[actIdx] = { ...act, sub_questions: subQs };
+                                    
+                                    const compiled = compilePassageAnswers(acts);
                                     onChange({
+                                      answer_key: compiled,
                                       question_data: { ...qd, activities: acts }
                                     });
                                   }}
-                                  className={`${inputCls} flex-1`}
-                                  placeholder="Enter sub-question text..."
+                                  className={inputCls}
                                 />
-                              </div>
-                              <div className="flex items-center justify-end w-full sm:w-auto pl-8 sm:pl-0 gap-2 shrink-0">
-                                <input
-                                  type="number"
-                                  min={1}
-                                  value={sqObj.marks}
-                                  onChange={e => {
-                                    const nextMarks = parseInt(e.target.value) || 1;
-                                    const acts = [...qd.activities];
-                                    const subQs = [...act.sub_questions];
-                                    subQs[subIdx] = { text: sqObj.text, marks: nextMarks };
-                                    
-                                    const actTotal = subQs.reduce((sum: number, sq: any) => sum + getSubQuestionObj(sq).marks, 0);
-                                    acts[actIdx] = { ...act, sub_questions: subQs, marks: actTotal };
-                                    
-                                    const overallTotal = acts.reduce((sum: number, a: any) => sum + (a.marks || 0), 0);
-                                    onChange({
-                                      question_data: { ...qd, activities: acts },
-                                      marks: overallTotal
-                                    });
-                                  }}
-                                  className="h-9 w-16 px-2 text-sm border border-slate-200 rounded-lg focus:outline-none text-center"
-                                  title="Marks"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const acts = [...qd.activities];
-                                    const subQs = act.sub_questions.filter((_: any, si: number) => si !== subIdx);
-                                    
-                                    const actTotal = subQs.reduce((sum: number, sq: any) => sum + getSubQuestionObj(sq).marks, 0);
-                                    acts[actIdx] = { ...act, sub_questions: subQs, marks: actTotal };
-                                    
-                                    const overallTotal = acts.reduce((sum: number, a: any) => sum + (a.marks || 0), 0);
-                                    onChange({
-                                      question_data: { ...qd, activities: acts },
-                                      marks: overallTotal
-                                    });
-                                  }}
-                                  className="text-slate-400 hover:text-red-500 p-1 bg-white rounded shadow-sm border border-slate-100 sm:border-none sm:shadow-none sm:bg-transparent"
-                                  title="Remove sub-question"
-                                >
-                                  <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
-                                </button>
                               </div>
                             </div>
                           );
@@ -578,7 +694,7 @@ function QuestionForm({
                           type="button"
                           onClick={() => {
                             const acts = [...qd.activities];
-                            const subQs = [...(act.sub_questions || []), { text: "", marks: 1 }];
+                            const subQs = [...(act.sub_questions || []), { text: "", marks: 1, answer: "" }];
                             
                             const actTotal = subQs.reduce((sum: number, sq: any) => sum + getSubQuestionObj(sq).marks, 0);
                             acts[actIdx] = { ...act, sub_questions: subQs, marks: actTotal };
@@ -617,7 +733,11 @@ function QuestionForm({
                 onChange={e => {
                   const arr = [...(qd.labels || [])];
                   arr[i] = e.target.value;
-                  set({ labels: arr });
+                  const answerKey = arr.filter(Boolean).map((l, idx) => `${idx + 1}. ${l}`).join(", ");
+                  onChange({
+                    answer_key: answerKey,
+                    question_data: { ...qd, labels: arr }
+                  });
                 }}
                 className={inputCls}
               />
@@ -625,7 +745,14 @@ function QuestionForm({
           ))}
           <button
             type="button"
-            onClick={() => set({ labels: [...(qd.labels || []), ""] })}
+            onClick={() => {
+              const arr = [...(qd.labels || []), ""];
+              const answerKey = arr.filter(Boolean).map((l, idx) => `${idx + 1}. ${l}`).join(", ");
+              onChange({
+                answer_key: answerKey,
+                question_data: { ...qd, labels: arr }
+              });
+            }}
             className="text-xs font-semibold text-[#3335e3] hover:underline"
           >
             + Add Label
@@ -633,47 +760,69 @@ function QuestionForm({
         </div>
       )}
 
-      {/* Letter — Bullet Points */}
+      {/* Letter — Bullet Points + Sample Letter */}
       {type === "LETTER" && (
-        <div className="space-y-2">
-          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide block">Key Points to cover</label>
-          {(qd.bullet_points || []).map((pt: string, i: number) => (
-            <div key={i} className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-400 w-4">•</span>
-              <input
-                type="text"
-                placeholder={`Point ${i + 1}`}
-                value={pt}
-                onChange={e => {
-                  const arr = [...(qd.bullet_points || [])];
-                  arr[i] = e.target.value;
-                  set({ bullet_points: arr });
-                }}
-                className={inputCls}
-              />
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => set({ bullet_points: [...(qd.bullet_points || []), ""] })}
-            className="text-xs font-semibold text-[#3335e3] hover:underline"
-          >
-            + Add Point
-          </button>
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide block">Key Points to cover</label>
+            {(qd.bullet_points || []).map((pt: string, i: number) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-400 w-4">•</span>
+                <input
+                  type="text"
+                  placeholder={`Point ${i + 1}`}
+                  value={pt}
+                  onChange={e => {
+                    const arr = [...(qd.bullet_points || [])];
+                    arr[i] = e.target.value;
+                    set({ bullet_points: arr });
+                  }}
+                  className={inputCls}
+                />
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => set({ bullet_points: [...(qd.bullet_points || []), ""] })}
+              className="text-xs font-semibold text-[#3335e3] hover:underline"
+            >
+              + Add Point
+            </button>
+          </div>
+          
+          <Field label="Sample Letter (Correct Answer)">
+            <textarea
+              value={q.answer_key || ""}
+              onChange={e => onChange({ answer_key: e.target.value })}
+              className={`${textareaCls} min-h-[150px] font-serif`}
+              placeholder="Write the full sample letter..."
+            />
+          </Field>
         </div>
       )}
 
-      {/* Essay — Word Limit */}
+      {/* Essay — Word Limit + Sample Essay */}
       {type === "ESSAY" && (
-        <Field label="Word Limit">
-          <input
-            type="text"
-            placeholder="e.g. 150-200 words"
-            value={qd.word_limit || ""}
-            onChange={e => set({ word_limit: e.target.value })}
-            className={inputCls}
-          />
-        </Field>
+        <div className="space-y-3">
+          <Field label="Word Limit">
+            <input
+              type="text"
+              placeholder="e.g. 150-200 words"
+              value={qd.word_limit || ""}
+              onChange={e => set({ word_limit: e.target.value })}
+              className={inputCls}
+            />
+          </Field>
+
+          <Field label="Sample Essay (Correct Answer)">
+            <textarea
+              value={q.answer_key || ""}
+              onChange={e => onChange({ answer_key: e.target.value })}
+              className={`${textareaCls} min-h-[150px]`}
+              placeholder="Write the full sample essay..."
+            />
+          </Field>
+        </div>
       )}
 
       {/* Marks */}
@@ -918,12 +1067,12 @@ export default function AddQuestionsStep({ paper, onChange }: Props) {
           sub_questions: legacySqs
         }
       ];
-      if (!qd.passage && q.question_text && q.question_text !== "(B) Read the following passage and do the activities:") {
+      if (!qd.passage && q.question_text && q.question_text !== "Read the following passage and do the activities:") {
         qd.passage = q.question_text;
       }
       setEditingQ({
         ...q,
-        question_text: "(B) Read the following passage and do the activities:",
+        question_text: "Read the following passage and do the activities:",
         question_data: qd
       });
     } else {
@@ -963,25 +1112,29 @@ export default function AddQuestionsStep({ paper, onChange }: Props) {
             <span className="text-[10px] font-bold text-slate-400">Edits update the live preview on the right immediately</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {paper.sections.map((sec, idx) => (
-              <div key={sec.section_id || idx} className="space-y-1 bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
-                <label className="text-[10.5pt] font-black text-slate-500 block">
-                  Q.{idx + 1} Title
-                </label>
-                <input
-                  type="text"
-                  value={sec.section_name}
-                  onChange={e => {
-                    const newSecs = paper.sections.map((s, i) =>
-                      i === idx ? { ...s, section_name: e.target.value } : s
-                    );
-                    onChange({ sections: newSecs });
-                  }}
-                  className={`${inputCls} h-9 text-xs font-bold bg-white border-slate-200 rounded-lg px-3 focus:ring-2 focus:ring-[#3335e3]/20`}
-                  placeholder="e.g. Solve the MCQs"
-                />
-              </div>
-            ))}
+            {paper.sections.map((sec, idx) => {
+              const parsed = parseSectionName(sec.section_name);
+              return (
+                <div key={sec.section_id || idx} className="space-y-1 bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
+                  <label className="text-[10.5pt] font-black text-slate-500 block">
+                    Q.{idx + 1} Title
+                  </label>
+                  <input
+                    type="text"
+                    value={parsed.title}
+                    onChange={e => {
+                      const newParsed = { ...parsed, title: e.target.value };
+                      const newSecs = paper.sections.map((s, i) =>
+                        i === idx ? { ...s, section_name: serializeSectionName(newParsed) } : s
+                      );
+                      onChange({ sections: newSecs });
+                    }}
+                    className={`${inputCls} h-9 text-xs font-bold bg-white border-slate-200 rounded-lg px-3 focus:ring-2 focus:ring-[#3335e3]/20`}
+                    placeholder="e.g. Solve the MCQs"
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

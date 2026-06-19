@@ -18,11 +18,14 @@ export interface Question {
   question_data: any;
   marks: number;
   question_order: number;
+  answer_key?: string;
 }
 
 export interface PaperState {
   paper_id: number | null;
   exam_id: number | null | undefined;
+  exam_name?: string;
+  exam_type?: string;
   title: string;
   class_id: number | null | undefined;
   class_name: string;

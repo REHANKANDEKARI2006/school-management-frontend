@@ -96,12 +96,17 @@ export const addToQuestionBank = async (payload: any) => {
 ═══════════════════════════════════════════ */
 export const generatePaperPDF = async (
   paperId: number | string,
-  options: { generate_answer_key?: boolean; html?: string } = {}
+  options: { generate_answer_key?: boolean; generateAnswerKey?: boolean; html?: string } = {}
 ): Promise<string> => {
+  // Map both key variations to ensure seamless backend and EJS compatibility
+  const bodyPayload = {
+    ...options,
+    generateAnswerKey: options.generate_answer_key ?? options.generateAnswerKey
+  };
   // Returns a blob object URL for direct browser display
   const res = await axios.post(
     `/api/question-papers/${paperId}/generate-pdf`,
-    options,
+    bodyPayload,
     { responseType: "blob" }
   );
   const blob = new Blob([res.data], { type: "application/pdf" });

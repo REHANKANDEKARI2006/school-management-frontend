@@ -83,7 +83,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
 
             {/* MAIN CONTENT */}
             <div className="flex-1 flex flex-col overflow-hidden">
-              <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-6">
+              <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-white px-4 md:backdrop-blur md:supports-[backdrop-filter]:bg-background/60 sm:px-6">
                 <SidebarTrigger className="md:hidden" />
                 <SearchInput />
                 <div className="ml-auto flex items-center gap-2">

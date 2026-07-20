@@ -39,7 +39,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { TemplateSelector, type DocType } from "@/components/campus-connect/template-selector";
+import { TemplateSelector, type DocType } from "@/components/school-os/template-selector";
 
 
 const schoolProfileSchema = z.object({
@@ -527,7 +527,7 @@ export default function DocumentSettingsPage() {
 function FooterHelperComponents() {
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-12 mt-20 border-t pt-10 text-center text-slate-400 text-[10px]">
-      <p className="font-bold uppercase tracking-widest">&copy; 2026 CampusConnect Educational Systems</p>
+      <p className="font-bold uppercase tracking-widest">&copy; 2026 SchoolOS Educational Systems</p>
     </div>
   );
 }

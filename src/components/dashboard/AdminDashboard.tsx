@@ -228,7 +228,7 @@ export const AdminDashboard = () => {
               <div className="h-12 w-12 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-500 mb-3">
                 <Megaphone className="h-5 w-5" />
               </div>
-              <h3 className="text-xs font-black text-slate-800">Stay Connected with CampusConnect</h3>
+              <h3 className="text-xs font-black text-slate-800">Stay Connected with SchoolOS</h3>
               <p className="text-[10px] font-bold text-slate-400 mt-1 max-w-[200px] leading-normal">
                 Get important updates and announcements instantly.
               </p>

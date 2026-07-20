@@ -10,7 +10,7 @@ export function Logo({ className, showText = true }: { className?: string, showT
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <GraduationCap className="h-8 w-8 text-primary" />
-      {showText && <span className="text-xl font-bold font-headline tracking-tighter">CampusConnect</span>}
+      {showText && <span className="text-xl font-bold font-headline tracking-tighter">SchoolOS</span>}
     </div>
   );
 }

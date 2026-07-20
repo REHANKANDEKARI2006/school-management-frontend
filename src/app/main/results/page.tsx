@@ -50,7 +50,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { GradeEntryForm } from "@/components/campus-connect/grade-entry-form";
+import { GradeEntryForm } from "@/components/school-os/grade-entry-form";
 
 // Allowed roles for RouteGuard
 const RESULTS_ALLOWED_ROLES = [...ALL_STAFF_GROUP, ...STUDENT_PARENT_GROUP];
@@ -90,7 +90,7 @@ export default function ResultsPage() {
               Result Management
             </h1>
             <p className="text-sm font-semibold text-slate-400 uppercase tracking-widest">
-              CampusConnect Academic Hub
+              SchoolOS Academic Hub
             </p>
           </div>
           <Badge variant="outline" className="px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider bg-slate-50 border-slate-200">

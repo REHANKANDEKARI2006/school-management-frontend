@@ -24,7 +24,7 @@ import { paperTemplates, PaperTemplate } from "@/lib/paper-templates";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FilePenLine, Info, Download, Eye, Loader2 } from "lucide-react";
 import { PageSkeleton } from "@/components/ui/skeletons";
-import { QuestionInput } from "@/components/campus-connect/question-input";
+import { QuestionInput } from "@/components/school-os/question-input";
 import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
@@ -33,7 +33,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { QuestionPaperPreview } from "@/components/campus-connect/question-paper-preview";
+import { QuestionPaperPreview } from "@/components/school-os/question-paper-preview";
 import { Textarea } from "@/components/ui/textarea";
 
 export default function GeneratePaperPage() {

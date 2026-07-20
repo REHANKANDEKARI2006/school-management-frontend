@@ -8,7 +8,7 @@ import axios from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Logo } from "@/components/campus-connect/logo";
+import { Logo } from "@/components/school-os/logo";
 
 // ── Inner component (uses useSearchParams — must be inside Suspense) ────────
 

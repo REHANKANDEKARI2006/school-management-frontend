@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useIdCardSettings, type IdCardSettings } from "@/components/campus-connect/id-card-settings-provider";
+import { useIdCardSettings, type IdCardSettings } from "@/components/school-os/id-card-settings-provider";
 import axios from "@/lib/axios";
 import { PageSkeleton } from "@/components/ui/skeletons";
 import { 
@@ -228,7 +228,7 @@ export default function SettingsPage() {
                           <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-wider">Institutional Name</FormLabel>
                           <FormControl>
                             <Input 
-                              placeholder="e.g. CampusConnect University" 
+                              placeholder="e.g. SchoolOS University" 
                               {...field} 
                               className="h-11 bg-white border-slate-200 focus:ring-primary/10 transition-all rounded-lg text-sm font-semibold"
                             />
@@ -246,7 +246,7 @@ export default function SettingsPage() {
                           <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-wider">Organization Name</FormLabel>
                           <FormControl>
                             <Input 
-                              placeholder="e.g. CampusConnect Educational Trust" 
+                              placeholder="e.g. SchoolOS Educational Trust" 
                               {...field} 
                               value={field.value || ""}
                               className="h-11 bg-white border-slate-200 focus:ring-primary/10 transition-all rounded-lg text-sm font-semibold"

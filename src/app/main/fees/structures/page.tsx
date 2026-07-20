@@ -32,8 +32,8 @@ import { useToast } from "@/hooks/use-toast";
 import { getFeeStructures, getFeeCategories, deleteFeeStructure, updateFeeStructure } from "@/lib/api/fees";
 import { getClasses } from "@/lib/api/classes";
 import type { ClassItem } from "@/types";
-import { FeeStructureForm } from "@/components/campus-connect/fee-structure-form";
-import { UpdateFeeAmountDialog } from "@/components/campus-connect/update-fee-amount-dialog";
+import { FeeStructureForm } from "@/components/school-os/fee-structure-form";
+import { UpdateFeeAmountDialog } from "@/components/school-os/update-fee-amount-dialog";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 

@@ -5,7 +5,7 @@ import axios from "@/lib/axios";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRoleGuard } from "@/hooks/useRoleGuard";
 import { useToast } from "@/hooks/use-toast";
-import { useFeedback } from "@/components/campus-connect/feedback-provider";
+import { useFeedback } from "@/components/school-os/feedback-provider";
 import { cn } from "@/lib/utils";
 
 import {
@@ -44,7 +44,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ExamTimetablePreview,
   TimetableSubjectRow,
-} from "@/components/campus-connect/exam-timetable-preview";
+} from "@/components/school-os/exam-timetable-preview";
 import { ADMIN_GROUP } from "@/config/roles";
 
 /* ===================================================================

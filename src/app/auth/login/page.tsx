@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { Logo } from "@/components/campus-connect/logo";
+import { Logo } from "@/components/school-os/logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -255,7 +255,7 @@ export default function LoginPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.5, duration: 0.8 }}
           >
-            <h2 className="text-5xl font-black tracking-tight mb-4">Campus Connect</h2>
+            <h2 className="text-5xl font-black tracking-tight mb-4">SchoolOS</h2>
             <div className="h-1 w-24 bg-primary mb-6" />
             <p className="text-xl font-medium text-white/90 leading-relaxed max-w-lg">
               Streamlining educational workflows and fostering academic success through unified management tools.

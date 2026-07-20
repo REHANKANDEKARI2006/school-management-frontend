@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Logo } from "@/components/campus-connect/logo";
+import { Logo } from "@/components/school-os/logo";
 
 export default function RootPage() {
   const router = useRouter();

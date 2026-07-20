@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { getClasses } from "@/lib/api/classes";
 import { getFeeStatusByClass } from "@/lib/api/fees";
-import { StudentFeeLedger } from "@/components/campus-connect/student-fee-ledger";
+import { StudentFeeLedger } from "@/components/school-os/student-fee-ledger";
 import { User, Search, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";

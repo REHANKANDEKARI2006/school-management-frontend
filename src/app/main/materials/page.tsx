@@ -39,9 +39,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { MaterialForm, type Material } from "@/components/campus-connect/material-form";
+import { MaterialForm, type Material } from "@/components/school-os/material-form";
 import { Badge } from "@/components/ui/badge";
-import { useSearch } from "@/components/campus-connect/search-provider";
+import { useSearch } from "@/components/school-os/search-provider";
 
 const initialMaterials: Material[] = [
   {

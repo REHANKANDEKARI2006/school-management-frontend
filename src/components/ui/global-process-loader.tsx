@@ -15,7 +15,7 @@ export function GlobalProcessLoader() {
 
         {/* Branding */}
         <div className="text-xs font-black tracking-[0.25em] uppercase text-muted-foreground/60 select-none">
-          CampusConnect
+          SchoolOS
         </div>
 
         {/* Spinner */}

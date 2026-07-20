@@ -5,7 +5,7 @@ import axios from "@/lib/axios";
 import { PageSkeleton } from "@/components/ui/skeletons";
 import RouteGuard from "@/components/auth/RouteGuard";
 import { ROLE } from "@/config/roles";
-import { ClassManagementView } from "@/components/campus-connect/class-management-view";
+import { ClassManagementView } from "@/components/school-os/class-management-view";
 
 export default function MyClassPage() {
   const [loading, setLoading] = useState(true);

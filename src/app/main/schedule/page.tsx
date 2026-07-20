@@ -29,7 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getSchoolSchedule, replaceClassSchedule, getMySchedule } from "@/lib/api/schedule";
-import { ManageScheduleGrid } from "@/components/campus-connect/manage-schedule-grid";
+import { ManageScheduleGrid } from "@/components/school-os/manage-schedule-grid";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useToast } from "@/hooks/use-toast";

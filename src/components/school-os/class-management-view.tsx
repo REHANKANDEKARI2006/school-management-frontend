@@ -68,7 +68,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { StudentForm } from "@/components/campus-connect/student-form";
+import { StudentForm } from "@/components/school-os/student-form";
 import { PageSkeleton } from "@/components/ui/skeletons";
 import { ADMIN_GROUP, TEACHING_STAFF_GROUP } from "@/config/roles";
 import { useToast } from "@/hooks/use-toast";

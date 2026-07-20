@@ -4,7 +4,7 @@ import * as React from "react";
 import { cn, formatDate } from "@/lib/utils";
 import axios from "@/lib/axios";
 import { useRoleGuard } from "@/hooks/useRoleGuard";
-import { useSearch } from "@/components/campus-connect/search-provider";
+import { useSearch } from "@/components/school-os/search-provider";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
@@ -18,7 +18,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { PageSkeleton, TableSkeleton } from "@/components/ui/skeletons";
-import { useFeedback } from "@/components/campus-connect/feedback-provider";
+import { useFeedback } from "@/components/school-os/feedback-provider";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,14 +61,14 @@ import {
 } from "@/components/ui/table";
 
 
-import { ExamForm } from "@/components/campus-connect/exam-form";
-import { GradeEntryForm } from "@/components/campus-connect/grade-entry-form";
-import { ViewResultsDialog } from "@/components/campus-connect/view-results-dialog";
+import { ExamForm } from "@/components/school-os/exam-form";
+import { GradeEntryForm } from "@/components/school-os/grade-entry-form";
+import { ViewResultsDialog } from "@/components/school-os/view-results-dialog";
 import {
   ExamTimetablePreview,
   downloadExamTimetablePDF,
   TimetableSubjectRow,
-} from "@/components/campus-connect/exam-timetable-preview";
+} from "@/components/school-os/exam-timetable-preview";
 import { ROLE, RoleId, ADMIN_GROUP } from "@/config/roles";
 
 /* ===================================================================

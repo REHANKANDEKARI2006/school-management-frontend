@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { StudentAttendanceCard } from '@/components/campus-connect/student-attendance-card';
+import { StudentAttendanceCard } from '@/components/school-os/student-attendance-card';
 import type { Student, AttendanceRecord, ClassItem, Subject, AttendanceStatus } from '@/types';
 import { ArrowLeft, ArrowRight, CalendarDays, CheckSquare, Library, Users, Home } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';

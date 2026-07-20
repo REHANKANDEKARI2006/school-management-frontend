@@ -1,6 +1,6 @@
 "use client";
 
-import { UserManagementTable } from "@/components/campus-connect/user-management-table";
+import { UserManagementTable } from "@/components/school-os/user-management-table";
 import RouteGuard from "@/components/auth/RouteGuard";
 import { ROLE } from "@/config/roles";
 

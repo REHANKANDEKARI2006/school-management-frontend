@@ -49,7 +49,7 @@ const IdCardSettingsContext = React.createContext<
 >(undefined);
 
 const defaultSettings: IdCardSettings = {
-  schoolName: "CampusConnect University",
+  schoolName: "SchoolOS University",
   slogan: "Excellence and Innovation",
   logoUrl: "/logo-placeholder.svg",
   schoolAddress: "123 University Drive, Knowledge City, ED 54321",

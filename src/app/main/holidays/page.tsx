@@ -63,7 +63,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 
-import { useSearch } from "@/components/campus-connect/search-provider";
+import { useSearch } from "@/components/school-os/search-provider";
 import { ROLE, ADMIN_GROUP } from "@/config/roles";
 
 const ALLOWED_ROLES = [ROLE.MASTER_ADMIN];

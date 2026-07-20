@@ -4,13 +4,13 @@ import type { PropsWithChildren } from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { SearchProvider } from "@/components/campus-connect/search-provider";
-import { SearchInput } from "@/components/campus-connect/search-input";
-import { HeaderLogo } from "@/components/campus-connect/logo";
-import { MainNav } from "@/components/campus-connect/main-nav";
-import { UserNav } from "@/components/campus-connect/user-nav";
-import { NotificationBell } from "@/components/campus-connect/notification-bell";
-import { SchoolSwitcher } from "@/components/campus-connect/school-switcher";
+import { SearchProvider } from "@/components/school-os/search-provider";
+import { SearchInput } from "@/components/school-os/search-input";
+import { HeaderLogo } from "@/components/school-os/logo";
+import { MainNav } from "@/components/school-os/main-nav";
+import { UserNav } from "@/components/school-os/user-nav";
+import { NotificationBell } from "@/components/school-os/notification-bell";
+import { SchoolSwitcher } from "@/components/school-os/school-switcher";
 
 
 import {
@@ -22,8 +22,8 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 
-import { IdCardSettingsProvider } from "@/components/campus-connect/id-card-settings-provider";
-import { FeedbackProvider } from "@/components/campus-connect/feedback-provider";
+import { IdCardSettingsProvider } from "@/components/school-os/id-card-settings-provider";
+import { FeedbackProvider } from "@/components/school-os/feedback-provider";
 
 // 🔐 SESSION IMPORTS
 import { useSessionManager } from "@/hooks/useSessionManager";

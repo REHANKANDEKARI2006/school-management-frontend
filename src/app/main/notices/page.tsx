@@ -5,7 +5,7 @@ import * as React from "react";
 import axios from "@/lib/axios";
 import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, User } from "lucide-react";
 import { PageSkeleton, TableSkeleton } from "@/components/ui/skeletons";
-import { useFeedback } from "@/components/campus-connect/feedback-provider";
+import { useFeedback } from "@/components/school-os/feedback-provider";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -37,9 +37,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { NoticeForm } from "@/components/campus-connect/notice-form";
+import { NoticeForm } from "@/components/school-os/notice-form";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useSearch } from "@/components/campus-connect/search-provider";
+import { useSearch } from "@/components/school-os/search-provider";
 import { getNotices, createNotice, updateNotice, deleteNotice } from "@/lib/api/notices";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";

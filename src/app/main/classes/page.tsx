@@ -44,8 +44,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { ClassForm } from "@/components/campus-connect/class-form";
-import { useSearch } from "@/components/campus-connect/search-provider";
+import { ClassForm } from "@/components/school-os/class-form";
+import { useSearch } from "@/components/school-os/search-provider";
 import { ROLE, ADMIN_GROUP, TEACHING_STAFF_GROUP } from "@/config/roles";
 
 export type Class = {

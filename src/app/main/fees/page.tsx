@@ -1,6 +1,6 @@
 "use client";
 import { PageSkeleton } from "@/components/ui/skeletons";
-import { useFeedback } from "@/components/campus-connect/feedback-provider";
+import { useFeedback } from "@/components/school-os/feedback-provider";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
@@ -29,7 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { useSearch } from "@/components/campus-connect/search-provider";
+import { useSearch } from "@/components/school-os/search-provider";
 import { useToast } from "@/hooks/use-toast";
 
 import {
@@ -46,7 +46,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-import { FeeCategoryForm } from "@/components/campus-connect/fee-category-form";
+import { FeeCategoryForm } from "@/components/school-os/fee-category-form";
 
 import { ROLE, ADMIN_GROUP, RoleId } from "@/config/roles";
 

@@ -25,7 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { AttendanceSummaryDialog } from "@/components/campus-connect/attendance-summary-dialog";
+import { AttendanceSummaryDialog } from "@/components/school-os/attendance-summary-dialog";
 import { cn } from "@/lib/utils";
 
 interface SubjectWithAttendance {
@@ -403,7 +403,7 @@ export default function AttendanceDashboardPage() {
           const doc = new jsPDF('p', 'mm', 'a4'); // Portrait
           doc.setFontSize(20);
           doc.setTextColor(79, 70, 229);
-          doc.text("CampusConnect", 14, 20);
+          doc.text("SchoolOS", 14, 20);
 
           doc.setFontSize(14);
           doc.setTextColor(33, 37, 41);

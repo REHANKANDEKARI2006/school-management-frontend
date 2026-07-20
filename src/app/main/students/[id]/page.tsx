@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "@/lib/axios";
 import RouteGuard from "@/components/auth/RouteGuard";
-import { StudentDetails } from "@/components/campus-connect/student-details";
+import { StudentDetails } from "@/components/school-os/student-details";
 import { PageSkeleton } from "@/components/ui/skeletons";
 import { ADMIN_GROUP, TEACHING_STAFF_GROUP } from "@/config/roles";
 import { useToast } from "@/hooks/use-toast";

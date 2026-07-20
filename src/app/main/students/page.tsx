@@ -5,14 +5,14 @@ import axios from "@/lib/axios";
 import { MoreHorizontal, PlusCircle, Pencil, Trash } from "lucide-react";
 
 import { useRoleGuard } from "@/hooks/useRoleGuard";
-import { useSearch } from "@/components/campus-connect/search-provider";
+import { useSearch } from "@/components/school-os/search-provider";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { useIdCardSettings } from "@/components/campus-connect/id-card-settings-provider";
+import { useIdCardSettings } from "@/components/school-os/id-card-settings-provider";
 import { Progress } from "@/components/ui/progress";
 import { TableSkeleton } from "@/components/ui/skeletons";
-import { useFeedback } from "@/components/campus-connect/feedback-provider";
+import { useFeedback } from "@/components/school-os/feedback-provider";
 import { FileText, Award, CreditCard, FileCheck, CheckCircle2 } from "lucide-react";
 
 import {
@@ -58,11 +58,11 @@ import {
 } from "@/components/ui/table";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { StudentDetails } from "@/components/campus-connect/student-details";
+import { StudentDetails } from "@/components/school-os/student-details";
 import {
   StudentForm,
   type Student,
-} from "@/components/campus-connect/student-form";
+} from "@/components/school-os/student-form";
 
 import { ROLE, ADMIN_GROUP, RoleId } from "@/config/roles";
 

@@ -56,13 +56,13 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { EventForm, type Event } from "@/components/campus-connect/event-form";
+import { EventForm, type Event } from "@/components/school-os/event-form";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useSearch } from "@/components/campus-connect/search-provider";
-import { EventCertificateDialog } from "@/components/campus-connect/event-certificate";
+import { useSearch } from "@/components/school-os/search-provider";
+import { EventCertificateDialog } from "@/components/school-os/event-certificate";
 import { getEvents, createEvent, updateEvent, deleteEvent, unlockAttendanceEdit } from "@/lib/api/events";
 import { format } from "date-fns";
-import { EventGallery } from "@/components/campus-connect/event-gallery";
+import { EventGallery } from "@/components/school-os/event-gallery";
 
 const getStatusVariant = (status: string): "completed" | "upcoming" | "cancelled" | "pending" | "outline" => {
   switch (status?.toLowerCase()) {

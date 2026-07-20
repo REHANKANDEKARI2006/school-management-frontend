@@ -115,7 +115,7 @@ export default function AttendanceSummaryPage() {
     // Add title and metadata
     doc.setFontSize(20);
     doc.setTextColor(79, 70, 229); // Indigo-600
-    doc.text("CampusConnect", 14, 22);
+    doc.text("SchoolOS", 14, 22);
 
     doc.setFontSize(14);
     doc.setTextColor(33, 37, 41);

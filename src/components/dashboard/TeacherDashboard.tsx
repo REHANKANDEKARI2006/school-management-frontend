@@ -10,7 +10,7 @@ import { TeacherUpcomingList } from "./TeacherUpcomingList";
 import { Announcements } from "./Announcements";
 import { TeacherSchedule } from "./TeacherSchedule";
 import { HolidayBanner } from "./HolidayBanner";
-import { AcademicCalendarWidget, CalendarDayDetail } from "@/components/campus-connect/academic-calendar-widget";
+import { AcademicCalendarWidget, CalendarDayDetail } from "@/components/school-os/academic-calendar-widget";
 import { PageSkeleton } from "@/components/ui/skeletons";
 import { AlertCircle, RefreshCcw, CheckCircle2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";

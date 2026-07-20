@@ -54,7 +54,7 @@ import {
 } from "@/components/ui/table";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useSearch } from "@/components/campus-connect/search-provider";
+import { useSearch } from "@/components/school-os/search-provider";
 
 import {
   Dialog,
@@ -67,10 +67,10 @@ import {
 import {
   FacultyForm,
   type FacultyFormData,
-} from "@/components/campus-connect/faculty-form";
+} from "@/components/school-os/faculty-form";
 
-import { FacultyDetails } from "@/components/campus-connect/faculty-details";
-import { FacultySchedule } from "@/components/campus-connect/faculty-schedule";
+import { FacultyDetails } from "@/components/school-os/faculty-details";
+import { FacultySchedule } from "@/components/school-os/faculty-schedule";
 import { ADMIN_GROUP, ROLE, RoleId } from "@/config/roles";
 
 // ── Helpers ────────────────────────────────────────────────────────────────

@@ -6,7 +6,7 @@ import { GlobalProcessLoader } from "@/components/ui/global-process-loader";
 import { NavigationLoader } from "@/components/ui/navigation-loader";
 
 export const metadata: Metadata = {
-  title: 'CampusConnect',
+  title: 'SchoolOS',
   description: 'A modern school management system',
 };
 

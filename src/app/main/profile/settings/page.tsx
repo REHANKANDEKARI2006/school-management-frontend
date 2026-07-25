@@ -162,10 +162,21 @@ export default function ProfileSettingsPage() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const MAX_SIZE = 4 * 1024 * 1024; // 4 MB
+      if (file.size > MAX_SIZE) {
+        toast({
+          title: "File Too Large",
+          description: "Image file size exceeds the maximum limit of 4 MB. Please select a smaller image.",
+          variant: "destructive",
+        });
+        e.target.value = "";
+        return;
+      }
       setCrop(undefined);
       const reader = new FileReader();
       reader.addEventListener('load', () => setImgSrc(reader.result?.toString() || ''));
-      reader.readAsDataURL(e.target.files[0]);
+      reader.readAsDataURL(file);
     }
   };
 

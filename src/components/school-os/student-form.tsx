@@ -24,7 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import type { Student as StudentType } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UploadCloud, Loader2 } from "lucide-react";
+import { UploadCloud, Loader2, Info } from "lucide-react";
 
 import * as React from "react";
 import axios from "@/lib/axios";
@@ -125,24 +125,53 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
   const imgRef = React.useRef<HTMLImageElement>(null);
 
   React.useEffect(() => {
-    axios.get("/api/classes/admin/list").then((res) => {
-      const mapped = res.data.data.map((c: any) => ({
-        id: String(c.class_id),
-        name: c.class_name,
-        section: c.section_name || "-",
-      }));
-      setClassOptions(mapped);
-    });
+    const fetchClasses = async () => {
+      try {
+        const res = await axios.get("/api/classes/admin/list");
+        const list = Array.isArray(res.data?.data) ? res.data.data : [];
+        if (list.length > 0) {
+          const mapped = list.map((c: any) => ({
+            id: String(c.class_id),
+            name: c.class_name || `Class ${c.class_id}`,
+            section: c.section_name || "-",
+          }));
+          setClassOptions(mapped);
+          return;
+        }
+      } catch (err) {
+        console.warn("Failed to load /api/classes/admin/list, trying /api/classes...", err);
+      }
 
-    axios.get("/api/blood-groups").then((res) => setBloodGroups(res.data.data));
-    axios.get("/api/user-status").then((res) => setUserStatuses(res.data.data));
+      try {
+        const res = await axios.get("/api/classes");
+        const list = Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : []);
+        const mapped = list.map((c: any) => ({
+          id: String(c.class_id),
+          name: c.class_name || `Class ${c.class_id}`,
+          section: c.section_name || "-",
+        }));
+        setClassOptions(mapped);
+      } catch (err) {
+        console.error("Failed to load classes for student form:", err);
+      }
+    };
+
+    fetchClasses();
+
+    axios.get("/api/blood-groups")
+      .then((res) => setBloodGroups(res.data?.data || []))
+      .catch(() => {});
+
+    axios.get("/api/user-status")
+      .then((res) => setUserStatuses(res.data?.data || []))
+      .catch(() => {});
   }, []);
 
   const uniqueStandards = React.useMemo(() => {
-    const stands = Array.from(new Set(classOptions.map((c) => c.name)));
+    const stands = Array.from(new Set(classOptions.map((c) => c.name).filter(Boolean)));
     return stands.sort((a, b) => {
-      const numA = parseInt(a);
-      const numB = parseInt(b);
+      const numA = parseInt(a.replace(/\D/g, ""));
+      const numB = parseInt(b.replace(/\D/g, ""));
       if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
       return a.localeCompare(b);
     });
@@ -158,10 +187,17 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
+      const file = event.target.files[0];
+      const MAX_SIZE = 4 * 1024 * 1024; // 4 MB
+      if (file.size > MAX_SIZE) {
+        alert("Image size exceeds the 4 MB limit. Please select a smaller file.");
+        event.target.value = "";
+        return;
+      }
       setCrop(undefined); 
       const reader = new FileReader();
       reader.addEventListener('load', () => setImgSrc(reader.result?.toString() || ''));
-      reader.readAsDataURL(event.target.files[0]);
+      reader.readAsDataURL(file);
     }
   };
 
@@ -273,7 +309,9 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col gap-1.5">
-              <p className="text-sm font-medium text-foreground">{previewUrl ? "Photo uploaded" : "Profile photo"}</p>
+              <p className="text-sm font-medium text-foreground">
+                {previewUrl ? "Photo uploaded" : "Profile photo"} <span className="text-xs text-muted-foreground font-normal">(Max 4 MB)</span>
+              </p>
               <div className="flex items-center gap-2 mt-0.5">
                 <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-semibold border border-input bg-background hover:bg-accent hover:text-accent-foreground h-7 px-3 rounded-md transition-colors">
                   <UploadCloud className="h-3.5 w-3.5" />
@@ -312,7 +350,11 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
             <Select value={selectedStandard} onValueChange={(val) => { setSelectedStandard(val); setSelectedSection(""); form.setValue("class_id", ""); }}>
               <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
               <SelectContent>
-                {uniqueStandards.map((std) => <SelectItem key={std} value={std}>Standard {std}</SelectItem>)}
+                {uniqueStandards.map((std) => (
+                  <SelectItem key={std} value={std}>
+                    {std.toLowerCase().startsWith("class") || std.toLowerCase().startsWith("standard") ? std : `Standard ${std}`}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </FormItem>
@@ -381,7 +423,7 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
-                    {bloodGroups.map((bg) => <SelectItem key={bg.bg_id} value={bg.blood_group}>{bg.blood_group}</SelectItem>)}
+                    {bloodGroups.filter((bg: any) => bg.blood_group || bg.bg_name).map((bg: any) => <SelectItem key={bg.bg_id} value={bg.blood_group || bg.bg_name}>{bg.blood_group || bg.bg_name}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -491,6 +533,12 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
               <FormItem>
                 <FormLabel>Guardian Email <span className="text-destructive">*</span></FormLabel>
                 <FormControl><Input type="email" placeholder="guardian@example.com" {...field} /></FormControl>
+                {mode === "add" && (
+                  <p className="text-[11px] text-blue-600 font-medium mt-1 flex items-center gap-1.5 bg-blue-50/80 p-2 rounded-md border border-blue-100">
+                    <Info className="h-3.5 w-3.5 shrink-0 text-blue-500" />
+                    A link for setting the password will be sent to this email address immediately upon addition.
+                  </p>
+                )}
                 <FormMessage />
               </FormItem>
             )}

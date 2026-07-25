@@ -24,7 +24,7 @@ import {
 import axios from "@/lib/axios";
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
-import { UploadCloud, Camera, X } from "lucide-react";
+import { UploadCloud, Loader2, Info, Camera, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 
@@ -124,11 +124,18 @@ export function FacultyForm({ mode, initialData, departments, subjects, onSubmit
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
+    const file = e.target.files[0];
+    const MAX_SIZE = 4 * 1024 * 1024; // 4 MB
+    if (file.size > MAX_SIZE) {
+      alert("Image size exceeds the 4 MB limit. Please select a smaller file.");
+      e.target.value = "";
+      return;
+    }
     setCrop(undefined);
     setCompletedCrop(undefined);
     const reader = new FileReader();
     reader.addEventListener("load", () => setImgSrc(reader.result?.toString() || ""));
-    reader.readAsDataURL(e.target.files[0]);
+    reader.readAsDataURL(file);
     // Reset so same file can be re-selected
     e.target.value = "";
   };
@@ -261,7 +268,7 @@ export function FacultyForm({ mode, initialData, departments, subjects, onSubmit
                 {previewUrl ? "Photo uploaded" : "Profile photo"}
               </p>
               <p className="text-xs text-muted-foreground">
-                {previewUrl ? "Click Change to replace" : "JPG, PNG or WEBP · optional"}
+                {previewUrl ? "Click Change to replace (Max 4 MB)" : "JPG, PNG or WEBP · Max 4 MB · optional"}
               </p>
               <div className="flex items-center gap-2 mt-0.5">
                 {/* ── Upload button — correctly contained ── */}
@@ -319,6 +326,12 @@ export function FacultyForm({ mode, initialData, departments, subjects, onSubmit
               <FormItem className="md:col-span-2">
                 <FormLabel>Email <span className="text-destructive">*</span></FormLabel>
                 <FormControl><Input type="email" placeholder="teacher@school.edu" {...field} /></FormControl>
+                {mode === "add" && (
+                  <p className="text-[11px] text-blue-600 font-medium mt-1 flex items-center gap-1.5 bg-blue-50/80 p-2 rounded-md border border-blue-100">
+                    <Info className="h-3.5 w-3.5 shrink-0 text-blue-500" />
+                    A link for setting the password will be sent to this email address immediately upon addition.
+                  </p>
+                )}
                 <FormMessage />
               </FormItem>
             )}

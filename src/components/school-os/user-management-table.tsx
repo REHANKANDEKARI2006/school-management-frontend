@@ -11,6 +11,7 @@ import {
   Clock,
   CheckCircle2,
   ShieldAlert,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -585,6 +586,10 @@ export function UserManagementTable({ role_code, title, description }: UserTable
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="h-11 rounded-lg"
               />
+              <p className="text-[11px] text-blue-600 font-medium mt-0.5 flex items-center gap-1.5 bg-blue-50/80 p-2 rounded-md border border-blue-100">
+                <Info className="h-3.5 w-3.5 shrink-0 text-blue-500" />
+                A link for setting the password will be sent to this email address immediately upon addition.
+              </p>
             </div>
             <div className="grid gap-2">
               <Label htmlFor={`${role_code}-phone`} className="text-sm font-semibold text-slate-700">Phone Number</Label>

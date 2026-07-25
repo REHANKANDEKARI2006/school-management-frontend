@@ -22,7 +22,7 @@ interface WeeklyTimetableProps {
   isSunday?: boolean;
 }
 
-export const WeeklyTimetable = ({ timetable = [], isHoliday, isSunday }: WeeklyTimetableProps) => {
+export const WeeklyTimetable = React.memo(({ timetable = [], isHoliday, isSunday }: WeeklyTimetableProps) => {
   const formatTime = (timeStr: string) => {
     if (!timeStr) return "";
     const [h, m] = timeStr.split(":");
@@ -217,4 +217,6 @@ export const WeeklyTimetable = ({ timetable = [], isHoliday, isSunday }: WeeklyT
       </CardContent>
     </Card>
   );
-};
+});
+
+export default WeeklyTimetable;

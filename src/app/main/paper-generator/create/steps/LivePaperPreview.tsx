@@ -89,7 +89,9 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
   const getMediaUrl = (path: string) => {
     if (!path) return "";
     if (path.startsWith("http") || path.startsWith("data:")) return path;
-    const base = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:5000";
+    const isProd = typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
+    const defaultBase = isProd ? "https://school-management-backend-production-3a75.up.railway.app" : "http://localhost:5000";
+    const base = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || defaultBase;
     return `${base}${path}`;
   };
 

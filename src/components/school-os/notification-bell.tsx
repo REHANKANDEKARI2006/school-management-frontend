@@ -15,14 +15,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+// Configurable polling interval in milliseconds
+const NOTIFICATION_POLL_INTERVAL_MS = 60000; // 60 seconds
+
 export function NotificationBell() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchNotifications = async () => {
     if (typeof window === "undefined") return;
+    if (document.visibilityState !== "visible") return; // Skip polling when tab is inactive/hidden
+
     const token = localStorage.getItem("accessToken");
-    if (!token) return; // Skip fetch if the user is not logged in
+    if (!token) return; // Skip fetch if user is logged out
 
     try {
       const res = await axios.get("/api/notifications/my-notifications", {
@@ -39,8 +44,21 @@ export function NotificationBell() {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10000); // Poll every 10 seconds
-    return () => clearInterval(interval);
+
+    const interval = setInterval(fetchNotifications, NOTIFICATION_POLL_INTERVAL_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchNotifications();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   const markAsRead = async (id: number) => {

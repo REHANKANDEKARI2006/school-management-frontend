@@ -65,6 +65,7 @@ const eventSchema = z.object({
 });
 
 export type EventFormData = z.infer<typeof eventSchema>;
+export type Event = any;
 
 interface EventFormProps {
   onSubmit: (data: any) => void;

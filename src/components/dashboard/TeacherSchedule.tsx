@@ -137,7 +137,7 @@ export const TeacherSchedule = ({ staffId }: TeacherScheduleProps) => {
   const maxDayTime = periodTimes.length > 0 ? Math.max(...periodTimes.map(p => p.endMin)) + 30 : 1080;
   const totalDuration = maxDayTime - minDayTime;
 
-  const timeMarkers = [];
+  const timeMarkers: Array<{ min: number; label: string }> = [];
   for (let t = Math.ceil(minDayTime/60)*60; t <= maxDayTime; t += 60) {
     const hour = Math.floor(t/60);
     const displayHour = hour % 12 || 12;

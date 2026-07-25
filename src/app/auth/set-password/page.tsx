@@ -29,6 +29,7 @@ function SetPasswordForm() {
   const [submitting, setSubmitting]   = useState(false);
   const [formError, setFormError]     = useState("");
   const [isExpired, setIsExpired]     = useState(false);
+  const [isAlreadyUsed, setIsAlreadyUsed] = useState(false);
 
   // Password strength requirements
   const requirements = [
@@ -56,10 +57,12 @@ function SetPasswordForm() {
         } else {
           setError(res.data.message || "This invitation link is invalid or has expired.");
           setIsExpired(res.data.isExpired || false);
+          setIsAlreadyUsed(res.data.isAlreadyUsed || false);
         }
       } catch (err: any) {
         setError(err?.response?.data?.message || "This invitation link is invalid or has expired.");
         setIsExpired(err?.response?.data?.isExpired || false);
+        setIsAlreadyUsed(err?.response?.data?.isAlreadyUsed || false);
       } finally {
         setVerifying(false);
       }
@@ -120,16 +123,16 @@ function SetPasswordForm() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-destructive/5 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full bg-card border border-destructive/20 p-10 rounded-2xl shadow-xl text-center"
+          className="max-w-md w-full bg-card border border-border/40 p-10 rounded-2xl shadow-xl text-center"
         >
-          <div className="bg-destructive/10 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-6">
-            <X className="h-8 w-8 text-destructive" />
+          <div className={isAlreadyUsed ? "bg-primary/10 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-6" : "bg-destructive/10 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-6"}>
+            {isAlreadyUsed ? <ShieldCheck className="h-8 w-8 text-primary" /> : <X className="h-8 w-8 text-destructive" />}
           </div>
-          <h1 className="text-2xl font-bold mb-3">{isExpired ? "Link Expired" : "Link Invalid"}</h1>
+          <h1 className="text-2xl font-bold mb-3">{isAlreadyUsed ? "Password Already Set" : isExpired ? "Link Expired" : "Link Invalid"}</h1>
           <p className="text-muted-foreground text-sm mb-8 leading-relaxed">{error}</p>
           <Button onClick={() => router.push("/auth/login")} className="w-full h-12 rounded-xl">
             Go to Login

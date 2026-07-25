@@ -4,9 +4,14 @@ import React, { Suspense, useEffect, useState, useCallback, useRef } from "react
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { createDraft, getPaper, updatePaper, upsertSection, upsertQuestion } from "@/lib/api/question-paper";
+import dynamic from "next/dynamic";
 import PaperSetupStep from "./steps/PaperSetupStep";
-import AddQuestionsStep from "./steps/AddQuestionsStep";
-import PreviewStep from "./steps/PreviewStep";
+const AddQuestionsStep = dynamic(() => import("./steps/AddQuestionsStep"), {
+  loading: () => <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /><p className="mt-2 text-sm text-muted-foreground">Loading Question Editor...</p></div>,
+});
+const PreviewStep = dynamic(() => import("./steps/PreviewStep"), {
+  loading: () => <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /><p className="mt-2 text-sm text-muted-foreground">Preparing Paper Preview...</p></div>,
+});
 import { Button } from "@/components/ui/button";
 import { useGlobalLoaderStore } from "@/store/useGlobalLoaderStore";
 

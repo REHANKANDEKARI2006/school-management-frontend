@@ -5,7 +5,7 @@ export const getSchoolSchedule = async () => {
     return res.data.data;
 };
 
-export const getMySchedule = async (params: { staff_id?: number; class_id?: number }) => {
+export const getMySchedule = async (params: { staff_id?: number; class_id?: number; week_start?: string }) => {
     const res = await axios.get("/api/schedule/my", { params });
     return res.data.data;
 };

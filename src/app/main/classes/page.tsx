@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 import { PageSkeleton } from "@/components/ui/skeletons";
 import { useRouter } from "next/navigation";

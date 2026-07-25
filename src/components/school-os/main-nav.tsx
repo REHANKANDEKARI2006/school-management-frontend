@@ -160,28 +160,31 @@ const settingsItem: NavItem = {
   roles: [ROLE.MASTER_ADMIN, ROLE.IT_SUPPORT],
 };
 
+import React from "react";
+
 /* =========================
    MAIN NAV COMPONENT
 ========================= */
-export function MainNav() {
+export const MainNav = React.memo(function MainNav() {
   const pathname = usePathname();
   const { setOpenMobile, isMobile } = useSidebar();
 
-  const roleId =
-    typeof window !== "undefined"
+  const roleId = React.useMemo(() => {
+    return typeof window !== "undefined"
       ? Number(localStorage.getItem("role_id"))
       : null;
+  }, []);
 
-  const handleLinkClick = () => {
+  const handleLinkClick = React.useCallback(() => {
     if (isMobile) setOpenMobile(false);
-  };
+  }, [isMobile, setOpenMobile]);
 
-  const hasAccess = (roles: RoleAccess | (() => boolean)) => {
+  const hasAccess = React.useCallback((roles: RoleAccess | (() => boolean)) => {
     if (typeof roles === "function") return roles();
     if (roles === "ALL") return true;
     if (!roleId) return false;
     return roles.includes(roleId);
-  };
+  }, [roleId]);
 
   return (
     <>
@@ -229,4 +232,4 @@ export function MainNav() {
       )}
     </>
   );
-}
+});

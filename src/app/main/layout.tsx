@@ -34,7 +34,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
   const [checkedAuth, setCheckedAuth] = useState(false);
 
   // 🔐 Session control
-  const { showPopup, continueSession, logout } = useSessionManager();
+  const { showPopup, countdown, continueSession, logout } = useSessionManager();
 
   // 🔒 HARD AUTH GUARD (client-side)
   useEffect(() => {
@@ -62,6 +62,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
           {/* 🔔 SESSION EXPIRY POPUP */}
           {showPopup && (
             <SessionPopup
+              countdown={countdown}
               onContinue={continueSession}
               onLogout={logout}
             />

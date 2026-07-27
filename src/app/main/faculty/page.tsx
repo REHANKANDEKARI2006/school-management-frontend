@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import axios from "@/lib/axios";
+import { useGlobalLoaderStore } from "@/store/useGlobalLoaderStore";
 import RouteGuard from "@/components/auth/RouteGuard";
 import {
   MoreHorizontal,
@@ -290,9 +291,16 @@ export default function FacultyPage() {
   };
 
   const handleViewDetails = async (id: number) => {
-    const res = await axios.get(`/api/faculty/${id}`);
-    setDetailsFaculty(res.data.data);
-    setDetailsOpen(true);
+    useGlobalLoaderStore.getState().increment("Loading details…");
+    try {
+      const res = await axios.get(`/api/faculty/${id}`);
+      setDetailsFaculty(res.data.data);
+      setDetailsOpen(true);
+    } catch {
+      toast.error("Failed to load faculty details");
+    } finally {
+      useGlobalLoaderStore.getState().decrement();
+    }
   };
 
   // ── Filtered + enriched faculty ────────────────────────────────────────

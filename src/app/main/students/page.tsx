@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import axios from "@/lib/axios";
+import { useGlobalLoaderStore } from "@/store/useGlobalLoaderStore";
 import { MoreHorizontal, PlusCircle, Pencil, Trash } from "lucide-react";
 
 import { useRoleGuard } from "@/hooks/useRoleGuard";
@@ -255,36 +256,45 @@ export default function StudentsPage() {
   ========================= */
 
   const handleEditClick = async (id: number) => {
-    const res = await axios.get(`/api/students/${id}`);
-    const s = res.data.data;
+    useGlobalLoaderStore.getState().increment("Loading student…");
+    try {
+      const res = await axios.get(`/api/students/${id}`);
+      const s = res.data.data;
 
-    setEditingStudent({
-      id: String(s.student_id),
-      name: `${s.stu_first_name} ${s.stu_last_name}`,
-      email: s.email || "",
+      setEditingStudent({
+        id: String(s.student_id),
+        name: `${s.stu_first_name} ${s.stu_last_name}`,
+        email: s.email || "",
 
-      // ✅ MUST MATCH StudentForm schema
-      class_id: s.class_id ? String(s.class_id) : "",
+        // ✅ MUST MATCH StudentForm schema
+        class_id: s.class_id ? String(s.class_id) : "",
 
-      user_status_id: String(s.user_status_id),
-      address: s.address || "",
+        user_status_id: String(s.user_status_id),
+        address: s.address || "",
 
-      dob: s.date_of_birth
-        ? s.date_of_birth.split("T")[0]
-        : "",
+        dob: s.date_of_birth
+          ? s.date_of_birth.split("T")[0]
+          : "",
 
-      bloodGroup: s.blood_group || "",
-      fatherName: s.father_name || "",
-      motherName: s.mother_name || "",
-      primaryContact: s.primary_contact || "",
-      parentEmail: s.parent_email || "",
-      avatar: s.profile_url || "",
-      gender_id: s.gender_id ? String(s.gender_id) : "",
-    });
+        bloodGroup: s.blood_group || "",
+        fatherName: s.father_name || "",
+        motherName: s.mother_name || "",
+        primaryContact: s.primary_contact || "",
+        parentEmail: s.parent_email || "",
+        avatar: s.profile_url || "",
+        gender_id: s.gender_id ? String(s.gender_id) : "",
+      });
 
-
-
-    setEditOpen(true);
+      setEditOpen(true);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err?.response?.data?.message || "Failed to load student details",
+        variant: "destructive",
+      });
+    } finally {
+      useGlobalLoaderStore.getState().decrement();
+    }
   };
 
   const handleUpdateStudent = async (form: Student) => {
@@ -334,32 +344,43 @@ export default function StudentsPage() {
   ========================= */
 
   const handleViewDetails = async (id: number) => {
-    const res = await axios.get(`/api/students/${id}`);
-    const s = res.data.data;
+    useGlobalLoaderStore.getState().increment("Loading details…");
+    try {
+      const res = await axios.get(`/api/students/${id}`);
+      const s = res.data.data;
 
-    setSelectedStudent({
-      id: String(s.student_id),
-      name: `${s.stu_first_name} ${s.stu_last_name}`,
-      email: s.email,
-      status: s.status_name || (s.user_status_id === 1 ? "Active" : "Inactive"),
-      class: s.section_name
-        ? `${s.class_name} - ${s.section_name}`
-        : s.class_name || "-",
-      date: s.joined_date,
-      address: s.address,
-      dob: s.date_of_birth,
-      bloodGroup: s.blood_group || "-",
-      fatherName: s.father_name || "-",
-      motherName: s.mother_name || "-",
-      primaryContact: s.primary_contact || "-",
-      secondaryContact: null,
-      parentEmail: s.parent_email || "N/A",
-      avatar: s.profile_url || "",
-      fallback:
-        (s.stu_first_name?.charAt(0) || "") + (s.stu_last_name?.charAt(0) || ""),
-    });
+      setSelectedStudent({
+        id: String(s.student_id),
+        name: `${s.stu_first_name} ${s.stu_last_name}`,
+        email: s.email,
+        status: s.status_name || (s.user_status_id === 1 ? "Active" : "Inactive"),
+        class: s.section_name
+          ? `${s.class_name} - ${s.section_name}`
+          : s.class_name || "-",
+        date: s.joined_date,
+        address: s.address,
+        dob: s.date_of_birth,
+        bloodGroup: s.blood_group || "-",
+        fatherName: s.father_name || "-",
+        motherName: s.mother_name || "-",
+        primaryContact: s.primary_contact || "-",
+        secondaryContact: null,
+        parentEmail: s.parent_email || "N/A",
+        avatar: s.profile_url || "",
+        fallback:
+          (s.stu_first_name?.charAt(0) || "") + (s.stu_last_name?.charAt(0) || ""),
+      });
 
-    setDetailsOpen(true);
+      setDetailsOpen(true);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err?.response?.data?.message || "Failed to load student details",
+        variant: "destructive",
+      });
+    } finally {
+      useGlobalLoaderStore.getState().decrement();
+    }
   };
 
   const { settings } = useIdCardSettings();

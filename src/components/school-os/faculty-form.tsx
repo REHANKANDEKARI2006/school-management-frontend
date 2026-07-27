@@ -125,9 +125,9 @@ export function FacultyForm({ mode, initialData, departments, subjects, onSubmit
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
     const file = e.target.files[0];
-    const MAX_SIZE = 4 * 1024 * 1024; // 4 MB
+    const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
     if (file.size > MAX_SIZE) {
-      alert("Image size exceeds the 4 MB limit. Please select a smaller file.");
+      alert("Image size exceeds the 2 MB limit. Please select a smaller file.");
       e.target.value = "";
       return;
     }
@@ -268,7 +268,7 @@ export function FacultyForm({ mode, initialData, departments, subjects, onSubmit
                 {previewUrl ? "Photo uploaded" : "Profile photo"}
               </p>
               <p className="text-xs text-muted-foreground">
-                {previewUrl ? "Click Change to replace (Max 4 MB)" : "JPG, PNG or WEBP · Max 4 MB · optional"}
+                {previewUrl ? "Click Change to replace (Max 2 MB)" : "JPG, PNG or WEBP · Max 2 MB · optional"}
               </p>
               <div className="flex items-center gap-2 mt-0.5">
                 {/* ── Upload button — correctly contained ── */}

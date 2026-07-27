@@ -1,36 +1,45 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, X, Eye, EyeOff, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { Check, X, Lock, Eye, EyeOff, Loader2, ArrowRight, ShieldCheck } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import axios from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/school-os/logo";
 
-export default function ResetPasswordPage() {
+// ── Inner component (uses useSearchParams — must be inside Suspense) ────────
+
+function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
-  const [verifying, setVerifying] = useState(true);
-  const [error, setError] = useState("");
-  const [userName, setUserName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [password, setPassword] = useState("");
+  const [verifying, setVerifying]     = useState(true);
+  const [error, setError]             = useState("");
+  const [userName, setUserName]       = useState("");
+  const [userEmail, setUserEmail]     = useState("");
+  const [password, setPassword]       = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword]       = useState(false);
+  const [showConfirm, setShowConfirm]         = useState(false);
+  const [success, setSuccess]         = useState(false);
+  const [submitting, setSubmitting]   = useState(false);
+  const [formError, setFormError]     = useState("");
+  const [isExpired, setIsExpired]     = useState(false);
+  const [isAlreadyUsed, setIsAlreadyUsed] = useState(false);
 
-  // Requirement checks
+  // Password strength requirements
   const requirements = [
-    { label: "At least 8 characters", regex: /.{8,}/ },
+    { label: "At least 8 characters",       regex: /.{8,}/ },
     { label: "At least one uppercase letter", regex: /[A-Z]/ },
-    { label: "At least one number", regex: /[0-9]/ },
+    { label: "At least one number",          regex: /[0-9]/ },
     { label: "At least one special character", regex: /[!@#$%^&*(),.?":{}|<>]/ },
   ];
+
+  // ── Verify token on mount ──────────────────────────────────────────────
 
   useEffect(() => {
     if (!token) {
@@ -44,11 +53,17 @@ export default function ResetPasswordPage() {
         const res = await axios.get(`/api/auth/verify-reset-token?token=${token}`);
         if (res.data.success) {
           setUserName(res.data.name || "");
+          setUserEmail(res.data.email || "");
         } else {
           setError(res.data.message || "This password reset link is invalid or has expired.");
+          if (res.data.message?.toLowerCase().includes("expired")) setIsExpired(true);
+          if (res.data.message?.toLowerCase().includes("already")) setIsAlreadyUsed(true);
         }
       } catch (err: any) {
-        setError(err?.response?.data?.message || "This password reset link is invalid or has expired.");
+        const msg = err?.response?.data?.message || "This password reset link is invalid or has expired.";
+        setError(msg);
+        if (msg.toLowerCase().includes("expired")) setIsExpired(true);
+        if (msg.toLowerCase().includes("already")) setIsAlreadyUsed(true);
       } finally {
         setVerifying(false);
       }
@@ -57,35 +72,46 @@ export default function ResetPasswordPage() {
     verify();
   }, [token]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // ── Submit ─────────────────────────────────────────────────────────────
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSubmit(e);
+    }
+  };
+
+  const handleSubmit = async (e?: React.SyntheticEvent) => {
+    if (e) e.preventDefault();
+    setFormError("");
+
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      setFormError("Passwords do not match. Please try again.");
       return;
     }
 
-    const allPassed = requirements.every(req => req.regex.test(password));
+    const allPassed = requirements.every((req) => req.regex.test(password));
     if (!allPassed) {
-      alert("Please meet all password requirements");
+      setFormError("Please meet all password requirements before continuing.");
       return;
     }
 
     try {
-      setLoading(true);
-      const res = await axios.post("/api/auth/reset-password", {
-        token,
-        password
-      });
-
+      setSubmitting(true);
+      const res = await axios.post("/api/auth/reset-password", { token, password });
       if (res.data.success) {
         setSuccess(true);
+        setTimeout(() => {
+          router.push("/auth/login");
+        }, 3000);
       }
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Failed to reset password.");
+      setFormError(err?.response?.data?.message || "Failed to reset password. Please try again.");
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
+
+  // ── States ─────────────────────────────────────────────────────────────
 
   if (verifying) {
     return (
@@ -98,19 +124,19 @@ export default function ResetPasswordPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-destructive/5 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full bg-card border border-destructive/20 p-10 rounded-2xl shadow-xl text-center"
+          className="max-w-md w-full bg-card border border-border/40 p-10 rounded-2xl shadow-xl text-center"
         >
-          <div className="bg-destructive/10 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-6">
-            <X className="h-8 w-8 text-destructive" />
+          <div className={isAlreadyUsed ? "bg-primary/10 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-6" : "bg-destructive/10 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-6"}>
+            {isAlreadyUsed ? <ShieldCheck className="h-8 w-8 text-primary" /> : <X className="h-8 w-8 text-destructive" />}
           </div>
-          <h1 className="text-2xl font-bold mb-3">Link Invalid</h1>
+          <h1 className="text-2xl font-bold mb-3">{isAlreadyUsed ? "Password Already Reset" : isExpired ? "Link Expired" : "Link Invalid"}</h1>
           <p className="text-muted-foreground text-sm mb-8 leading-relaxed">{error}</p>
           <Button onClick={() => router.push("/auth/login")} className="w-full h-12 rounded-xl">
-            Back to Login
+            Go to Login
           </Button>
         </motion.div>
       </div>
@@ -120,90 +146,190 @@ export default function ResetPasswordPage() {
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="max-w-md w-full bg-card border border-primary/20 p-10 rounded-2xl shadow-xl text-center"
         >
-          <div className="bg-emerald-100 h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Check className="h-10 w-10 text-emerald-600" />
-          </div>
-          <h1 className="text-2xl font-bold mb-4">Password Reset!</h1>
-          <p className="text-muted-foreground text-sm mb-8">
+          {/* Success icon */}
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 250, delay: 0.1 }}
+            className="bg-emerald-100 h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-6"
+          >
+            <ShieldCheck className="h-10 w-10 text-emerald-600" />
+          </motion.div>
+
+          <h1 className="text-2xl font-bold mb-2">Password Reset!</h1>
+          <p className="text-muted-foreground text-sm mb-2">
             Your password has been reset successfully. You can now log in using your new credentials.
           </p>
+          {userEmail && (
+            <p className="text-sm font-medium text-slate-700 bg-slate-100 rounded-lg px-4 py-2 inline-block mb-4">
+              {userEmail}
+            </p>
+          )}
+          <p className="text-muted-foreground text-sm mb-6">
+            You will be redirected to the login page in a few seconds.
+          </p>
+
+          <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden mb-8">
+            <motion.div
+              initial={{ width: "0%" }}
+              animate={{ width: "100%" }}
+              transition={{ duration: 3, ease: "linear" }}
+              className="h-full bg-primary"
+            />
+          </div>
+
           <Button
-            className="w-full h-12 rounded-xl text-base font-semibold"
+            className="w-full h-12 rounded-xl gap-2 text-base font-semibold"
             onClick={() => router.push("/auth/login")}
           >
             Go to Login
+            <ArrowRight className="h-4 w-4" />
           </Button>
         </motion.div>
       </div>
     );
   }
 
+  // ── Main form ──────────────────────────────────────────────────────────
+
+  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
+  const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
         className="max-w-md w-full"
       >
+        {/* Header */}
         <div className="text-center mb-8">
           <Logo className="h-12 w-12 mx-auto mb-4" />
           <h1 className="text-3xl font-black tracking-tight">Reset Password</h1>
           <p className="text-muted-foreground mt-2 text-sm">
-            {userName ? `Hi ${userName}, enter your new password below.` : "Enter your new password below."}
+            {userName ? (
+              <>Welcome back, <span className="font-semibold text-foreground">{userName}</span>. Enter your new password below.</>
+            ) : (
+              "Enter your new password below."
+            )}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 bg-card border p-8 rounded-2xl shadow-xl">
-          <div className="space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="password">New Password</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
+        {/* Form card */}
+        <div className="bg-card border p-8 rounded-2xl shadow-xl space-y-5">
 
-            <div className="grid gap-2">
-              <Label htmlFor="confirm-password">Confirm Password</Label>
+          {/* New Password */}
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-sm font-semibold">
+              New Password
+            </Label>
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                <Lock size={16} />
+              </div>
               <Input
-                id="confirm-password"
+                id="password"
                 type={showPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="pl-9 pr-10 h-11"
+                placeholder="Create a strong password"
                 required
+                autoFocus
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
           </div>
 
-          <div className="space-y-2 py-2">
+          {/* Confirm Password */}
+          <div className="space-y-2">
+            <Label htmlFor="confirm-password" className="text-sm font-semibold">
+              Confirm Password
+            </Label>
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                <Lock size={16} />
+              </div>
+              <Input
+                id="confirm-password"
+                type={showConfirm ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className={`pl-9 pr-10 h-11 transition-colors ${
+                  passwordsMismatch
+                    ? "border-red-400 focus:ring-red-300"
+                    : passwordsMatch
+                    ? "border-emerald-400 focus:ring-emerald-300"
+                    : ""
+                }`}
+                placeholder="Re-enter your password"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm(!showConfirm)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                tabIndex={-1}
+              >
+                {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            <AnimatePresence>
+              {passwordsMismatch && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="text-xs text-red-500 font-medium flex items-center gap-1"
+                >
+                  <X size={12} /> Passwords do not match
+                </motion.p>
+              )}
+              {passwordsMatch && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="text-xs text-emerald-600 font-medium flex items-center gap-1"
+                >
+                  <Check size={12} /> Passwords match
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Requirements checklist */}
+          <div className="bg-muted/40 rounded-xl p-4 space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              Password Requirements
+            </p>
             {requirements.map((req, i) => {
               const passed = req.regex.test(password);
               return (
-                <div key={i} className="flex items-center gap-2 text-sm">
+                <div key={i} className="flex items-center gap-2.5 text-sm">
                   {passed ? (
-                    <Check className="h-4 w-4 text-primary" />
+                    <div className="h-4 w-4 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                      <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
+                    </div>
                   ) : (
-                    <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30 ml-1.5" />
+                    <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/20 flex-shrink-0" />
                   )}
-                  <span className={passed ? "text-primary font-medium" : "text-muted-foreground"}>
+                  <span className={passed ? "text-emerald-700 font-medium" : "text-muted-foreground"}>
                     {req.label}
                   </span>
                 </div>
@@ -211,15 +337,63 @@ export default function ResetPasswordPage() {
             })}
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full h-12 rounded-xl text-lg font-bold"
-            disabled={loading}
+          {/* Form-level error */}
+          <AnimatePresence>
+            {formError && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm"
+              >
+                <X className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                {formError}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Submit button */}
+          <Button
+            type="button"
+            onClick={() => handleSubmit()}
+            className="w-full h-12 rounded-xl text-base font-bold gap-2"
+            disabled={submitting || passwordsMismatch}
           >
-            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Update Password"}
+            {submitting ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Resetting password…</>
+            ) : (
+              <>Update Password <ArrowRight className="h-4 w-4" /></>
+            )}
           </Button>
-        </form>
+
+          <p className="text-center text-xs text-muted-foreground">
+            Remember your password?{" "}
+            <button
+              type="button"
+              onClick={() => router.push("/auth/login")}
+              className="text-primary hover:underline font-medium"
+            >
+              Sign in
+            </button>
+          </p>
+        </div>
       </motion.div>
     </div>
+  );
+}
+
+// ── Page wrapper (required because useSearchParams needs Suspense) ───────────
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

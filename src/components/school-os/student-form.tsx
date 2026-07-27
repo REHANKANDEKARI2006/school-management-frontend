@@ -188,9 +188,9 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
       const file = event.target.files[0];
-      const MAX_SIZE = 4 * 1024 * 1024; // 4 MB
+      const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
       if (file.size > MAX_SIZE) {
-        alert("Image size exceeds the 4 MB limit. Please select a smaller file.");
+        alert("Image size exceeds the 2 MB limit. Please select a smaller file.");
         event.target.value = "";
         return;
       }
@@ -310,7 +310,7 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
             </Avatar>
             <div className="flex flex-col gap-1.5">
               <p className="text-sm font-medium text-foreground">
-                {previewUrl ? "Photo uploaded" : "Profile photo"} <span className="text-xs text-muted-foreground font-normal">(Max 4 MB)</span>
+                {previewUrl ? "Photo uploaded" : "Profile photo"} <span className="text-xs text-muted-foreground font-normal">(Max 2 MB)</span>
               </p>
               <div className="flex items-center gap-2 mt-0.5">
                 <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-semibold border border-input bg-background hover:bg-accent hover:text-accent-foreground h-7 px-3 rounded-md transition-colors">

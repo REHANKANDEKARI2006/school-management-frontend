@@ -163,11 +163,11 @@ export default function ProfileSettingsPage() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      const MAX_SIZE = 4 * 1024 * 1024; // 4 MB
+      const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
       if (file.size > MAX_SIZE) {
         toast({
           title: "File Too Large",
-          description: "Image file size exceeds the maximum limit of 4 MB. Please select a smaller image.",
+          description: "Image file size exceeds the maximum limit of 2 MB. Please select a smaller image.",
           variant: "destructive",
         });
         e.target.value = "";

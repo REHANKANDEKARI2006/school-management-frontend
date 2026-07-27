@@ -57,10 +57,27 @@ instance.interceptors.request.use(
         }
       }
 
-      // Trigger global loader for process executions (mutations)
+      // Trigger global loader for process executions (mutations) & document generation (blobs / doc endpoints)
       try {
-        if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
-          useGlobalLoaderStore.getState().increment();
+        const method = config.method?.toLowerCase() || '';
+        const isBlob = config.responseType === 'blob';
+        const urlStr = config.url || '';
+        const isDocPattern = isBlob || 
+                             urlStr.includes('/documents/') || 
+                             urlStr.includes('/pdf') || 
+                             urlStr.includes('/export') || 
+                             urlStr.includes('/receipt') || 
+                             urlStr.includes('/certificate') ||
+                             urlStr.includes('/download') ||
+                             urlStr.includes('/mark-sheet') ||
+                             urlStr.includes('/id-card') ||
+                             urlStr.includes('/bonafide') ||
+                             urlStr.includes('/leaving');
+
+        if (['post', 'put', 'patch', 'delete'].includes(method) || isDocPattern) {
+          const msg = isDocPattern ? "Generating Document..." : "Processing…";
+          useGlobalLoaderStore.getState().increment(msg);
+          (config as any)._loaderIncremented = true;
         }
       } catch (storeErr) {
         console.error("Global loader increment error:", storeErr);
@@ -70,8 +87,9 @@ instance.interceptors.request.use(
   },
   (error) => {
     try {
-      if (typeof window !== "undefined" && ['post', 'put', 'patch', 'delete'].includes(error.config?.method?.toLowerCase() || '')) {
+      if (typeof window !== "undefined" && (error.config as any)?._loaderIncremented) {
         useGlobalLoaderStore.getState().decrement();
+        (error.config as any)._loaderIncremented = false;
       }
     } catch (storeErr) {
       console.error("Global loader decrement error in request interceptor:", storeErr);
@@ -102,8 +120,9 @@ const processQueue = (error: any, token: string | null = null) => {
 instance.interceptors.response.use(
   (response) => {
     try {
-      if (typeof window !== "undefined" && ['post', 'put', 'patch', 'delete'].includes(response.config?.method?.toLowerCase() || '')) {
+      if (typeof window !== "undefined" && (response.config as any)?._loaderIncremented) {
         useGlobalLoaderStore.getState().decrement();
+        (response.config as any)._loaderIncremented = false;
       }
     } catch (storeErr) {
       console.error("Global loader decrement error:", storeErr);
@@ -111,6 +130,14 @@ instance.interceptors.response.use(
     return response;
   },
   async (error) => {
+    try {
+      if (typeof window !== "undefined" && (error.config as any)?._loaderIncremented) {
+        useGlobalLoaderStore.getState().decrement();
+        (error.config as any)._loaderIncremented = false;
+      }
+    } catch (storeErr) {
+      console.error("Global loader decrement error in response error interceptor:", storeErr);
+    }
     const originalRequest = error.config;
 
     // Check if the account has been deactivated

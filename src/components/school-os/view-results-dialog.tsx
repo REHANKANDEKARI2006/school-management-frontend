@@ -17,6 +17,8 @@ import { Loader2, Download } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+import { useGlobalLoaderStore } from "@/store/useGlobalLoaderStore";
+
 interface ViewResultsDialogProps {
   exam: any; // full exam row from DB
 }
@@ -107,8 +109,10 @@ export function ViewResultsDialog({ exam }: ViewResultsDialogProps) {
   }, [exam]);
 
   const handleDownloadPDF = () => {
-    try {
-      const doc = new jsPDF();
+    useGlobalLoaderStore.getState().increment("Generating Document...");
+    setTimeout(() => {
+      try {
+        const doc = new jsPDF();
       
       // Header
       doc.setFontSize(20);
@@ -148,7 +152,10 @@ export function ViewResultsDialog({ exam }: ViewResultsDialogProps) {
     } catch (error) {
       console.error("PDF generation error:", error);
       toast({ title: "Error", description: "Failed to generate PDF", variant: "destructive" });
+    } finally {
+      useGlobalLoaderStore.getState().decrement();
     }
+    }, 100);
   };
 
   if (loading) {

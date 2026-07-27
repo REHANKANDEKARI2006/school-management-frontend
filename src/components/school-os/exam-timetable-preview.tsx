@@ -5,6 +5,7 @@ import axios from "@/lib/axios";
 import { GraduationCap, Download, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useGlobalLoaderStore } from "@/store/useGlobalLoaderStore";
 
 /* ===================================================================
    TYPES
@@ -592,26 +593,33 @@ export function ExamTimetablePreview({
   const hasContent = filledRows.length > 0;
 
   const handleDownloadPDF = () => {
-    const html = generatePrintHTML(
-      examName || "Exam Timetable",
-      className,
-      examType,
-      academicYear,
-      instructions,
-      rows,
-      schoolName,
-      orgName,
-      logoUrl,
-      primaryColor
-    );
-    const win = window.open("", "_blank");
-    if (!win) return;
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-    setTimeout(() => {
-      win.print();
-    }, 600);
+    useGlobalLoaderStore.getState().increment("Generating Document...");
+    try {
+      const html = generatePrintHTML(
+        examName || "Exam Timetable",
+        className,
+        examType,
+        academicYear,
+        instructions,
+        rows,
+        schoolName,
+        orgName,
+        logoUrl,
+        primaryColor
+      );
+      const win = window.open("", "_blank");
+      if (!win) return;
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => {
+        win.print();
+      }, 600);
+    } finally {
+      setTimeout(() => {
+        useGlobalLoaderStore.getState().decrement();
+      }, 1000);
+    }
   };
 
   return (

@@ -16,16 +16,15 @@ const instance = axios.create({
  */
 instance.interceptors.request.use(
   (config) => {
-    // 🌍 STRATEGY: Use 'localhost' when developing locally for stability.
-    // Use the hardcoded IP for mobile devices on the same network.
-    const API_IP = "192.168.29.235"; 
     const envUrl = process.env.NEXT_PUBLIC_API_URL;
 
     if (envUrl && envUrl.includes('://')) {
       config.baseURL = envUrl.endsWith('/api') ? envUrl.slice(0, -4) : envUrl;
+    } else if (envUrl === '/api') {
+      // Handled via Next.js rewrites or relative path
+      config.baseURL = "";
     } else {
-      // Dynamically use the hostname of the browser. 
-      // If viewed on phone via 172.x.x.x, the API will hit 172.x.x.x:5000 automatically.
+      // Dynamically use the hostname of the browser for local network testing
       const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
       const isLocal = hostname === "localhost" || 
                       hostname === "127.0.0.1" || 
@@ -36,7 +35,7 @@ instance.interceptors.request.use(
       if (isLocal) {
         config.baseURL = `http://${hostname}:5000`;
       } else {
-        config.baseURL = "https://school-management-backend-production-3a75.up.railway.app";
+        config.baseURL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://school-management-backend-production-3a75.up.railway.app";
       }
     }
 

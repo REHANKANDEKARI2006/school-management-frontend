@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import axios from "@/lib/axios";
+import { toast } from "sonner";
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import { UploadCloud, Loader2, Info, Camera, X } from "lucide-react";
@@ -127,7 +127,7 @@ export function FacultyForm({ mode, initialData, departments, subjects, onSubmit
     const file = e.target.files[0];
     const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
     if (file.size > MAX_SIZE) {
-      alert("Image size exceeds the 2 MB limit. Please select a smaller file.");
+      toast.error("Image size exceeds the 2 MB limit. Please select a smaller file.");
       e.target.value = "";
       return;
     }

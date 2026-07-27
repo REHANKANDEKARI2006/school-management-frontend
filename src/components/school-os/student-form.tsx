@@ -31,6 +31,8 @@ import axios from "@/lib/axios";
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 
+import { useToast } from "@/hooks/use-toast";
+
 /* =========================
    HELPER FUNCTIONS
 ========================= */
@@ -185,12 +187,18 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
       .sort((a, b) => a.section.localeCompare(b.section));
   }, [classOptions, selectedStandard]);
 
+  const { toast } = useToast();
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
       const file = event.target.files[0];
       const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
       if (file.size > MAX_SIZE) {
-        alert("Image size exceeds the 2 MB limit. Please select a smaller file.");
+        toast({
+          title: "File Too Large",
+          description: "Image size exceeds the 2 MB limit. Please select a smaller file.",
+          variant: "destructive",
+        });
         event.target.value = "";
         return;
       }

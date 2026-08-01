@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "@/lib/axios";
+import { useLeaveSSE } from "@/hooks/useLeaveSSE";
+import { LeavePageHeader } from "@/components/leaves/LeavePageHeader";
+import { getCachedData, setCachedData } from "@/lib/dashboardCache";
 import {
   CheckCircle2, XCircle, Clock, UserMinus, FileCheck, AlertCircle,
   User, Eye, ChevronLeft, ChevronRight, RefreshCw, Search, Filter,
@@ -656,6 +659,8 @@ export default function AdminLeavePage() {
     setTimeout(() => setToast(null), 4000);
   }, []);
 
+  const setLastUpdatedRef = useRef<((ts: number) => void) | null>(null);
+
   const fetchAll = useCallback(async () => {
     try {
       const [statsRes, pendingRes, allRes, typesRes] = await Promise.all([
@@ -664,10 +669,23 @@ export default function AdminLeavePage() {
         axios.get("/api/leaves/all"),
         axios.get("/api/leaves/types"),
       ]);
-      setStats(statsRes.data?.data);
-      setPending(pendingRes.data?.data || []);
-      setAllApps(allRes.data?.data    || []);
-      setLeaveTypes(typesRes.data?.data || []);
+      const statsData = statsRes.data?.data;
+      const pendingData = pendingRes.data?.data || [];
+      const allData = allRes.data?.data || [];
+      const typesData = typesRes.data?.data || [];
+      setStats(statsData);
+      setPending(pendingData);
+      setAllApps(allData);
+      setLeaveTypes(typesData);
+
+      const now = Date.now();
+      setCachedData("leaves_admin", {
+        stats: statsData,
+        pending: pendingData,
+        allApps: allData,
+        leaveTypes: typesData,
+      }, now);
+      if (setLastUpdatedRef.current) setLastUpdatedRef.current(now);
     } catch (err) {
       console.error("Failed to fetch admin leave data", err);
     } finally {
@@ -675,49 +693,27 @@ export default function AdminLeavePage() {
     }
   }, []);
 
+  // ── SSE + fallback polling via shared hook ─────────────────────────────────
+  const { sseConnected, refreshing, lastUpdatedText, setLastUpdated, manualRefresh } = useLeaveSSE({
+    onRefresh: fetchAll,
+    enabled: true,
+    pageKey: "leaves_admin",
+  });
+  setLastUpdatedRef.current = setLastUpdated;
+
   useEffect(() => {
-    fetchAll();
-
-    const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
-    const envUrl = process.env.NEXT_PUBLIC_API_URL;
-    const baseUrl = envUrl && envUrl.includes('://')
-      ? (envUrl.endsWith('/api') ? envUrl.slice(0, -4) : envUrl)
-      : `http://${hostname}:5000`;
-    let eventSource: EventSource | null = null;
-
-    function connectSSE() {
-      try {
-        eventSource = new EventSource(`${baseUrl}/api/leaves/stream`, { withCredentials: true });
-        eventSource.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === "update") {
-              fetchAll();
-            }
-          } catch (e) {
-            console.error("Error parsing SSE message:", e);
-          }
-        };
-        eventSource.onerror = (err) => {
-          console.warn("EventSource connection lost, browser is retrying automatically...");
-        };
-      } catch (err) {
-        console.error("SSE connection error:", err);
-        // Retry connection after 5 seconds
-        setTimeout(connectSSE, 5000);
-      }
+    const cached = getCachedData("leaves_admin");
+    if (cached && cached.data) {
+      setStats(cached.data.stats || null);
+      setPending(cached.data.pending || []);
+      setAllApps(cached.data.allApps || []);
+      setLeaveTypes(cached.data.leaveTypes || []);
+      setLastUpdated(cached.timestamp);
+      setLoading(false);
+    } else {
+      fetchAll();
     }
-
-    connectSSE();
-
-    // Fallback interval
-    const iv = setInterval(fetchAll, 30000);
-
-    return () => {
-      eventSource?.close();
-      clearInterval(iv);
-    };
-  }, [fetchAll]);
+  }, []);
 
   const fetchFiltered = async () => {
     try {
@@ -749,12 +745,14 @@ export default function AdminLeavePage() {
       )}
 
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-          Leave Management — Admin
-        </h1>
-        <p className="text-muted-foreground mt-1">Review applications, assign substitutes, and monitor school coverage.</p>
-      </div>
+      <LeavePageHeader
+        title="Leave Management — Admin"
+        subtitle="Review applications, assign substitutes, and monitor school coverage."
+        sseConnected={sseConnected}
+        refreshing={refreshing}
+        lastUpdatedText={lastUpdatedText}
+        onRefresh={manualRefresh}
+      />
 
       {/* ══ SECTION 1 — Stats Cards ══════════════════════════════════════════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

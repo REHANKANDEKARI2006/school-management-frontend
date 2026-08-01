@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import axios from "@/lib/axios";
+import { clearAllUserCaches } from "@/lib/dashboardCache";
 
 
 import { LogOut, User, Settings, ShieldCheck } from "lucide-react";
@@ -70,6 +71,7 @@ export function UserNav() {
 
   const handleLogout = () => {
     // 🔐 Clear auth data
+    clearAllUserCaches();
     localStorage.clear();
     sessionStorage.clear();
 

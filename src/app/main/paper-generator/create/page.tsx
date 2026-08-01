@@ -5,10 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { createDraft, getPaper, updatePaper, upsertSection, upsertQuestion } from "@/lib/api/question-paper";
 import dynamic from "next/dynamic";
-import PaperSetupStep from "./steps/PaperSetupStep";
-const AddQuestionsStep = dynamic(() => import("./steps/AddQuestionsStep"), {
-  loading: () => <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /><p className="mt-2 text-sm text-muted-foreground">Loading Question Editor...</p></div>,
-});
+import PaperDetailsStep from "./steps/PaperDetailsStep";
+import AddSectionsStep from "./steps/AddSectionsStep";
+import ConfigureQuestionsStep from "./steps/ConfigureQuestionsStep";
+import ConfigureSubsectionsStep from "./steps/ConfigureSubsectionsStep";
 const PreviewStep = dynamic(() => import("./steps/PreviewStep"), {
   loading: () => <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /><p className="mt-2 text-sm text-muted-foreground">Preparing Paper Preview...</p></div>,
 });
@@ -24,6 +24,7 @@ export interface Question {
   marks: number;
   question_order: number;
   answer_key?: string;
+  subsection_label?: string;
 }
 
 export interface PaperState {
@@ -41,7 +42,7 @@ export interface PaperState {
   duration_mins: number;
   instructions: string;
   status: string;
-  // For internal rendering only
+  academic_year?: string;
   sections: Array<{
     section_id: number | null;
     section_name: string;
@@ -52,16 +53,13 @@ export interface PaperState {
 }
 
 const STEPS = [
-  { num: 1, label: "Paper Setup" },
-  { num: 2, label: "Add Questions" },
-  { num: 3, label: "Preview & Download" },
+  { num: 1, label: "Paper Details" },
+  { num: 2, label: "Add Sections" },
+  { num: 3, label: "Configure Questions" },
+  { num: 4, label: "Sub-Questions" },
+  { num: 5, label: "Preview & Download" },
 ];
 
-/**
- * Normalise the class_name coming from the DB.
- * The `class` table stores plain numbers like "2", "10" etc.
- * The Paper Setup dropdown expects "Class 2", "Class 10" etc.
- */
 function normalizeClassName(raw: string | null | undefined): string {
   if (!raw) return "";
   const trimmed = raw.trim();
@@ -69,14 +67,13 @@ function normalizeClassName(raw: string | null | undefined): string {
   return trimmed;
 }
 
-// ─── Helper: get flat question list from sections ─────────────────────────────
 export function getAllQuestions(paper: PaperState): Question[] {
   const allQ: Question[] = [];
   const sortedSections = [...paper.sections].sort(
     (a, b) => (a.section_order || 0) - (b.section_order || 0)
   );
   for (const sec of sortedSections) {
-    const sortedQs = [...sec.questions].sort(
+    const sortedQs = [...(sec.questions || [])].sort(
       (a, b) => (a.question_order || 0) - (b.question_order || 0)
     );
     for (const q of sortedQs) {
@@ -86,12 +83,42 @@ export function getAllQuestions(paper: PaperState): Question[] {
   return allQ;
 }
 
-// ─── Helper: get total assigned marks ────────────────────────────────────────
 export function getTotalAssignedMarks(paper: PaperState): number {
-  return paper.sections.reduce(
-    (acc, sec) => acc + sec.questions.reduce((qAcc, q) => qAcc + (q.marks || 0), 0),
-    0
-  );
+  let total = 0;
+  for (const sec of paper.sections) {
+    const questions = sec.questions || [];
+    if (questions.length === 0) continue;
+
+    // Group questions by subsection_label + question_type to detect attempt_any groups
+    let i = 0;
+    while (i < questions.length) {
+      const q = questions[i];
+      const label = q.subsection_label || "";
+      const type = q.question_type;
+      const attemptAny = q.question_data?.attempt_any;
+
+      // Find all consecutive questions with same label + type
+      let groupEnd = i + 1;
+      while (groupEnd < questions.length) {
+        const next = questions[groupEnd];
+        const nextLabel = next.subsection_label || "";
+        if (next.question_type !== type || (label && nextLabel !== label)) break;
+        groupEnd++;
+      }
+
+      if (attemptAny && attemptAny > 0) {
+        // Use effective marks: attempt_any × marks_per_question
+        total += attemptAny * (q.marks || 1);
+      } else {
+        // Sum all marks in this group
+        for (let j = i; j < groupEnd; j++) {
+          total += questions[j].marks || 0;
+        }
+      }
+      i = groupEnd;
+    }
+  }
+  return total;
 }
 
 function CreatePaperPageInner() {
@@ -100,6 +127,7 @@ function CreatePaperPageInner() {
   const paperId = params.get("paper_id");
 
   const [step, setStep]                       = useState(1);
+  const [activeSectionIdx, setActiveSectionIdx] = useState(0);
   const [loading, setLoading]                 = useState(!!paperId);
   const [saving, setSaving]                   = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -118,6 +146,7 @@ function CreatePaperPageInner() {
     duration_mins: 180,
     instructions: "1. All questions are compulsory.\n2. Write neatly and legibly.\n3. Show all working where required.",
     status: "Draft",
+    academic_year: "2025–26",
     sections: [],
   });
 
@@ -129,14 +158,13 @@ function CreatePaperPageInner() {
         setLoading(true);
         const data = await getPaper(paperId);
         if (data) {
-          // Normalize class_name so the dropdown always gets "Class N" format
-          // (the DB may store the raw number, e.g. "2" instead of "Class 2")
           setPaper({
             ...data,
             class_name: normalizeClassName(data.class_name),
-            subject: data.subject || data.subject_name || ""
+            subject: data.subject || data.subject_name || "",
+            sections: data.sections || []
           });
-          if (data.status === "Published") setStep(3);
+          if (data.status === "Published") setStep(4);
         }
       } catch (err) {
         console.error("Failed to load paper", err);
@@ -146,23 +174,36 @@ function CreatePaperPageInner() {
     })();
   }, [paperId]);
 
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const savedStatusTimer              = useRef<NodeJS.Timeout | null>(null);
+
   // ── Auto-save ──────────────────────────────────────────────────────────────
+  const lastSaveSequence = useRef<number>(0);
+
   const triggerAutoSave = useCallback((p: PaperState) => {
     if (!p.paper_id) return;
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(async () => {
       try {
         setSaving(true);
-        loaderIncrement("Auto-saving paper…");
+        setSaveStatus("saving");
+        const seq = ++lastSaveSequence.current;
         await updatePaper(p.paper_id!, p);
+        if (seq === lastSaveSequence.current) {
+          setSaveStatus("saved");
+          if (savedStatusTimer.current) clearTimeout(savedStatusTimer.current);
+          savedStatusTimer.current = setTimeout(() => {
+            setSaveStatus("idle");
+          }, 2000);
+        }
       } catch (err) {
         console.warn("Auto-save failed", err);
+        setSaveStatus("idle");
       } finally {
         setSaving(false);
-        loaderDecrement();
       }
-    }, 2000);
-  }, [loaderIncrement, loaderDecrement]);
+    }, 500);
+  }, []);
 
   const updateField = useCallback((updates: Partial<PaperState>) => {
     setPaper(prev => {
@@ -172,22 +213,93 @@ function CreatePaperPageInner() {
     });
   }, [triggerAutoSave]);
 
-  // ── Step Navigation ────────────────────────────────────────────────────────
+  // ── Step Validation ────────────────────────────────────────────────────────
   const validateStep1 = () => {
     if (!paper.class_name) return "Please select a Standard / Class.";
     if (!paper.subject)    return "Please select a Subject.";
-    if (paper.total_marks <= 0) return "Total Marks must be greater than 0.";
+    if (!paper.total_marks || paper.total_marks <= 0) return "Total Marks must be greater than 0.";
     return null;
   };
 
   const validateStep2 = () => {
-    const totalQ = getAllQuestions(paper).length;
-    if (totalQ === 0) return "Please add at least one question.";
+    if (!paper.sections || paper.sections.length === 0) {
+      return "Please add at least one section.";
+    }
     return null;
   };
 
+  // ── Save Questions Helper ───────────────────────────────────────────────
+  const saveSectionQuestions = async (secIdx: number) => {
+    const targetSection = paper.sections[secIdx];
+    if (!targetSection || !targetSection.section_id) return;
+
+    try {
+      setSaving(true);
+      setSaveStatus("saving");
+      
+      const questionsToSave = targetSection.questions || [];
+      const savedResults = await Promise.all(
+        questionsToSave.map(async (q, qIdx) => {
+          const saved = await upsertQuestion(targetSection.section_id!, {
+            question_id: q.question_id || undefined,
+            question_type: q.question_type,
+            question_text: q.question_text || "",
+            question_data: q.question_data || {},
+            marks: q.marks || 1,
+            question_order: qIdx + 1,
+            answer_key: q.answer_key || "",
+            subsection_label: q.subsection_label || "",
+          });
+          return { index: qIdx, newQuestionId: saved.question_id };
+        })
+      );
+
+      // Atomic Functional State Merge: update question_id without overwriting live typed text/data!
+      setPaper((prev) => {
+        const newSections = [...prev.sections];
+        if (!newSections[secIdx]) return prev;
+
+        const idMap = new Map(savedResults.map(r => [r.index, r.newQuestionId]));
+        const liveQs = (newSections[secIdx].questions || []).map((q, idx) => ({
+          ...q,
+          question_id: idMap.get(idx) || q.question_id
+        }));
+
+        newSections[secIdx] = {
+          ...newSections[secIdx],
+          questions: liveQs,
+        };
+        return { ...prev, sections: newSections };
+      });
+
+      setSaveStatus("saved");
+      if (savedStatusTimer.current) clearTimeout(savedStatusTimer.current);
+      savedStatusTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
+    } catch (err) {
+      console.error("Failed to save section questions", err);
+      setSaveStatus("idle");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Prevent navigation during active save
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (saving || saveStatus === "saving") {
+        e.preventDefault();
+        e.returnValue = "Auto-save in progress. Are you sure you want to leave?";
+        return e.returnValue;
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [saving, saveStatus]);
+
+  // ── Navigation Logic ────────────────────────────────────────────────────────
   const goNext = async () => {
     setValidationError(null);
+
     if (step === 1) {
       const err = validateStep1();
       if (err) { setValidationError(err); return; }
@@ -198,92 +310,143 @@ function CreatePaperPageInner() {
       if (!activePaperId) {
         try {
           setSaving(true);
-          loaderIncrement("Creating paper draft…");
+          setSaveStatus("saving");
           const autoTitle = `${paper.class_name} — ${paper.subject}`;
           const payload = { ...paper, title: paper.title || autoTitle };
           const saved = await createDraft(payload);
           activePaperId = saved.paper_id;
           currentPaper = { ...paper, paper_id: saved.paper_id, title: saved.title || autoTitle };
           setPaper(currentPaper);
+          setSaveStatus("saved");
+          if (savedStatusTimer.current) clearTimeout(savedStatusTimer.current);
+          savedStatusTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
         } catch {
-          setValidationError("Failed to save paper. Please try again.");
+          setValidationError("Failed to save paper details. Please try again.");
           return;
         } finally {
           setSaving(false);
-          loaderDecrement();
         }
       }
 
-      // Save/upsert sections that do not have a section_id yet
-      if (activePaperId) {
+      // Initialize default sections if empty
+      if (currentPaper.sections.length === 0) {
+        const defaultSections = [
+          { section_id: null, section_name: "SECTION A///Section - A///", section_order: 1, total_section_marks: 0, questions: [] },
+          { section_id: null, section_name: "SECTION B///Section - B///", section_order: 2, total_section_marks: 0, questions: [] },
+          { section_id: null, section_name: "SECTION C///Section - C///", section_order: 3, total_section_marks: 0, questions: [] }
+        ];
+        currentPaper = { ...currentPaper, sections: defaultSections };
+        setPaper(currentPaper);
+      }
+
+      setStep(2);
+    } else if (step === 2) {
+      const err = validateStep2();
+      if (err) { setValidationError(err); return; }
+
+      // Save/upsert sections to DB
+      if (paper.paper_id) {
         try {
           setSaving(true);
-          loaderIncrement("Saving paper sections…");
+          setSaveStatus("saving");
           const updatedSections = await Promise.all(
-            currentPaper.sections.map(async (sec) => {
-              if (!sec.section_id) {
-                const created = await upsertSection(activePaperId!, {
-                  section_name: sec.section_name,
-                  section_order: sec.section_order,
-                  total_section_marks: sec.total_section_marks || 0,
-                });
-                return { ...sec, section_id: created.section_id };
-              }
-              return sec;
+            paper.sections.map(async (sec, idx) => {
+              const created = await upsertSection(paper.paper_id!, {
+                section_id: sec.section_id || undefined,
+                section_name: sec.section_name,
+                section_order: idx + 1,
+                total_section_marks: sec.total_section_marks || 0,
+              });
+              return { ...sec, section_id: created.section_id };
             })
           );
           
-          currentPaper = { ...currentPaper, sections: updatedSections };
-          setPaper(currentPaper);
+          setPaper(prev => ({ ...prev, sections: updatedSections }));
+          setSaveStatus("saved");
+          if (savedStatusTimer.current) clearTimeout(savedStatusTimer.current);
+          savedStatusTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
         } catch (err) {
           console.error("Failed to save paper sections", err);
           setValidationError("Failed to save paper sections. Please try again.");
           return;
         } finally {
           setSaving(false);
-          loaderDecrement();
         }
       }
-      setStep(2);
-    } else if (step === 2) {
-      const err = validateStep2();
-      if (err) { setValidationError(err); return; }
+
+      // Proceed to Step 3 (Configure Questions for Section A)
+      setActiveSectionIdx(0);
       setStep(3);
+    } else if (step === 3) {
+      // Per-Section Question Configuration Navigation
+      if (activeSectionIdx < paper.sections.length - 1) {
+        // Move to next section (e.g. Section B, Section C...)
+        setActiveSectionIdx((prev) => prev + 1);
+      } else {
+        // All sections configured -> Proceed to Step 4 (Configure Sub-Questions for Section A)
+        setActiveSectionIdx(0);
+        setStep(4);
+      }
+    } else if (step === 4) {
+      // Per-Section Sub-Question Navigation
+      await saveSectionQuestions(activeSectionIdx);
+
+      if (activeSectionIdx < paper.sections.length - 1) {
+        // Move to next section sub-questions (e.g. Section B, Section C...)
+        setActiveSectionIdx((prev) => prev + 1);
+      } else {
+        // Last section configured -> Proceed to Step 5 (Preview & Download)
+        setStep(5);
+      }
     }
   };
 
   const goBack = () => {
-    if (step > 1) { setStep(step - 1); setValidationError(null); }
-    else router.push("/main/paper-generator");
+    setValidationError(null);
+    if (step === 3) {
+      if (activeSectionIdx > 0) {
+        setActiveSectionIdx((prev) => prev - 1);
+      } else {
+        setStep(2);
+      }
+    } else if (step === 4) {
+      if (activeSectionIdx > 0) {
+        setActiveSectionIdx((prev) => prev - 1);
+      } else {
+        // Go back to Configure Questions for last section
+        setActiveSectionIdx(paper.sections.length - 1);
+        setStep(3);
+      }
+    } else if (step === 5) {
+      // Back to last section's sub-questions
+      setActiveSectionIdx(paper.sections.length - 1);
+      setStep(4);
+    } else if (step > 1) {
+      setStep((prev) => prev - 1);
+    } else {
+      router.push("/main/paper-generator");
+    }
   };
 
   if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 h-64">
         <Loader2 className="h-8 w-8 animate-spin text-[#3335e3]" />
-        <p className="text-sm text-slate-500 animate-pulse">Loading paper...</p>
+        <p className="text-sm text-slate-500 animate-pulse">Loading paper details...</p>
       </div>
     );
   }
 
-  const assignedMarks = getTotalAssignedMarks(paper);
-  const totalQ = getAllQuestions(paper).length;
+  const currentSection = paper.sections[activeSectionIdx];
+  const isLastSection = activeSectionIdx === paper.sections.length - 1;
+  const nextSectionLetter = !isLastSection ? String.fromCharCode(65 + activeSectionIdx + 1) : "";
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50/40">
-      {/* ── Top Bar ── */}
-      <div className="border-b bg-white sticky top-0 z-30 shadow-sm print:hidden wizard-top-bar">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
-          {/* Back */}
-          <button
-            onClick={goBack}
-            className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Back</span>
-          </button>
-
-          {/* Steps */}
+    <div className="flex flex-col min-h-screen bg-slate-50/50">
+      {/* ── Top Navigation Bar with Step Indicator ── */}
+      <div className="border-b bg-white sticky top-0 z-30 shadow-sm print:hidden">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-center relative">
+          {/* Connected Step Indicator Centered */}
           <div className="flex items-center gap-2 sm:gap-4">
             {STEPS.map((s, idx) => {
               const isActive = step === s.num;
@@ -292,96 +455,126 @@ function CreatePaperPageInner() {
                 <React.Fragment key={s.num}>
                   <button
                     onClick={() => { if (isPast) { setStep(s.num); setValidationError(null); } }}
-                    className={`flex items-center gap-2 transition-all ${isPast ? "cursor-pointer" : "cursor-default"}`}
+                    className={`flex items-center gap-2.5 transition-all ${isPast ? "cursor-pointer" : "cursor-default"}`}
                   >
-                    <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-all ${
-                      isActive ? "bg-[#3335e3] text-white scale-110" :
-                      isPast   ? "bg-green-500 text-white" :
-                                 "bg-slate-200 text-slate-400"
+                    <div className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-black transition-all ${
+                      isActive ? "bg-[#3335e3] text-white scale-110 shadow-md ring-4 ring-[#3335e3]/20" :
+                      isPast   ? "bg-emerald-500 text-white" :
+                                 "bg-slate-100 text-slate-400 border border-slate-200"
                     }`}>
-                      {isPast ? <CheckCircle2 className="h-3.5 w-3.5" /> : s.num}
+                      {isPast ? <CheckCircle2 className="h-4 w-4" /> : s.num}
                     </div>
-                    <span className={`text-[11px] font-bold uppercase tracking-widest hidden sm:inline ${
-                      isActive ? "text-slate-900" : isPast ? "text-green-600" : "text-slate-400"
+                    <span className={`text-xs font-extrabold uppercase tracking-widest hidden sm:inline ${
+                      isActive ? "text-slate-900" : isPast ? "text-emerald-600" : "text-slate-400"
                     }`}>
-                      {s.label}
+                      {s.num === 3 ? `Section ${String.fromCharCode(65 + activeSectionIdx)} Questions` :
+                       s.num === 4 ? `Section ${String.fromCharCode(65 + activeSectionIdx)} Sub-Qs` :
+                       s.label}
                     </span>
                   </button>
                   {idx < STEPS.length - 1 && (
-                    <div className={`h-px w-6 sm:w-10 transition-colors ${isPast ? "bg-green-300" : "bg-slate-200"}`} />
+                    <div className={`h-0.5 w-6 sm:w-10 transition-colors ${isPast ? "bg-emerald-500" : "bg-slate-200"}`} />
                   )}
                 </React.Fragment>
               );
             })}
           </div>
 
-          {/* Right Actions */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {saving && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
-            {step < 3 && (
-              <Button
-                onClick={goNext}
-                disabled={saving}
-                className="h-9 px-4 sm:px-6 text-xs font-bold bg-[#3335e3] hover:bg-[#3335e3]/90 text-white shadow-sm gap-2"
-              >
-                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                {step === 1 ? (
-                  <><span className="hidden sm:inline">Next: Add Questions</span><span className="sm:hidden">Next</span> →</>
-                ) : (
-                  <><span className="hidden sm:inline">Next: Preview</span><span className="sm:hidden">Next</span> →</>
-                )}
-              </Button>
-            )}
-            {step === 3 && (
-              <Button
-                variant="outline"
-                onClick={() => router.push("/main/paper-generator")}
-                className="h-9 px-4 text-xs font-bold"
-              >
-                Exit
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Marks Progress Bar (Step 2 only) */}
-        {step === 2 && (
-          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 pb-2 flex items-center gap-3">
-            <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  assignedMarks > paper.total_marks ? "bg-red-500" :
-                  assignedMarks === paper.total_marks ? "bg-green-500" :
-                  "bg-[#3335e3]"
-                }`}
-                style={{ width: `${Math.min(100, (assignedMarks / paper.total_marks) * 100)}%` }}
-              />
+          {/* Auto-Save Status Badge */}
+          {saveStatus === "saving" && (
+            <div className="absolute right-4 sm:right-6 flex items-center gap-1.5 text-xs font-semibold text-[#3335e3] animate-in fade-in">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Auto-saving...
             </div>
-            <span className={`text-[11px] font-bold whitespace-nowrap ${
-              assignedMarks > paper.total_marks ? "text-red-600" :
-              assignedMarks === paper.total_marks ? "text-green-600" : "text-slate-500"
-            }`}>
-              {assignedMarks} / {paper.total_marks} Marks • {totalQ} Q
-            </span>
-          </div>
-        )}
+          )}
+          {saveStatus === "saved" && (
+            <div className="absolute right-4 sm:right-6 flex items-center gap-1.5 text-xs font-bold text-emerald-600 animate-in fade-in">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Saved
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* ── Validation Error ── */}
+      {/* ── Validation Error Banner ── */}
       {validationError && (
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-4 w-full">
-          <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm font-semibold text-red-700">
-            <AlertCircle className="h-4 w-4 shrink-0" />
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-4 w-full animate-in fade-in">
+          <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm font-bold text-red-700 shadow-sm">
+            <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
             {validationError}
           </div>
         </div>
       )}
 
-      {/* ── Content ── */}
-      <div className="flex-1 w-full max-w-[1400px] mx-auto py-6 px-4 sm:px-6 pb-24">
-        {step === 1 && <PaperSetupStep paper={paper} onChange={updateField} />}
-        {step === 2 && <AddQuestionsStep paper={paper} onChange={updateField} />}
-        {step === 3 && <PreviewStep paper={paper} />}
+      {/* ── Content Body ── */}
+      <div className="flex-1 w-full max-w-[1400px] mx-auto py-8 px-4 sm:px-6 pb-8">
+        {step === 1 && <PaperDetailsStep paper={paper} onChange={updateField} />}
+        {step === 2 && <AddSectionsStep paper={paper} onChange={updateField} />}
+        {step === 3 && (
+          <ConfigureQuestionsStep
+            paper={paper}
+            activeSectionIdx={activeSectionIdx}
+            onChange={updateField}
+          />
+        )}
+        {step === 4 && (
+          <ConfigureSubsectionsStep
+            paper={paper}
+            activeSectionIdx={activeSectionIdx}
+            onChange={updateField}
+            onNextSection={goNext}
+            onPrevSection={goBack}
+          />
+        )}
+        {step === 5 && <PreviewStep paper={paper} />}
+      </div>
+
+      {/* ── Sticky Bottom Action Bar (Exclusive Navigation Bar) ── */}
+      <div className="sticky bottom-0 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 bg-white/95 backdrop-blur-md border-t border-slate-200/80 p-4 z-20 shadow-lg mt-auto">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+          <Button
+            variant="outline"
+            onClick={goBack}
+            className="h-10 px-5 text-xs font-bold rounded-xl border-slate-300 hover:bg-slate-100"
+          >
+            ← {step === 1 ? "Cancel & Exit" :
+               step === 2 ? "Back to Paper Details" :
+               step === 3 && activeSectionIdx === 0 ? "Back to Add Sections" :
+               step === 3 ? `Back to Section ${String.fromCharCode(65 + activeSectionIdx - 1)}` :
+               step === 4 && activeSectionIdx === 0 ? "Back to Questions" :
+               step === 4 ? `Back to Section ${String.fromCharCode(65 + activeSectionIdx - 1)}` :
+               step === 5 ? "Back to Sub-Questions" :
+               "Back"}
+          </Button>
+
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold text-slate-400 hidden sm:inline">
+              {(step === 3 || step === 4)
+                ? `Section ${String.fromCharCode(65 + activeSectionIdx)} (${activeSectionIdx + 1}/${paper.sections.length})`
+                : `Step ${step} of 5`}
+            </span>
+            {step < 5 ? (
+              <Button
+                onClick={goNext}
+                disabled={saving}
+                className="h-10 px-6 text-xs font-bold bg-[#3335e3] hover:bg-[#3335e3]/90 text-white shadow-sm gap-2 rounded-xl"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {step === 1 ? "Next: Add Sections →" :
+                 step === 2 ? `Next: Configure Section A →` :
+                 step === 3 && !isLastSection ? `Next: Section ${nextSectionLetter} Questions →` :
+                 step === 3 && isLastSection ? "Next: Configure Sub-Questions →" :
+                 step === 4 && !isLastSection ? `Next: Section ${nextSectionLetter} Sub-Qs →` :
+                 "Next: Preview & Download →"}
+              </Button>
+            ) : (
+              <Button
+                onClick={() => router.push("/main/paper-generator")}
+                className="h-10 px-6 text-xs font-bold bg-[#3335e3] hover:bg-[#3335e3]/90 text-white shadow-sm gap-2 rounded-xl"
+              >
+                Exit Wizard
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

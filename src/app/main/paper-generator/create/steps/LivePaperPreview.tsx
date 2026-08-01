@@ -1,10 +1,32 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
-import { PaperState, getAllQuestions } from "../page";
+import { PaperState, getAllQuestions, getTotalAssignedMarks } from "../page";
 import { BOARD_QUESTION_TYPES, parseSectionName } from "./PaperSetupStep";
+import { groupQuestionsIntoSubsections } from "./ConfigureSubsectionsStep";
 import axios from "@/lib/axios";
 import { formatDate } from "@/lib/utils";
+
+const getSubsectionTitle = (qType: string): string => {
+  switch (qType) {
+    case "MCQ": return "Multiple Choice Questions";
+    case "FILL_BLANKS": return "Fill in the Blanks";
+    case "TRUE_FALSE": return "State True or False";
+    case "MATCH_FOLLOWING": return "Match the Following";
+    case "VERY_SHORT": return "Give Short Answers (One Line)";
+    case "SHORT_ANSWER": return "Short Answer Questions";
+    case "LONG_ANSWER": return "Long Answer Questions";
+    case "PASSAGE_BASED": return "Read the Passage & Answer Questions (Reference to Context)";
+    case "CASE_BASED": return "Case Study Based Questions";
+    case "DIAGRAM_LABEL": return "Diagram Identification & Labeling";
+    case "NUMERICAL": return "Solve the Numerical Problems";
+    case "WORD_PROBLEM": return "Word Problems";
+    case "GIVE_REASONS": return "Give Reasons";
+    case "LETTER": return "Letter Writing";
+    case "ESSAY": return "Essay Writing";
+    default: return qType.replace(/_/g, " ");
+  }
+};
 
 const getSectionTitle = (name: string): string => {
   const lookup: Record<string, string> = {
@@ -95,7 +117,8 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
     return `${base}${path}`;
   };
 
-  const primaryColor = school?.primary_color || "#1a1a2e";
+  // Paper branding MUST ALWAYS use Black color (#000000) regardless of document/school theme settings
+  const primaryColor = "#000000";
 
   const durationLabel = () => {
     const m = paper.duration_mins;
@@ -171,10 +194,8 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
           )}
         </div>
 
-        {/* Divider */}
         <div className="relative z-10 border-t-[3px] border-b border-slate-900 pt-[2px] mb-1" />
 
-        {/* Exam Info Row 1: Time | Title | Marks */}
         <div className="relative z-10 text-[9pt] font-bold mb-0.5" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", lineHeight: 1.2 }}>
           <span style={{ textAlign: "left" }}>Time: {durationLabel()}</span>
           <span
@@ -182,89 +203,103 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
           >
             {displayTitle}
           </span>
-          <span style={{ textAlign: "right" }}>Max. Marks: {paper.total_marks || 80}</span>
+          <span style={{ textAlign: "right" }}>Max. Marks: {getTotalAssignedMarks(paper) || paper.total_marks || 80}</span>
         </div>
 
-        {/* Exam Info Row 2: Subject | Class | Date */}
         <div className="relative z-10 text-[9pt] font-bold mb-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", lineHeight: 1.2 }}>
           <span style={{ textAlign: "left" }}>Subject: {paper.subject || "Subject"}</span>
           <span style={{ textAlign: "center" }}>Class: {displayClass}</span>
           <span style={{ textAlign: "right" }}>Date: {formatDate(new Date())}</span>
         </div>
 
-        {/* Instructions Box */}
         {paper.instructions && (
-          <div className="relative z-10 border border-slate-800 px-2.5 py-1.5 mb-3">
-            <p className="text-[8.5pt] font-black uppercase underline mb-0.5">Instructions:</p>
-            <div>
-              {paper.instructions.split("\n").filter(Boolean).map((line: string, i: number) => (
-                <div key={i} className="flex gap-1.5 text-[8pt] font-semibold text-slate-800" style={{ lineHeight: 1.2 }}>
-                  <span className="shrink-0">{i + 1}.</span>
-                  <span>{line.replace(/^\d+\.\s*/, "")}</span>
-                </div>
-              ))}
+          <div className="relative z-10 mb-3 text-[8.5pt] font-normal text-slate-900 border-t border-b border-slate-300 py-1.5 px-2 bg-slate-50/50">
+            <span className="font-bold block mb-0.5 uppercase text-[8pt] tracking-wider text-slate-700">General Instructions:</span>
+            <div className="whitespace-pre-wrap pl-2 leading-tight">
+              {paper.instructions}
             </div>
           </div>
         )}
 
-        {/* Separator */}
         <div className="relative z-10 border-t-2 border-slate-900 mb-3" />
       </div>
     )
   });
 
-  // Section and Question blocks
-  let globalQNum = 0;
   paper.sections
     .filter(s => s.questions && s.questions.length > 0)
     .forEach((sec, secIdx) => {
-      globalQNum++;
-      const currentQNum = globalQNum;
       const parsed = parseSectionName(sec.section_name);
-      const secTitle = getSectionTitle(parsed.title);
-      const secMarks = sec.questions.reduce((sum, q) => sum + (q.marks || 0), 0);
+      const secTitle = parsed.name || parsed.title || getSectionTitle(parsed.title) || `Section ${String.fromCharCode(65 + secIdx)}`;
+      // Calculate effective section marks respecting attempt_any
+      const subGroupsForMarks = groupQuestionsIntoSubsections(sec.questions || []);
+      const secMarks = subGroupsForMarks.reduce((sum, g) => {
+        const attemptAny = g.questions[0]?.question_data?.attempt_any;
+        if (attemptAny && attemptAny > 0) {
+          return sum + attemptAny * (g.questions[0]?.marks || 1);
+        }
+        return sum + g.questions.reduce((qSum, q) => qSum + (q.marks || 0), 0);
+      }, 0);
 
-      // Section Header block
       blocks.push({
         type: "section_header",
         key: `sec-${sec.section_id || secIdx}`,
         render: () => (
-          <div className="w-full pt-3">
-            {(parsed.group || parsed.name) && (
-              <div className="w-full text-center mb-2 flex flex-col items-center justify-center">
-                {parsed.group && (
-                  <span className="font-bold text-[11pt] text-slate-900 block w-full text-center">
-                    {parsed.group}
-                  </span>
-                )}
-                {parsed.name && (
-                  <span className="font-bold text-[10pt] text-slate-900 block w-full text-center mt-0.5">
-                    {parsed.name}
-                  </span>
-                )}
+          <div className="w-full pt-3 pb-1">
+            <div className="text-center w-full">
+              <div className="font-bold text-[11pt] text-slate-900 tracking-wide uppercase">
+                Section {String.fromCharCode(65 + secIdx)}
               </div>
-            )}
-            <div className="flex justify-between items-baseline pb-0.5 mb-1.5 gap-8 w-full">
-              <span className="font-black text-[10.5pt] text-slate-900 tracking-wide flex-1 min-w-0">
-                Q.{currentQNum} {secTitle}
+              <div className="font-bold text-[10.5pt] text-slate-900 tracking-wide">
+                {secTitle}
+              </div>
+            </div>
+            <div className="w-full text-right">
+              <span className="text-[9.5pt] font-black text-slate-900">
+                [{secMarks} Marks]
               </span>
-              <div className="w-[70px] text-right shrink-0">
-                <span className="text-[10pt] font-black text-slate-800 whitespace-nowrap">
-                  [{secMarks} Marks]
-                </span>
-              </div>
             </div>
           </div>
         )
       });
 
-      // Individual Question blocks
-      sec.questions.forEach((q, qIdx) => {
-        const roman = romanize(qIdx + 1);
+      const subGroups = groupQuestionsIntoSubsections(sec.questions || []);
+
+      subGroups.forEach((group, gIdx) => {
+        const groupMarks = group.questions.reduce((sum, q) => sum + (q.marks || 0), 0);
+        const subTitle = group.label || getSubsectionTitle(group.type);
+        // Check for attempt_any (choice/matrix)
+        const attemptAny = group.questions[0]?.question_data?.attempt_any;
+        const effectiveMarks = attemptAny && attemptAny > 0
+          ? attemptAny * (group.questions[0]?.marks || 1)
+          : groupMarks;
+        const choiceSuffix = attemptAny && attemptAny > 0
+          ? ` (Any ${attemptAny})`
+          : "";
+
         blocks.push({
-          type: "question",
-          key: `q-${q.question_id || qIdx}`,
+          type: "subsection_header",
+          key: `sec-${sec.section_id || secIdx}-sub-${gIdx}`,
           render: () => (
+            <div className="w-full pt-1 pb-0.5 mt-1 mb-0.5">
+              <div className="flex justify-between items-baseline gap-4 w-full">
+                <span className="font-bold text-[10pt] text-slate-900 tracking-wide">
+                  Q{gIdx + 1}. {subTitle}{choiceSuffix}
+                </span>
+                <span className="text-[9.5pt] font-bold text-slate-800 whitespace-nowrap">
+                  [{effectiveMarks} Marks]
+                </span>
+              </div>
+            </div>
+          )
+        });
+
+        group.questions.forEach((q, qIdx) => {
+          const roman = romanize(qIdx + 1);
+          blocks.push({
+            type: "question",
+            key: `q-${q.question_id || `${gIdx}-${qIdx}`}`,
+            render: () => (
             <div className="pl-2 mt-2 break-inside-avoid">
               <div className="flex items-start justify-between gap-8 w-full">
                 <div className="flex items-start gap-1.5 flex-1 min-w-0">
@@ -297,7 +332,6 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
                       </div>
                     )}
 
-                    {/* MCQ Options */}
                     {q.question_type === "MCQ" && q.question_data?.options && (
                       <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-1">
                         {q.question_data.options.map((opt: string, i: number) => (
@@ -321,14 +355,12 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
                       );
                     })()}
 
-                    {/* Fill Blanks */}
                     {q.question_type === "FILL_BLANKS" && showAnswers && (q.answer_key || q.question_data?.correct_answer) && (
                       <div className="text-[9.5pt] font-bold text-green-700 mt-1 break-inside-avoid" style={{ color: "#15803d" }}>
                         Answer: {q.answer_key || q.question_data?.correct_answer}
                       </div>
                     )}
 
-                    {/* True/False */}
                     {q.question_type === "TRUE_FALSE" && (
                       <div className="flex gap-6 mt-1">
                         {["True", "False"].map(val => (
@@ -345,7 +377,6 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
                       </div>
                     )}
 
-                    {/* Match the Following */}
                     {q.question_type === "MATCH_FOLLOWING" && q.question_data?.col_a && (
                       <table className="match-table" style={{ width: "100%", borderCollapse: "collapse", marginTop: "4pt", fontSize: "9pt" }}>
                         <thead>
@@ -390,26 +421,22 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
                       </table>
                     )}
 
-                    {/* General Answers (One Line, Short, Long, Numerical, Word Problem, Give Reasons) */}
                     {(q.question_type === "VERY_SHORT" || q.question_type === "SHORT_ANSWER" || q.question_type === "LONG_ANSWER" || q.question_type === "NUMERICAL" || q.question_type === "WORD_PROBLEM" || q.question_type === "GIVE_REASONS") && showAnswers && q.answer_key && (
-                      <div className="text-[9.5pt] font-bold text-green-700 mt-1 whitespace-pre-wrap break-inside-avoid" style={{ color: "#15803d" }}>
+                      <div className="text-[9.5pt] font-bold text-green-700 mt-1 whitespace-pre-wrap break-words overflow-visible h-auto" style={{ color: "#15803d" }}>
                         Answer: {q.answer_key}
                       </div>
                     )}
 
-                    {/* CASE_BASED Legacy Rendering */}
                     {q.question_type === "CASE_BASED" && q.question_data?.sub_questions?.length > 0 && (
                       <div className="mt-2 ml-3 block">
                         {q.question_data.sub_questions.map((sq: any, i: number) => (
-                          <div key={i} className="w-full">
+                          <div key={i} className="w-full mb-1">
                             <div className="flex items-start justify-between gap-8 mt-1 break-inside-avoid">
                               <div className="flex items-start gap-1.5 flex-1">
-                                <span className="font-normal text-[9.5pt] shrink-0">({String.fromCharCode(97 + i)})</span>
-                                <span className="text-[9.5pt] font-normal text-slate-900" style={{ lineHeight: 1.2 }}>
-                                  {sq.text || "Sub-question"}
-                                </span>
+                                <span className="font-bold text-[9.5pt] shrink-0">({String.fromCharCode(97 + i)})</span>
+                                <span className="text-[9.5pt] font-normal">{sq.text}</span>
                               </div>
-                              <span className="text-[9pt] font-normal text-slate-600 shrink-0">[{sq.marks}M]</span>
+                              <span className="text-[9pt] font-normal text-slate-700 shrink-0">[{sq.marks || 1}M]</span>
                             </div>
                             {showAnswers && sq.answer && (
                               <div className="text-[9.5pt] font-bold text-green-700 mt-0.5 pl-6 break-inside-avoid" style={{ color: "#15803d", lineHeight: 1.2 }}>
@@ -421,10 +448,8 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
                       </div>
                     )}
 
-                    {/* PASSAGE_BASED Board Style Rendering */}
                     {q.question_type === "PASSAGE_BASED" && (() => {
                       const qd = q.question_data || {};
-                      const qLetter = getQuestionLetter(q.question_text || "", "B");
                       let activities = qd.activities;
                       if (!activities) {
                         activities = [
@@ -439,7 +464,7 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
                       }
 
                       const renderAct = (act: any, actIdx: number) => {
-                        const headingNum = `${romanize(actIdx + 1)})`;
+                        const headingNum = `(${romanize(actIdx + 1)})`;
                         return (
                           <div key={act.id || actIdx} className="mt-3 break-inside-avoid">
                             <div className="flex justify-between items-baseline gap-8 mb-1">
@@ -453,7 +478,7 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
                             {act.sub_questions && act.sub_questions.length > 0 && (
                               <div className="pl-5 block">
                                 {act.sub_questions.map((subQ: any, subIdx: number) => {
-                                  const romanSub = `(${romanize(subIdx + 1)})`;
+                                  const letterSub = `(${String.fromCharCode(97 + subIdx)})`;
                                   const sqText = typeof subQ === "string" ? subQ : subQ?.text || "";
                                   const sqMarks = typeof subQ === "string" ? null : subQ?.marks;
                                   const sqObj = getSubQuestionObj(subQ);
@@ -462,7 +487,7 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
                                       <div className="flex items-start justify-between gap-8 mt-1 break-inside-avoid w-full">
                                         <div className="flex items-start gap-2 flex-1">
                                           <span className="font-normal text-[9.5pt] text-slate-800 shrink-0 w-8 text-right">
-                                            {romanSub}
+                                            {letterSub}
                                           </span>
                                           <div className="flex-1 text-[9.5pt] font-normal text-slate-900 whitespace-pre-wrap" style={{ lineHeight: 1.2 }}>
                                             {sqText || "…"}
@@ -498,7 +523,6 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
                       );
                     })()}
 
-                    {/* Diagram Labels */}
                     {q.question_type === "DIAGRAM_LABEL" && q.question_data?.labels?.length > 0 && showAnswers && (
                       <div className="mt-2 ml-3 block">
                         <p className="text-[9pt] font-bold text-green-700 mb-1" style={{ color: "#15803d" }}>
@@ -508,7 +532,7 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
                           {q.question_data.labels.map((lbl: string, i: number) => (
                             lbl.trim() ? (
                               <div key={i} className="flex gap-1.5 text-[9.5pt] font-bold text-green-700 break-inside-avoid" style={{ lineHeight: 1.2, color: "#15803d" }}>
-                                <span className="font-bold shrink-0">{i + 1}.</span>
+                              <span className="font-bold shrink-0">{i + 1}.</span>
                                 <span>{lbl}</span>
                               </div>
                             ) : null
@@ -517,7 +541,6 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
                       </div>
                     )}
 
-                    {/* Letter — Bullet Points + Sample Letter */}
                     {q.question_type === "LETTER" && q.question_data?.bullet_points?.some((p: string) => p.trim()) && (
                       <div className="mt-2 ml-3 border-l-2 border-slate-300 pl-3 block">
                         <p className="text-[9pt] font-bold text-slate-600 mb-0.5">Points to cover:</p>
@@ -539,7 +562,6 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
                       </div>
                     )}
 
-                    {/* Essay — Word Limit + Sample Essay */}
                     {q.question_type === "ESSAY" && showAnswers && q.answer_key && (
                       <div className="mt-3 ml-3 border border-green-200 bg-green-50/30 p-3 rounded-lg block break-inside-avoid" style={{ borderColor: "#bbf7d0" }}>
                         <p className="text-[9pt] font-bold text-green-700 mb-1" style={{ color: "#15803d" }}>Answer (Sample Essay):</p>
@@ -562,19 +584,20 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
         });
       });
     });
+  });
 
   // Footer Block (Asterisks divider)
   blocks.push({
     type: "footer",
     key: "footer",
     render: () => (
-      <div className="relative z-10 mt-8 flex justify-center items-center">
+      <div className="relative z-10 mt-8 pb-6 flex justify-center items-center">
         <p className="text-[11pt] font-black uppercase tracking-[0.5em] text-slate-800">* * * * *</p>
       </div>
     )
   });
 
-  // 2. Measure DOM block heights & Paginate blocks dynamically
+  // 2. Measure DOM block heights & Paginate blocks dynamically with Orphan Protection
   useEffect(() => {
     const timer = setTimeout(() => {
       const heights: Record<string, number> = {};
@@ -582,7 +605,10 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
         blocks.forEach(block => {
           const el = containerRef.current!.querySelector(`[data-measure="${block.key}"]`) as HTMLElement;
           if (el) {
-            heights[block.key] = el.offsetHeight;
+            const style = window.getComputedStyle(el);
+            const marginTop = parseFloat(style.marginTop) || 0;
+            const marginBottom = parseFloat(style.marginBottom) || 0;
+            heights[block.key] = el.getBoundingClientRect().height + marginTop + marginBottom;
           }
         });
       }
@@ -590,26 +616,36 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
       const pages: any[][] = [];
       let currentPage: any[] = [];
       let currentHeight = 0;
-      // MAX_PAGE_HEIGHT inside simulated 297mm container with pt-[9mm] px-[15mm] pb-[15mm]
-      // 297mm A4 is ~1122.6px. Subtracting margins gives roughly 990px printable content height.
-      const MAX_PAGE_HEIGHT = 990;
+      // Printable A4 content height threshold — keeps content well inside page border frame
+      // A4=297mm, top-pad=9mm, bottom-pad=18mm → content zone ≈ 270mm ≈ 1020px at 96dpi
+      // But border frame sits at bottom:5mm, so we use 750px (~198mm) as a conservative safe limit
+      const MAX_PAGE_HEIGHT = 750;
 
-      blocks.forEach(block => {
-        const blockHeight = heights[block.key] || 90;
+      for (let i = 0; i < blocks.length; i++) {
+        const block = blocks[i];
+        let blockHeight = heights[block.key] || 50;
 
-        if (block.type === "section_header" && currentHeight + blockHeight > MAX_PAGE_HEIGHT - 120) {
-          if (currentPage.length > 0) pages.push(currentPage);
-          currentPage = [block];
-          currentHeight = blockHeight;
-        } else if (currentHeight + blockHeight > MAX_PAGE_HEIGHT) {
-          if (currentPage.length > 0) pages.push(currentPage);
+        // Orphan Protection: If this block is a subsection_header, check if header + question 1 fit together
+        if (block.type === "subsection_header" && i + 1 < blocks.length) {
+          const nextBlock = blocks[i + 1];
+          const nextHeight = heights[nextBlock.key] || 50;
+          if (currentPage.length > 0 && currentHeight + blockHeight + nextHeight > MAX_PAGE_HEIGHT) {
+            pages.push(currentPage);
+            currentPage = [block];
+            currentHeight = blockHeight;
+            continue;
+          }
+        }
+
+        if (currentPage.length > 0 && currentHeight + blockHeight > MAX_PAGE_HEIGHT) {
+          pages.push(currentPage);
           currentPage = [block];
           currentHeight = blockHeight;
         } else {
           currentPage.push(block);
           currentHeight += blockHeight;
         }
-      });
+      }
 
       if (currentPage.length > 0) {
         pages.push(currentPage);
@@ -641,7 +677,7 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
         {/* Fallback full size single container */}
         <div className="relative min-h-[297mm] pt-[9mm] px-[15mm] pb-[15mm]">
           <div className="absolute top-[5mm] left-[5mm] right-[5mm] bottom-[5mm] border-2 border-black pointer-events-none z-50" />
-          <div className="relative z-10 block">
+          <div className="relative z-10 block pb-8">
             {blocks.map(block => (
               <div key={block.key}>{block.render()}</div>
             ))}
@@ -663,39 +699,35 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
         ))}
       </div>
 
-      {/* Rendered A4 simulated pages */}
       {paginatedPages.map((pageBlocks, pageIdx) => (
-        <div
-          key={pageIdx}
-          className={`mx-auto shadow-2xl relative bg-white w-[210mm] h-[297mm] pt-[9mm] px-[15mm] pb-[15mm] overflow-hidden print:shadow-none print:m-0 print:border-none print-page-sheet ${
-            !fullSize ? "scale-[0.62] origin-top-left" : ""
-          }`}
-          style={paperStyle}
-        >
-          {/* Solid Black Page Border Frame */}
-          <div className="absolute top-[5mm] left-[5mm] right-[5mm] bottom-[5mm] border-2 border-black pointer-events-none z-50 page-border-frame" />
+        <div key={pageIdx} className={!fullSize ? "scale-[0.62] origin-top-left" : ""}>
+          <div
+            className="mx-auto shadow-2xl relative bg-white w-[210mm] min-h-[297mm] pt-[9mm] px-[15mm] pb-[18mm] overflow-hidden print:shadow-none print:m-0 print:border-none print-page-sheet"
+            style={paperStyle}
+          >
+            {/* Solid Black Page Border Frame */}
+            <div className="absolute top-[5mm] left-[5mm] right-[5mm] bottom-[5mm] border-2 border-black pointer-events-none z-50 page-border-frame" />
 
-          {/* Watermark (Rendered on every page!) */}
-          {school?.show_watermark && (
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-45 pointer-events-none z-0 select-none">
-              <span className="text-[90px] font-extrabold opacity-[0.025] whitespace-nowrap text-slate-900">
-                {school?.school_name?.split(" ")[0] || "SCHOOL"}
-              </span>
-            </div>
-          )}
-
-          {/* Content Wrapper */}
-          <div className="relative z-10 block h-[277mm] overflow-hidden">
-            {pageBlocks.map(block => (
-              <div key={block.key} className="w-full block">
-                {block.render()}
+            {/* Watermark (Rendered on every page!) */}
+            {school?.show_watermark && (
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-45 pointer-events-none z-0 select-none">
+                <span className="text-[90px] font-extrabold opacity-[0.025] whitespace-nowrap text-slate-900">
+                  {school?.school_name?.split(" ")[0] || "SCHOOL"}
+                </span>
               </div>
-            ))}
-          </div>
+            )}
 
-          {/* Page Indicator (Bottom Center inside border) */}
-          <div className="absolute bottom-[8mm] left-1/2 -translate-x-1/2 z-50 text-[9pt] font-semibold text-slate-400 print:hidden select-none">
-            Page {pageIdx + 1} of {paginatedPages.length}
+            <div className="relative z-10 block pb-8 overflow-visible">
+              {pageBlocks.map(block => (
+                <div key={block.key} className="w-full block">
+                  {block.render()}
+                </div>
+              ))}
+            </div>
+
+            <div className="absolute bottom-[8mm] left-1/2 -translate-x-1/2 z-50 text-[9pt] font-semibold text-slate-400 print:hidden select-none">
+              Page {pageIdx + 1} of {paginatedPages.length}
+            </div>
           </div>
         </div>
       ))}

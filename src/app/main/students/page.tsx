@@ -15,7 +15,7 @@ import { useIdCardSettings } from "@/components/school-os/id-card-settings-provi
 import { Progress } from "@/components/ui/progress";
 import { TableSkeleton } from "@/components/ui/skeletons";
 import { useFeedback } from "@/components/school-os/feedback-provider";
-import { FileText, Award, CreditCard, FileCheck, CheckCircle2 } from "lucide-react";
+import { FileText, Award, CreditCard, FileCheck, CheckCircle2, Printer } from "lucide-react";
 
 import {
   Card,
@@ -601,6 +601,13 @@ export default function StudentsPage() {
                 ))}
               </SelectContent>
             </Select>
+
+            <Button asChild variant="outline" className="w-full sm:w-auto border-blue-200 text-blue-700 hover:bg-blue-50">
+              <a href="/main/bulk-documents">
+                <Printer className="h-4 w-4 mr-2 text-blue-600" />
+                Bulk Generator
+              </a>
+            </Button>
 
             {canManage && (
               <Button onClick={() => setAddOpen(true)} loading={addLoading} className="w-full sm:w-auto">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { StudentStatsBar } from "./StudentStatsBar";
 import { StudentQuickActions } from "./StudentQuickActions";
 import { WeeklyTimetable } from "./WeeklyTimetable";
@@ -10,21 +10,35 @@ import { StudentAnnouncements } from "./StudentAnnouncements";
 import { StudentAcademicCalendarWidget, StudentCalendarDayDetail } from "./StudentAcademicCalendarWidget";
 import { StudentUpcomingEventsList } from "./StudentUpcomingEventsList";
 import { PageSkeleton } from "@/components/ui/skeletons";
-import { AlertCircle, RefreshCcw } from "lucide-react";
+import { AlertCircle, RefreshCcw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import api from "@/lib/axios";
+import { getCachedData, setCachedData, formatExactTimestamp } from "@/lib/dashboardCache";
+import { useToast } from "@/hooks/use-toast";
 
 export const StudentDashboard = () => {
+  const { toast } = useToast();
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const lastUpdatedText = formatExactTimestamp(lastUpdated);
+  const refreshInFlight = useRef(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [todayHolidays, setTodayHolidays] = useState<any[]>([]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async (isManualRefresh = false) => {
+    if (isManualRefresh) {
+      if (refreshInFlight.current) return;
+      refreshInFlight.current = true;
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     try {
       if (!profile) {
         const profileRes = await api.get("/api/auth/profile");
@@ -35,7 +49,11 @@ export const StudentDashboard = () => {
 
       const summaryRes = await api.get("/api/dashboard/summary");
       if (summaryRes.data.success) {
-        setDashboardData(summaryRes.data.data);
+        const data = summaryRes.data.data;
+        const now = Date.now();
+        setDashboardData(data);
+        setLastUpdated(now);
+        setCachedData("dashboard_student", data, now);
         setError(null);
       }
 
@@ -51,17 +69,32 @@ export const StudentDashboard = () => {
       }
     } catch (err: any) {
       console.error("Failed to fetch student dashboard data:", err);
-      setError(err.message || "Failed to load dashboard data");
+      if (isManualRefresh && dashboardData) {
+        toast({
+          title: "Refresh failed",
+          description: err.response?.data?.message || "Could not update dashboard data. Showing last known data.",
+          variant: "destructive",
+        });
+      } else if (!dashboardData) {
+        setError(err.message || "Failed to load dashboard data");
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
+      refreshInFlight.current = false;
     }
-  };
+  }, [profile, dashboardData, toast]);
 
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 60000);
-    return () => clearInterval(interval);
-  }, [profile]);
+    const cached = getCachedData("dashboard_student");
+    if (cached && cached.data) {
+      setDashboardData(cached.data);
+      setLastUpdated(cached.timestamp);
+      setLoading(false);
+    } else {
+      fetchData(false);
+    }
+  }, []);
 
   if (loading && !dashboardData) {
     return <PageSkeleton rows={15} />;
@@ -75,7 +108,7 @@ export const StudentDashboard = () => {
           <h2 className="text-xl font-bold text-slate-800">Connection Error</h2>
           <p className="text-slate-500 text-sm max-w-xs">{error}</p>
         </div>
-        <Button onClick={fetchData} variant="outline" className="gap-2 border-slate-200 rounded-xl">
+        <Button onClick={() => fetchData()} variant="outline" className="gap-2 border-slate-200 rounded-xl">
           <RefreshCcw className="h-4 w-4" />
           Retry Connection
         </Button>
@@ -94,6 +127,31 @@ export const StudentDashboard = () => {
         {/* ZONE 1 — HOLIDAY BANNER */}
         <HolidayBanner />
 
+        {/* WELCOME HEADER WITH REFRESH */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-100/80 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 select-none">
+          <h1 className="text-lg font-black text-slate-800 tracking-tight">Student Dashboard</h1>
+          <div className="flex items-center gap-3">
+            {lastUpdatedText && (
+              <span className="text-[10px] font-semibold text-slate-400">
+                {lastUpdatedText}
+              </span>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchData(true)}
+              disabled={refreshing}
+              className="gap-1.5 border-slate-200 rounded-xl text-xs font-bold h-9 px-3"
+            >
+              {refreshing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCcw className="h-3.5 w-3.5" />
+              )}
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </Button>
+          </div>
+        </div>
         {/* ZONE 2 — STUDENT STATS BAR */}
         <StudentStatsBar profile={profile} stats={stats} timetable={timetable} />
 

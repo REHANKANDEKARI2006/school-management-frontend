@@ -20,6 +20,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import axios from "@/lib/axios";
+import { useLeaveSSE } from "@/hooks/useLeaveSSE";
+import { LeavePageHeader } from "@/components/leaves/LeavePageHeader";
+import { getCachedData, setCachedData } from "@/lib/dashboardCache";
 
 export default function SubstituteDutiesPage() {
   const [duties, setDuties] = useState<any[]>([]);
@@ -79,6 +82,10 @@ export default function SubstituteDutiesPage() {
         leave_application_id: d.leave_application_id
       }));
       setDuties(normalized);
+      
+      const now = Date.now();
+      setCachedData("substitute_duties", { duties: normalized }, now);
+      setLastUpdated(now);
     } catch (err) {
       console.error(err);
       showToast("Could not load substitute duties.", "err");
@@ -87,51 +94,25 @@ export default function SubstituteDutiesPage() {
     }
   }, [staffId, showToast]);
 
-  // ── Step 3: SSE stream subscription ─────────────────────────────
+  // ── SSE + fallback polling via shared hook ─────────────────────────────────
+  const { sseConnected, refreshing, lastUpdatedText, setLastUpdated, manualRefresh } = useLeaveSSE({
+    onRefresh: fetchDuties,
+    enabled: !!staffId && !resolving,
+    pageKey: "substitute_duties",
+  });
+
   useEffect(() => {
     if (!staffId || resolving) return;
-    fetchDuties();
-
-    const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
-    const envUrl = process.env.NEXT_PUBLIC_API_URL;
-    const baseUrl = envUrl && envUrl.includes('://')
-      ? (envUrl.endsWith('/api') ? envUrl.slice(0, -4) : envUrl)
-      : `http://${hostname}:5000`;
-    let eventSource: EventSource | null = null;
-
-    function connectSSE() {
-      try {
-        eventSource = new EventSource(`${baseUrl}/api/leaves/stream`, { withCredentials: true });
-        eventSource.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === "update") {
-              fetchDuties();
-            }
-          } catch (e) {
-            console.error("Error parsing SSE message:", e);
-          }
-        };
-        eventSource.onerror = (err) => {
-          console.warn("EventSource connection lost, browser is retrying automatically...");
-        };
-      } catch (err) {
-        console.error("SSE connection error:", err);
-        // Retry connection after 5 seconds
-        setTimeout(connectSSE, 5000);
-      }
+    
+    const cached = getCachedData("substitute_duties");
+    if (cached && cached.data) {
+      setDuties(cached.data.duties || []);
+      setLastUpdated(cached.timestamp);
+      setLoading(false);
+    } else {
+      fetchDuties();
     }
-
-    connectSSE();
-
-    // Fallback interval
-    const iv = setInterval(fetchDuties, 30000);
-
-    return () => {
-      eventSource?.close();
-      clearInterval(iv);
-    };
-  }, [staffId, resolving, fetchDuties]);
+  }, [staffId, resolving, fetchDuties, setLastUpdated]);
 
   // ── Step 4: Handle response submission ──────────────────────────
   const handleDutyRespond = async (duty: any, action: "accept" | "decline") => {
@@ -190,13 +171,16 @@ export default function SubstituteDutiesPage() {
         </div>
       )}
 
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold">Substitute Duties</h1>
-          <Badge className="bg-primary/10 text-primary border-primary/20">{duties.filter(d => d.status === 1).length} Pending</Badge>
-        </div>
-        <p className="text-muted-foreground">Manage the classroom sessions assigned to you for absent colleagues.</p>
-      </div>
+      <LeavePageHeader
+        title="Substitute Duties"
+        subtitle="Manage the classroom sessions assigned to you for absent colleagues."
+        sseConnected={sseConnected}
+        refreshing={refreshing}
+        lastUpdatedText={lastUpdatedText}
+        onRefresh={manualRefresh}
+      >
+        <Badge className="bg-primary/10 text-primary border-primary/20">{duties.filter(d => d.status === 1).length} Pending</Badge>
+      </LeavePageHeader>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {loading ? (

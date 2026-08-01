@@ -28,6 +28,7 @@ import {
   ShieldCheck,
   TrendingUp,
   Award,
+  Printer,
 } from "lucide-react";
 
 import { ROLE, ADMIN_GROUP, ALL_STAFF_GROUP } from "@/config/roles";
@@ -71,6 +72,12 @@ const navItems: NavItem[] = [
     label: "Promotion",
     icon: TrendingUp,
     roles: [ROLE.MASTER_ADMIN, ROLE.INSTITUTE_ADMIN, ROLE.CLASS_TEACHER],
+  },
+  {
+    href: "/main/bulk-documents",
+    label: "Bulk Documents",
+    icon: Printer,
+    roles: [...ADMIN_GROUP, ROLE.TEACHER, ROLE.CLASS_TEACHER],
   },
   {
     href: "/main/faculty",

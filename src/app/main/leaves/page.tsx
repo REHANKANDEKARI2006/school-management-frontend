@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { cn, formatDate } from "@/lib/utils";
 import axios from "@/lib/axios";
+import { useLeaveSSE } from "@/hooks/useLeaveSSE";
+import { LeavePageHeader } from "@/components/leaves/LeavePageHeader";
+import { getCachedData, setCachedData } from "@/lib/dashboardCache";
 import {
   Calendar, Clock, CheckCircle2, XCircle, AlertCircle, Plus,
   FileCheck, RefreshCw, Upload, Eye, X, ArrowRight, Briefcase,
@@ -152,6 +155,8 @@ export default function TeacherLeavePage() {
     resolveIdentity();
   }, [router]);
 
+  const setLastUpdatedRef = useRef<((ts: number) => void) | null>(null);
+
   // ── Step 2: Fetch all data once staff_id is known ─────────────────────────
   const fetchAll = useCallback(async () => {
     if (!staffId) return;
@@ -162,10 +167,23 @@ export default function TeacherLeavePage() {
         axios.get(`/api/leaves/my-applications?teacher_id=${staffId}`),
         axios.get("/api/leaves/types"),
       ]);
-      setBalances(balRes.data?.data    || []);
-      setDuties(dutyRes.data?.data     || []);
-      setApplications(appRes.data?.data || []);
-      setLeaveTypes(typeRes.data?.data  || []);
+      const balData = balRes.data?.data    || [];
+      const dutyData = dutyRes.data?.data   || [];
+      const appData = appRes.data?.data    || [];
+      const typeData = typeRes.data?.data   || [];
+      setBalances(balData);
+      setDuties(dutyData);
+      setApplications(appData);
+      setLeaveTypes(typeData);
+
+      const now = Date.now();
+      setCachedData("leaves_teacher", {
+        balances: balData,
+        duties: dutyData,
+        applications: appData,
+        leaveTypes: typeData,
+      }, now);
+      if (setLastUpdatedRef.current) setLastUpdatedRef.current(now);
     } catch (err) {
       console.error("Failed to fetch leave data:", err);
       showToast("Could not load leave data. Please refresh.", "err");
@@ -174,50 +192,28 @@ export default function TeacherLeavePage() {
     }
   }, [staffId, showToast]);
 
+  // ── SSE + fallback polling via shared hook ─────────────────────────────────
+  const { sseConnected, refreshing, lastUpdatedText, setLastUpdated, manualRefresh } = useLeaveSSE({
+    onRefresh: fetchAll,
+    enabled: !!staffId && !resolving,
+    pageKey: "leaves_teacher",
+  });
+  setLastUpdatedRef.current = setLastUpdated;
+
   useEffect(() => {
     if (!staffId || resolving) return;
-    fetchAll();
-
-    const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
-    const envUrl = process.env.NEXT_PUBLIC_API_URL;
-    const baseUrl = envUrl && envUrl.includes('://')
-      ? (envUrl.endsWith('/api') ? envUrl.slice(0, -4) : envUrl)
-      : `http://${hostname}:5000`;
-    let eventSource: EventSource | null = null;
-
-    function connectSSE() {
-      try {
-        eventSource = new EventSource(`${baseUrl}/api/leaves/stream`, { withCredentials: true });
-        eventSource.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === "update") {
-              fetchAll();
-            }
-          } catch (e) {
-            console.error("Error parsing SSE message:", e);
-          }
-        };
-        eventSource.onerror = (err) => {
-          console.warn("EventSource connection lost, browser is retrying automatically...");
-        };
-      } catch (err) {
-        console.error("SSE connection error:", err);
-        // Retry connection after 5 seconds
-        setTimeout(connectSSE, 5000);
-      }
+    const cached = getCachedData("leaves_teacher");
+    if (cached && cached.data) {
+      setBalances(cached.data.balances || []);
+      setDuties(cached.data.duties || []);
+      setApplications(cached.data.applications || []);
+      setLeaveTypes(cached.data.leaveTypes || []);
+      setLastUpdated(cached.timestamp);
+      setLoading(false);
+    } else {
+      fetchAll();
     }
-
-    connectSSE();
-
-    // Fallback interval
-    const interval = setInterval(fetchAll, 30000);
-
-    return () => {
-      eventSource?.close();
-      clearInterval(interval);
-    };
-  }, [staffId, resolving, fetchAll]);
+  }, [staffId, resolving]);
 
   // ── Computed ──────────────────────────────────────────────────────────────
   const totalDays = form.is_half_day
@@ -337,20 +333,21 @@ export default function TeacherLeavePage() {
       )}
 
       {/* Page Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-            Leave Management
-          </h1>
-          <p className="text-muted-foreground mt-1">Manage your leaves, substitute duties, and leave balance.</p>
-        </div>
+      <LeavePageHeader
+        title="Leave Management"
+        subtitle="Manage your leaves, substitute duties, and leave balance."
+        sseConnected={sseConnected}
+        refreshing={refreshing}
+        lastUpdatedText={lastUpdatedText}
+        onRefresh={manualRefresh}
+      >
         <Button
           onClick={() => setApplyOpen(true)}
           className="gap-2"
         >
           <Plus className="w-4 h-4" /> Apply for Leave
         </Button>
-      </div>
+      </LeavePageHeader>
 
       {/* ═══════════════════════════════════════════════════════════════
           SECTION 1 — Leave Balance Cards

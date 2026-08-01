@@ -20,12 +20,12 @@ export const getPaper = async (id: number | string) => {
 };
 
 export const createDraft = async (payload: any) => {
-  const res = await axios.post("/api/question-papers/draft", payload);
+  const res = await axios.post("/api/question-papers/draft", payload, { headers: { "x-skip-loader": "true" } });
   return res.data.data;
 };
 
 export const updatePaper = async (id: number | string, payload: any) => {
-  const res = await axios.patch(`/api/question-papers/${id}`, payload);
+  const res = await axios.patch(`/api/question-papers/${id}`, payload, { headers: { "x-skip-loader": "true" } });
   return res.data.data;
 };
 
@@ -47,21 +47,21 @@ export const publishPaper = async (id: number | string) => {
    SECTIONS & QUESTIONS
    ═══════════════════════════════════════════ */
 export const upsertSection = async (paperId: number | string, payload: any) => {
-  const res = await axios.post(`/api/question-papers/${paperId}/sections`, payload);
+  const res = await axios.post(`/api/question-papers/${paperId}/sections`, payload, { headers: { "x-skip-loader": "true" } });
   return res.data.data;
 };
 
 export const deleteSection = async (sectionId: number | string) => {
-  await axios.delete(`/api/question-papers/sections/${sectionId}`);
+  await axios.delete(`/api/question-papers/sections/${sectionId}`, { headers: { "x-skip-loader": "true" } });
 };
 
 export const upsertQuestion = async (sectionId: number | string, payload: any) => {
-  const res = await axios.post(`/api/question-papers/sections/${sectionId}/questions`, payload);
+  const res = await axios.post(`/api/question-papers/sections/${sectionId}/questions`, payload, { headers: { "x-skip-loader": "true" } });
   return res.data.data;
 };
 
 export const deleteQuestion = async (questionId: number | string) => {
-  await axios.delete(`/api/question-papers/questions/${questionId}`);
+  await axios.delete(`/api/question-papers/questions/${questionId}`, { headers: { "x-skip-loader": "true" } });
 };
 
 /* ═══════════════════════════════════════════

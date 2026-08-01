@@ -16,6 +16,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select";
 import { PageSkeleton } from "@/components/ui/skeletons";
+import { useFeedback } from "@/components/school-os/feedback-provider";
 
 interface Paper {
   paper_id: number; title: string; class_name: string; section: string | null;
@@ -43,6 +44,7 @@ const formatDateStr = (dateStr: string) => {
 
 export default function PaperGeneratorLandingPage() {
   const router = useRouter();
+  const { showWarning } = useFeedback();
   const [papers, setPapers]         = useState<Paper[]>([]);
   const [loading, setLoading]       = useState(true);
   const [search, setSearch]         = useState("");
@@ -76,11 +78,17 @@ export default function PaperGeneratorLandingPage() {
     } finally { setDupeId(null); }
   };
 
-  const handleDelete = async (id: number, e: React.MouseEvent) => {
+  const handleDelete = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("Delete this paper permanently?")) return;
-    await deletePaper(id);
-    await load();
+    showWarning(
+      "Delete Question Paper?",
+      "This will permanently delete this question paper record. This action cannot be undone.",
+      async () => {
+        await deletePaper(id);
+        await load();
+      },
+      "Yes, Delete"
+    );
   };
 
   const filtered = papers.filter(p => {

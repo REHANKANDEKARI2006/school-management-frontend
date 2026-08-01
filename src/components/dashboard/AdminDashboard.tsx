@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { AdminStatsBar } from "./AdminStatsBar";
 import { Card } from "@/components/ui/card";
 import { AdminQuickActions } from "./AdminQuickActions";
@@ -6,7 +6,7 @@ import { AdminAcademicCalendarWidget, AdminCalendarDayDetail } from "./AdminAcad
 import { AdminUpcomingEventsList } from "./AdminUpcomingEventsList";
 import { AdminAnnouncements } from "./AdminAnnouncements";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, RefreshCcw, Megaphone } from "lucide-react";
+import { AlertCircle, RefreshCcw, Megaphone, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { AttendanceChart } from "./AttendanceChart";
@@ -20,33 +20,61 @@ import api from "@/lib/axios";
 import { format } from "date-fns";
 import { formatDate } from "@/lib/utils";
 import { ROLE_DISPLAY_NAME } from "@/config/roles";
+import { getCachedData, setCachedData, formatExactTimestamp } from "@/lib/dashboardCache";
+import { useToast } from "@/hooks/use-toast";
 
 export const AdminDashboard = () => {
   const roleId = typeof window !== "undefined" ? Number(localStorage.getItem("role_id")) : 0;
   const roleName = ROLE_DISPLAY_NAME[roleId] || "Admin";
 
+  const { toast } = useToast();
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const lastUpdatedText = formatExactTimestamp(lastUpdated);
+  const refreshInFlight = useRef(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [apiHolidays, setApiHolidays] = useState<any[]>([]);
   const [todayHolidays, setTodayHolidays] = useState<any[]>([]);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async (isManualRefresh = false) => {
+    if (isManualRefresh) {
+      if (refreshInFlight.current) return;
+      refreshInFlight.current = true;
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     try {
       const response = await api.get("/api/dashboard/summary");
       if (response.data.success) {
-        setDashboardData(response.data.data);
+        const data = response.data.data;
+        const now = Date.now();
+        setDashboardData(data);
+        setLastUpdated(now);
+        setCachedData("dashboard_admin", data, now);
         setError(null);
       }
     } catch (err: any) {
       console.error("Failed to fetch dashboard data:", err);
-      setError(err.message || "Failed to load dashboard data");
+      if (isManualRefresh && dashboardData) {
+        toast({
+          title: "Refresh failed",
+          description: err.response?.data?.message || "Could not update dashboard data. Showing last known data.",
+          variant: "destructive",
+        });
+      } else if (!dashboardData) {
+        setError(err.message || "Failed to load dashboard data");
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
+      refreshInFlight.current = false;
     }
-  };
+  }, [dashboardData, toast]);
 
   const fetchMonthHolidays = async (date: Date, setFn: (data: any[]) => void) => {
     try {
@@ -62,13 +90,15 @@ export const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    fetchDashboardData();
-    fetchMonthHolidays(new Date(), setTodayHolidays); 
-    const interval = setInterval(() => {
-        fetchDashboardData();
-        fetchMonthHolidays(new Date(), setTodayHolidays);
-    }, 60000); 
-    return () => clearInterval(interval);
+    const cached = getCachedData("dashboard_admin");
+    if (cached && cached.data) {
+      setDashboardData(cached.data);
+      setLastUpdated(cached.timestamp);
+      setLoading(false);
+    } else {
+      fetchDashboardData(false);
+    }
+    fetchMonthHolidays(new Date(), setTodayHolidays);
   }, []);
 
   const monthKey = format(currentMonth, "yyyy-MM");
@@ -142,7 +172,7 @@ export const AdminDashboard = () => {
           <h2 className="text-xl font-bold text-slate-800">Connection Error</h2>
           <p className="text-slate-500 text-sm max-w-xs">{error}</p>
         </div>
-        <Button onClick={fetchDashboardData} variant="outline" className="gap-2 border-slate-200 rounded-xl">
+        <Button onClick={() => fetchDashboardData()} variant="outline" className="gap-2 border-slate-200 rounded-xl">
           <RefreshCcw className="h-4 w-4" />
           Retry Connection
         </Button>
@@ -165,10 +195,31 @@ export const AdminDashboard = () => {
               Here's what's happening in your institute today.
             </p>
           </div>
-          <div className="flex items-center gap-2 px-3 py-2 bg-blue-50/50 border border-blue-100/50 rounded-xl text-xs font-black text-blue-650 shrink-0">
-            <span className="text-[11px] uppercase tracking-wide">
-              {format(new Date(), "dd MMMM yyyy, EEEE")}
-            </span>
+          <div className="flex items-center gap-3 shrink-0">
+            {lastUpdatedText && (
+              <span className="text-[10px] font-semibold text-slate-400 hidden sm:inline">
+                {lastUpdatedText}
+              </span>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchDashboardData(true)}
+              disabled={refreshing}
+              className="gap-1.5 border-slate-200 rounded-xl text-xs font-bold h-9 px-3"
+            >
+              {refreshing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCcw className="h-3.5 w-3.5" />
+              )}
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </Button>
+            <div className="flex items-center gap-2 px-3 py-2 bg-blue-50/50 border border-blue-100/50 rounded-xl text-xs font-black text-blue-650">
+              <span className="text-[11px] uppercase tracking-wide">
+                {format(new Date(), "dd MMMM yyyy, EEEE")}
+              </span>
+            </div>
           </div>
         </div>
 

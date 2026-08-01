@@ -94,6 +94,13 @@ export default function PreviewStep({ paper }: Props) {
               overflow: hidden !important;
               background: #ffffff !important;
               box-sizing: border-box !important;
+              transform: none !important;
+              scale: none !important;
+            }
+            /* Prevent blank trailing page after the last sheet */
+            .print-page-sheet:last-child {
+              page-break-after: avoid !important;
+              break-after: avoid !important;
             }
             .print-page-sheet .page-border-frame {
               position: absolute !important;
@@ -105,6 +112,13 @@ export default function PreviewStep({ paper }: Props) {
               z-index: 1000 !important;
               box-sizing: border-box !important;
               display: block !important;
+            }
+            /* Hide elements not meant for PDF */
+            .space-y-6 > div:first-child {
+              display: none !important;
+            }
+            .print\:hidden {
+              display: none !important;
             }
           </style>
         </head>
@@ -123,7 +137,7 @@ export default function PreviewStep({ paper }: Props) {
       };
  
       // Always download the Question Paper PDF
-      const qpHtml = qpRef.current ? qpRef.current.innerHTML : "";
+      const qpHtml = contentRef.current ? contentRef.current.innerHTML : "";
       const qpFullHtml = compileHtml(qpHtml);
       const qpUrl = await generatePaperPDF(paper.paper_id!, {
         generate_answer_key: false,
@@ -134,7 +148,7 @@ export default function PreviewStep({ paper }: Props) {
  
       // Additionally generate and download Answer Key PDF if toggle is ON
       if (includeKey) {
-        const akHtml = akRef.current ? akRef.current.innerHTML : "";
+        const akHtml = contentRef.current ? contentRef.current.innerHTML : "";
         const akFullHtml = compileHtml(akHtml);
         const akUrl = await generatePaperPDF(paper.paper_id!, {
           generate_answer_key: true,

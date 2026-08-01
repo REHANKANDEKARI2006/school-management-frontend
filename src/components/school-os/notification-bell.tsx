@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Bell, Check } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { Bell, Check, RefreshCw } from "lucide-react";
 import axios from "@/lib/axios";
 import {
   DropdownMenu,
@@ -15,20 +15,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-// Configurable polling interval in milliseconds
-const NOTIFICATION_POLL_INTERVAL_MS = 60000; // 60 seconds
+// Configurable polling interval in milliseconds (5 minutes)
+const NOTIFICATION_POLL_INTERVAL_MS = 300000; // 300 seconds / 5 minutes
 
 export function NotificationBell() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async (isManual = false) => {
     if (typeof window === "undefined") return;
-    if (document.visibilityState !== "visible") return; // Skip polling when tab is inactive/hidden
+    if (!isManual && document.visibilityState !== "visible") return; // Skip polling when tab is inactive/hidden
 
     const token = localStorage.getItem("accessToken");
     if (!token) return; // Skip fetch if user is logged out
 
+    if (isManual) setIsRefreshing(true);
     try {
       const res = await axios.get("/api/notifications/my-notifications", {
         skipGlobalErrorLogging: true,
@@ -39,17 +41,19 @@ export function NotificationBell() {
       }
     } catch (err) {
       // Silently fail if session expires or network error
+    } finally {
+      if (isManual) setIsRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchNotifications();
 
-    const interval = setInterval(fetchNotifications, NOTIFICATION_POLL_INTERVAL_MS);
+    const interval = setInterval(() => fetchNotifications(false), NOTIFICATION_POLL_INTERVAL_MS);
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        fetchNotifications();
+        fetchNotifications(false);
       }
     };
 
@@ -59,7 +63,13 @@ export function NotificationBell() {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [fetchNotifications]);
+
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      fetchNotifications(true); // Always fetch fresh notifications on dropdown open
+    }
+  };
 
   const markAsRead = async (id: number) => {
     try {
@@ -82,7 +92,7 @@ export function NotificationBell() {
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative h-9 w-9">
           <Bell className="h-[1.2rem] w-[1.2rem]" />
@@ -100,11 +110,23 @@ export function NotificationBell() {
       <DropdownMenuContent className="w-80" align="end" forceMount>
         <DropdownMenuLabel className="flex items-center justify-between">
           <span className="font-semibold">Notifications</span>
-          {unreadCount > 0 && (
-            <Button variant="ghost" size="sm" onClick={markAllAsRead} className="h-6 text-xs text-blue-600 px-2">
-              Mark all as read
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => fetchNotifications(true)}
+              disabled={isRefreshing}
+              className="h-6 w-6 text-slate-400 hover:text-slate-600"
+              title="Refresh notifications"
+            >
+              <RefreshCw className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`} />
             </Button>
-          )}
+            {unreadCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={markAllAsRead} className="h-6 text-xs text-blue-600 px-2">
+                Mark all as read
+              </Button>
+            )}
+          </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         

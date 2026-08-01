@@ -74,7 +74,11 @@ instance.interceptors.request.use(
                              urlStr.includes('/bonafide') ||
                              urlStr.includes('/leaving');
 
-        if (['post', 'put', 'patch', 'delete'].includes(method) || isDocPattern) {
+        const skipLoader = (config as any).skipLoader || 
+                           config.headers?.['x-skip-loader'] === 'true' || 
+                           config.headers?.['X-Skip-Loader'] === 'true';
+
+        if (!skipLoader && (['post', 'put', 'patch', 'delete'].includes(method) || isDocPattern)) {
           const msg = isDocPattern ? "Generating Document..." : "Processing…";
           useGlobalLoaderStore.getState().increment(msg);
           (config as any)._loaderIncremented = true;

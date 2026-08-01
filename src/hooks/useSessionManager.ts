@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import axios from "@/lib/axios";
 import { useRouter } from "next/navigation";
+import { clearAllUserCaches } from "@/lib/dashboardCache";
 
 // ── Configuration ────────────────────────────────────────────────────────────
 const IDLE_TIMEOUT       = 10 * 60; // 10 minutes of inactivity → show popup
@@ -32,14 +33,8 @@ export function useSessionManager() {
       popupTimerRef.current = null;
     }
 
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("role_id");
-    localStorage.removeItem("user_email");
-    localStorage.removeItem("user_name");
-    localStorage.removeItem("student_id");
-    localStorage.removeItem("class_id");
-    localStorage.removeItem("isAuthenticated");
+    clearAllUserCaches();
+    localStorage.clear();
     sessionStorage.clear();
 
     router.push("/auth/login?session=expired");

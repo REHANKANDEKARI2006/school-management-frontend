@@ -23,6 +23,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [coldStartMsg, setColdStartMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -112,6 +113,53 @@ export default function LoginPage() {
         console.error("Axios setup/config error:", error.config);
       }
       console.error("Full Error Object:", error);
+
+      const isColdStart = error?.response?.status === 503 && error?.response?.data?.cold_start;
+      const isNetworkError = !error.response && (error.message === "Network Error" || error.code === "ECONNABORTED");
+
+      if (isColdStart || isNetworkError) {
+        setColdStartMsg("Server is waking up, retrying automatically...");
+        // Auto-retry once after 3 seconds
+        setTimeout(async () => {
+          try {
+            const retryRes = await axios.post("/api/auth/login", {
+              email: identifier.trim(),
+              password,
+            });
+            if (retryRes.data?.success) {
+              setColdStartMsg(null);
+              if (rememberMe) {
+                localStorage.setItem("rememberedId", identifier);
+              } else {
+                localStorage.removeItem("rememberedId");
+              }
+              localStorage.setItem("isAuthenticated", "true");
+              sessionStorage.setItem("isAuthenticated", "true");
+              localStorage.setItem("accessToken", retryRes.data.accessToken);
+              localStorage.setItem("refreshToken", retryRes.data.refreshToken);
+              localStorage.setItem("role_id", String(retryRes.data.role_id));
+              localStorage.setItem("user_email", retryRes.data.email || identifier);
+              localStorage.setItem("user_name", retryRes.data.name || retryRes.data.full_name || "User");
+              if (retryRes.data.student_details) {
+                localStorage.setItem("student_id", String(retryRes.data.student_details.student_id));
+                localStorage.setItem("class_id", String(retryRes.data.student_details.class_id));
+              }
+              router.push("/main/dashboard");
+            } else {
+              setColdStartMsg(null);
+              alert(retryRes.data?.message || "Login failed after retry");
+            }
+          } catch (retryErr: any) {
+            setColdStartMsg(null);
+            const retryMessage = retryErr?.response?.data?.message ||
+                                 "Server is still starting up. Please wait a moment and try again.";
+            alert(retryMessage);
+          } finally {
+            setLoading(false);
+          }
+        }, 3000);
+        return; // Don't setLoading(false) yet — the retry timer will handle it
+      }
 
       const displayMessage = error?.response?.data?.message || 
                              error?.response?.data?.error || 
@@ -224,8 +272,18 @@ export default function LoginPage() {
               className="w-full h-12 text-base font-bold bg-primary hover:bg-primary/90 text-white rounded-xl shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
               disabled={loading}
             >
-              {loading ? "Logging in..." : "Login"}
+              {coldStartMsg ? "Retrying..." : loading ? "Logging in..." : "Login"}
             </Button>
+
+            {coldStartMsg && (
+              <motion.p
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center text-sm font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-lg py-2.5 px-3"
+              >
+                ⏳ {coldStartMsg}
+              </motion.p>
+            )}
           </div>
 
           <p className="text-center text-sm text-slate-500">

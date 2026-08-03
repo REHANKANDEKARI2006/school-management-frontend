@@ -35,7 +35,7 @@ instance.interceptors.request.use(
       if (isLocal) {
         config.baseURL = `http://${hostname}:5000`;
       } else {
-        config.baseURL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://school-management-backend-production-3a75.up.railway.app";
+        config.baseURL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://school-management-backend-production-2fbb.up.railway.app";
       }
     }
 
@@ -195,7 +195,7 @@ instance.interceptors.response.use(
             ? (envUrl.endsWith('/api') ? envUrl.slice(0, -4) : envUrl)
             : (isLocal 
                 ? `http://${hostname}:5000` 
-                : "https://school-management-backend-production-3a75.up.railway.app"
+                : "https://school-management-backend-production-2fbb.up.railway.app"
               );
           const res = await axios.post(`${API_URL}/api/auth/refresh-token`, {
             refreshToken,

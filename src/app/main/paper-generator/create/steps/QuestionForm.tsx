@@ -46,26 +46,30 @@ export const compilePassageAnswers = (acts: any[]): string => {
   return result.join(", ");
 };
 
+import { generateClientId } from "./clientIdUtils";
+
 // ─── Empty state builder for each question type ─────────────────────────────
 export function makeEmptyQuestion(type: string, order: number): Partial<Question> {
-  const base = { question_type: type, question_text: "", marks: 2, question_order: order, question_id: null };
+  const _clientId = generateClientId();
+  const base = { question_type: type, question_text: "", marks: 2, question_order: order, question_id: null } as any;
+  let result: any;
   switch (type) {
     case "MCQ":
-      return { ...base, marks: 1, question_data: { options: ["", "", "", ""], correct: "" } };
+      result = { ...base, marks: 1, question_data: { options: ["", "", "", ""], correct: "" } }; break;
     case "FILL_BLANKS":
-      return { ...base, marks: 1, question_data: { correct_answer: "" } };
+      result = { ...base, marks: 1, question_data: { correct_answer: "" } }; break;
     case "TRUE_FALSE":
-      return { ...base, marks: 1, question_data: { correct: "True" } };
+      result = { ...base, marks: 1, question_data: { correct: "True" } }; break;
     case "MATCH_FOLLOWING":
-      return { ...base, question_text: "Match the following Columns:", marks: 4, question_data: { col_a: ["", ""], col_b: ["", ""] } };
+      result = { ...base, question_text: "Match the following Columns:", marks: 4, question_data: { col_a: ["", ""], col_b: ["", ""] } }; break;
     case "VERY_SHORT":
-      return { ...base, marks: 1, question_data: {} };
+      result = { ...base, marks: 1, question_data: {} }; break;
     case "SHORT_ANSWER":
-      return { ...base, marks: 2, question_data: {} };
+      result = { ...base, marks: 2, question_data: {} }; break;
     case "LONG_ANSWER":
-      return { ...base, marks: 5, question_data: {} };
+      result = { ...base, marks: 5, question_data: {} }; break;
     case "PASSAGE_BASED":
-      return {
+      result = {
         ...base,
         marks: 10,
         question_text: "Read the following passage and do the activities:",
@@ -86,24 +90,27 @@ export function makeEmptyQuestion(type: string, order: number): Partial<Question
             }
           ]
         }
-      };
+      }; break;
     case "CASE_BASED":
-      return { ...base, marks: 8, question_data: { passage: "", sub_questions: [{ text: "", marks: 2 }, { text: "", marks: 2 }] } };
+      result = { ...base, marks: 8, question_data: { passage: "", sub_questions: [{ text: "", marks: 2 }, { text: "", marks: 2 }] } }; break;
     case "DIAGRAM_LABEL":
-      return { ...base, marks: 4, question_data: { labels: ["", "", "", ""] } };
+      result = { ...base, marks: 4, question_data: { labels: ["", "", "", ""] } }; break;
     case "NUMERICAL":
-      return { ...base, marks: 3, question_data: {} };
+      result = { ...base, marks: 3, question_data: {} }; break;
     case "WORD_PROBLEM":
-      return { ...base, marks: 4, question_data: {} };
+      result = { ...base, marks: 4, question_data: {} }; break;
     case "GIVE_REASONS":
-      return { ...base, marks: 2, question_data: {} };
+      result = { ...base, marks: 2, question_data: {} }; break;
     case "LETTER":
-      return { ...base, marks: 5, question_data: { bullet_points: ["", ""] } };
+      result = { ...base, marks: 5, question_data: { bullet_points: ["", ""] } }; break;
     case "ESSAY":
-      return { ...base, marks: 5, question_data: { word_limit: "150-200 words" } };
+      result = { ...base, marks: 5, question_data: { word_limit: "150-200 words" } }; break;
     default:
-      return { ...base, question_data: {} };
+      result = { ...base, question_data: {} };
   }
+  // Inject stable _clientId into question_data (after switch to avoid being overwritten)
+  result.question_data = { ...(result.question_data || {}), _clientId };
+  return result;
 }
 
 // ─── Input field helper component ───────────────────────────────────────────

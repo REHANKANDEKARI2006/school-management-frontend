@@ -267,7 +267,9 @@ export default function BulkDocumentsPage() {
       const isLocal = hostname === "localhost" || hostname === "127.0.0.1" || hostname.startsWith("192.168.") || hostname.startsWith("10.") || hostname.startsWith("172.");
       if (isLocal) return `http://${hostname}:${port}/api/bulk-documents/${jobId}/download${tokenParam}`;
     }
-    return `/api/bulk-documents/${jobId}/download${tokenParam}`;
+    const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "https://school-management-backend-production-2fbb.up.railway.app";
+    const baseUrl = envUrl.endsWith('/api') ? envUrl.slice(0, -4) : envUrl;
+    return `${baseUrl}/api/bulk-documents/${jobId}/download${tokenParam}`;
   };
 
   return (

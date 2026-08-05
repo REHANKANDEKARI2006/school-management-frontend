@@ -388,9 +388,25 @@ export default function PaperSetupStep({ paper, onChange }: Props) {
               type="number"
               min={1}
               max={500}
-              value={paper.total_marks}
-              onChange={e => onChange({ total_marks: parseInt(e.target.value) || 0 })}
-              className={inputClass}
+              value={paper.total_marks || ""}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                  e.preventDefault();
+                }
+              }}
+              onWheel={(e) => e.currentTarget.blur()}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === "") {
+                  onChange({ total_marks: 0 });
+                } else {
+                  const parsed = parseInt(val, 10);
+                  if (!isNaN(parsed)) {
+                    onChange({ total_marks: parsed });
+                  }
+                }
+              }}
+              className={`${inputClass} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
               placeholder="e.g. 80"
             />
           </div>

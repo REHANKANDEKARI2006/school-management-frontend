@@ -245,8 +245,8 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
         type: "section_header",
         key: `sec-${sec.section_id || secIdx}`,
         render: () => (
-          <div className="w-full pt-3 pb-1">
-            <div className="text-center w-full">
+          <div className="w-full pt-3 pb-1 relative">
+            <div className="text-center w-full px-16">
               <div className="font-bold text-[11pt] text-slate-900 tracking-wide uppercase">
                 Section {String.fromCharCode(65 + secIdx)}
               </div>
@@ -254,7 +254,7 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
                 {secTitle}
               </div>
             </div>
-            <div className="w-full text-right">
+            <div className="absolute right-0 top-3 text-right">
               <span className="text-[9.5pt] font-black text-slate-900">
                 [{secMarks} Marks]
               </span>

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { PaperState } from "../page";
-import { GripVertical, Plus, Trash2, Edit2, Layers, ArrowUp, ArrowDown, Check } from "lucide-react";
+import { GripVertical, Plus, Trash2, Edit2, Layers, ArrowUp, ArrowDown, Check, AlertCircle } from "lucide-react";
 
 interface Props {
   paper: PaperState;
@@ -99,6 +99,15 @@ export default function AddSectionsStep({ paper, onChange }: Props) {
     onChange({ sections: [...sections, newSec] });
   };
 
+  const handleUpdateSectionMarks = (index: number, marks: number) => {
+    const nextSections = [...sections];
+    nextSections[index] = {
+      ...nextSections[index],
+      total_section_marks: marks
+    };
+    onChange({ sections: nextSections });
+  };
+
   const handleDeleteSection = (index: number) => {
     const filtered = sections.filter((_, i) => i !== index);
     // Re-index remaining sections order
@@ -158,12 +167,18 @@ export default function AddSectionsStep({ paper, onChange }: Props) {
     setDraggedIdx(null);
   };
 
+  // Calculate total section marks vs paper total marks
+  const totalSectionMarks = sections.reduce((sum, sec) => sum + (sec.total_section_marks || 0), 0);
+  const paperTotalMarks = paper.total_marks || 0;
+  const marksMatch = totalSectionMarks === paperTotalMarks;
+  const hasMissingMarks = sections.some(sec => !sec.total_section_marks || sec.total_section_marks <= 0);
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-black text-slate-900 tracking-tight">Add Sections</h1>
-        <p className="text-sm text-slate-500 mt-1">Define the main sections of your paper. Drag to reorder sections as needed.</p>
+        <p className="text-sm text-slate-500 mt-1">Define the main sections of your paper, allocate marks for each section, and drag to reorder.</p>
       </div>
 
       {/* Main Table Card */}
@@ -186,6 +201,7 @@ export default function AddSectionsStep({ paper, onChange }: Props) {
                 <th className="py-3.5 px-4 w-12 text-center">Reorder</th>
                 <th className="py-3.5 px-4 w-36">Section Tag</th>
                 <th className="py-3.5 px-6">Section Name / Title</th>
+                <th className="py-3.5 px-4 w-32 text-center">Marks</th>
                 <th className="py-3.5 px-4 w-28 text-right">Actions</th>
               </tr>
             </thead>
@@ -260,6 +276,39 @@ export default function AddSectionsStep({ paper, onChange }: Props) {
                       />
                     </td>
 
+                    {/* Section Marks Input */}
+                    <td className="py-4 px-4 align-middle text-center">
+                      <input
+                        type="number"
+                        min={0}
+                        max={999}
+                        value={sec.total_section_marks || ""}
+                        onKeyDown={(e) => {
+                          if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                            e.preventDefault();
+                          }
+                        }}
+                        onWheel={(e) => e.currentTarget.blur()}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "") {
+                            handleUpdateSectionMarks(idx, 0);
+                          } else {
+                            const parsed = parseInt(val, 10);
+                            if (!isNaN(parsed)) {
+                              handleUpdateSectionMarks(idx, parsed);
+                            }
+                          }
+                        }}
+                        placeholder="0"
+                        className={`w-20 h-10 px-2 text-sm font-black text-center border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3] transition-all mx-auto [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                          !sec.total_section_marks || sec.total_section_marks <= 0
+                            ? "border-amber-300 bg-amber-50/50"
+                            : "border-slate-200"
+                        }`}
+                      />
+                    </td>
+
                     {/* Actions */}
                     <td className="py-4 px-4 text-right align-middle">
                       <div className="flex items-center justify-end gap-1">
@@ -281,6 +330,31 @@ export default function AddSectionsStep({ paper, onChange }: Props) {
           </table>
         </div>
 
+        {/* Marks Summary Footer */}
+        <div className="px-6 py-4 bg-slate-50/80 border-t border-slate-200/60">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Total Section Marks:</span>
+              <span className={`text-sm font-black px-3 py-1 rounded-full ${
+                marksMatch
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  : "bg-amber-50 text-amber-700 border border-amber-200"
+              }`}>
+                {totalSectionMarks} / {paperTotalMarks} Marks
+              </span>
+            </div>
+            {!marksMatch && totalSectionMarks > 0 && (
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-600">
+                <AlertCircle className="h-3.5 w-3.5" />
+                {totalSectionMarks > paperTotalMarks
+                  ? `Section marks exceed paper total by ${totalSectionMarks - paperTotalMarks}`
+                  : `${paperTotalMarks - totalSectionMarks} marks remaining to allocate`
+                }
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Add Section Button */}
         <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
           <button
@@ -291,7 +365,7 @@ export default function AddSectionsStep({ paper, onChange }: Props) {
             <Plus className="h-4 w-4" /> Add New Section
           </button>
           <p className="text-xs text-slate-400 font-medium">
-            Drag rows to reorder. Section titles update automatically.
+            Drag rows to reorder. Allocate marks for each section.
           </p>
         </div>
       </div>

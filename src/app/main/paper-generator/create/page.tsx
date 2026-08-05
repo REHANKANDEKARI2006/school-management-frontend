@@ -3,7 +3,8 @@
 import React, { Suspense, useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
-import { createDraft, getPaper, updatePaper, upsertSection, upsertQuestion } from "@/lib/api/question-paper";
+import { createDraft, getPaper, fullSavePaper, upsertSection } from "@/lib/api/question-paper";
+import { ensureClientIds } from "./steps/clientIdUtils";
 import dynamic from "next/dynamic";
 import PaperDetailsStep from "./steps/PaperDetailsStep";
 import AddSectionsStep from "./steps/AddSectionsStep";
@@ -158,11 +159,16 @@ function CreatePaperPageInner() {
         setLoading(true);
         const data = await getPaper(paperId);
         if (data) {
+          // Ensure every question has a stable _clientId for React keys
+          const sections = (data.sections || []).map((sec: any) => ({
+            ...sec,
+            questions: ensureClientIds(sec.questions || []),
+          }));
           setPaper({
             ...data,
             class_name: normalizeClassName(data.class_name),
             subject: data.subject || data.subject_name || "",
-            sections: data.sections || []
+            sections,
           });
           if (data.status === "Published") setStep(4);
         }
@@ -177,33 +183,71 @@ function CreatePaperPageInner() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const savedStatusTimer              = useRef<NodeJS.Timeout | null>(null);
 
-  // ── Auto-save ──────────────────────────────────────────────────────────────
+  // ── Auto-save (sequenced, full-save) ────────────────────────────────────────
   const lastSaveSequence = useRef<number>(0);
+  const saveInFlight = useRef<boolean>(false);
+  const pendingSave = useRef<PaperState | null>(null);
+
+  const executeAutoSave = useCallback(async (p: PaperState) => {
+    if (!p.paper_id) return;
+    if (saveInFlight.current) {
+      // Queue this as the next save to run after the current one finishes
+      pendingSave.current = p;
+      return;
+    }
+    saveInFlight.current = true;
+    try {
+      setSaving(true);
+      setSaveStatus("saving");
+      const seq = ++lastSaveSequence.current;
+      const savedData = await fullSavePaper(p.paper_id!, p);
+      if (seq === lastSaveSequence.current && savedData) {
+        // Reconcile DB-assigned IDs back into local state without overwriting live edits
+        setPaper(prev => {
+          if (prev.paper_id !== savedData.paper_id) return prev;
+          const reconciledSections = prev.sections.map((localSec, si) => {
+            const dbSec = savedData.sections?.[si];
+            if (!dbSec) return localSec;
+            // Take the DB section_id, keep local content
+            const reconciledQs = (localSec.questions || []).map((localQ, qi) => {
+              const dbQ = dbSec.questions?.[qi];
+              return {
+                ...localQ,
+                question_id: dbQ?.question_id ?? localQ.question_id,
+              };
+            });
+            return {
+              ...localSec,
+              section_id: dbSec.section_id,
+              questions: reconciledQs,
+            };
+          });
+          return { ...prev, sections: reconciledSections };
+        });
+        setSaveStatus("saved");
+        if (savedStatusTimer.current) clearTimeout(savedStatusTimer.current);
+        savedStatusTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
+      }
+    } catch (err) {
+      console.warn("Auto-save failed", err);
+      setSaveStatus("idle");
+    } finally {
+      setSaving(false);
+      saveInFlight.current = false;
+      // If another save was queued while this one was in flight, run it now
+      if (pendingSave.current) {
+        const nextSave = pendingSave.current;
+        pendingSave.current = null;
+        executeAutoSave(nextSave);
+      }
+    }
+  }, []);
 
   const triggerAutoSave = useCallback((p: PaperState) => {
     if (!p.paper_id) return;
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    autoSaveTimer.current = setTimeout(async () => {
-      try {
-        setSaving(true);
-        setSaveStatus("saving");
-        const seq = ++lastSaveSequence.current;
-        await updatePaper(p.paper_id!, p);
-        if (seq === lastSaveSequence.current) {
-          setSaveStatus("saved");
-          if (savedStatusTimer.current) clearTimeout(savedStatusTimer.current);
-          savedStatusTimer.current = setTimeout(() => {
-            setSaveStatus("idle");
-          }, 2000);
-        }
-      } catch (err) {
-        console.warn("Auto-save failed", err);
-        setSaveStatus("idle");
-      } finally {
-        setSaving(false);
-      }
-    }, 500);
-  }, []);
+    autoSaveTimer.current = setTimeout(() => executeAutoSave(p), 600);
+  }, [executeAutoSave]);
 
   const updateField = useCallback((updates: Partial<PaperState>) => {
     setPaper(prev => {
@@ -225,63 +269,24 @@ function CreatePaperPageInner() {
     if (!paper.sections || paper.sections.length === 0) {
       return "Please add at least one section.";
     }
+    // Check that all sections have marks allocated
+    const hasMissing = paper.sections.some(sec => !sec.total_section_marks || sec.total_section_marks <= 0);
+    if (hasMissing) {
+      return "Please allocate marks for all sections before proceeding.";
+    }
+    // Check that section marks sum to paper total
+    const totalSectionMarks = paper.sections.reduce((sum, sec) => sum + (sec.total_section_marks || 0), 0);
+    if (totalSectionMarks !== paper.total_marks) {
+      return `Total section marks (${totalSectionMarks}) must equal the paper total marks (${paper.total_marks}). ${
+        totalSectionMarks > paper.total_marks
+          ? `Please reduce by ${totalSectionMarks - paper.total_marks} marks.`
+          : `Please allocate ${paper.total_marks - totalSectionMarks} more marks.`
+      }`;
+    }
     return null;
   };
 
-  // ── Save Questions Helper ───────────────────────────────────────────────
-  const saveSectionQuestions = async (secIdx: number) => {
-    const targetSection = paper.sections[secIdx];
-    if (!targetSection || !targetSection.section_id) return;
-
-    try {
-      setSaving(true);
-      setSaveStatus("saving");
-      
-      const questionsToSave = targetSection.questions || [];
-      const savedResults = await Promise.all(
-        questionsToSave.map(async (q, qIdx) => {
-          const saved = await upsertQuestion(targetSection.section_id!, {
-            question_id: q.question_id || undefined,
-            question_type: q.question_type,
-            question_text: q.question_text || "",
-            question_data: q.question_data || {},
-            marks: q.marks || 1,
-            question_order: qIdx + 1,
-            answer_key: q.answer_key || "",
-            subsection_label: q.subsection_label || "",
-          });
-          return { index: qIdx, newQuestionId: saved.question_id };
-        })
-      );
-
-      // Atomic Functional State Merge: update question_id without overwriting live typed text/data!
-      setPaper((prev) => {
-        const newSections = [...prev.sections];
-        if (!newSections[secIdx]) return prev;
-
-        const idMap = new Map(savedResults.map(r => [r.index, r.newQuestionId]));
-        const liveQs = (newSections[secIdx].questions || []).map((q, idx) => ({
-          ...q,
-          question_id: idMap.get(idx) || q.question_id
-        }));
-
-        newSections[secIdx] = {
-          ...newSections[secIdx],
-          questions: liveQs,
-        };
-        return { ...prev, sections: newSections };
-      });
-
-      setSaveStatus("saved");
-      if (savedStatusTimer.current) clearTimeout(savedStatusTimer.current);
-      savedStatusTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
-    } catch (err) {
-      console.error("Failed to save section questions", err);
-      setSaveStatus("idle");
-    } finally {
-      setSaving(false);
-    }
-  };
+  // saveSectionQuestions removed — fullSave handles everything transactionally
 
   // Prevent navigation during active save
   useEffect(() => {
@@ -389,13 +394,15 @@ function CreatePaperPageInner() {
       }
     } else if (step === 4) {
       // Per-Section Sub-Question Navigation
-      await saveSectionQuestions(activeSectionIdx);
-
       if (activeSectionIdx < paper.sections.length - 1) {
         // Move to next section sub-questions (e.g. Section B, Section C...)
         setActiveSectionIdx((prev) => prev + 1);
       } else {
         // Last section configured -> Proceed to Step 5 (Preview & Download)
+        // Trigger an immediate save before preview
+        if (paper.paper_id) {
+          executeAutoSave(paper);
+        }
         setStep(5);
       }
     }

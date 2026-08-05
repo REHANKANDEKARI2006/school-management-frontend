@@ -97,9 +97,17 @@ export default function FeeStructuresPage() {
     return category?.category_name || "Unknown";
   };
 
+  const [selectedEditStandard, setSelectedEditStandard] = React.useState<string | null>(null);
+
+  const handleOpenCreateForm = (stdId?: string) => {
+    setSelectedEditStandard(stdId || null);
+    setIsFormOpen(true);
+  };
+
   const handleFormSubmit = async () => {
     toast({ title: "Fee Structure Updated" });
     setIsFormOpen(false);
+    setSelectedEditStandard(null);
     loadData();
   };
 
@@ -187,11 +195,11 @@ export default function FeeStructuresPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {structuresByClass.map((cls) => (
-            <Card key={cls.id} className="flex flex-col">
+            <Card key={cls.id} className="flex flex-col border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
               <CardHeader className="bg-muted/30 border-b pb-4">
                 <div className="flex justify-between items-center">
-                    <CardTitle className="text-lg">{cls.name}</CardTitle>
-                    <Badge variant="secondary">
+                    <CardTitle className="text-lg font-bold text-slate-900">{cls.name}</CardTitle>
+                    <Badge variant="secondary" className="font-semibold">
                         {cls.structures.length} Components
                     </Badge>
                 </div>
@@ -211,12 +219,13 @@ export default function FeeStructuresPage() {
                           <TableCell className="font-medium p-3 sm:p-4">
                               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between group/row gap-2 sm:gap-0">
                                   <span className="truncate max-w-[200px] whitespace-normal sm:whitespace-nowrap">{s.categoryName}</span>
-                                  <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover/row:opacity-100 transition-opacity self-end sm:self-auto">
+                                  <div className="flex items-center gap-1 opacity-90 sm:opacity-0 sm:group-hover/row:opacity-100 transition-opacity self-end sm:self-auto">
                                       <Button 
                                           variant="ghost" 
                                           size="icon" 
                                           className="h-8 w-8 sm:h-6 sm:w-6 text-muted-foreground hover:text-primary"
                                           onClick={() => handleEditAmount(cls.id, s.categoryName, s.fee_cat_id, s.amount)}
+                                          title="Edit Amount"
                                       >
                                           <Edit className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                                       </Button>
@@ -225,6 +234,7 @@ export default function FeeStructuresPage() {
                                           size="icon" 
                                           className="h-8 w-8 sm:h-6 sm:w-6 text-muted-foreground hover:text-destructive"
                                           onClick={() => handleDelete(cls.id, s.fee_cat_id)}
+                                          title="Remove Category"
                                       >
                                           <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                                       </Button>
@@ -246,9 +256,14 @@ export default function FeeStructuresPage() {
                     <strong className="text-xl">₹{cls.totalAmount.toLocaleString()}</strong>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                        <Download className="mr-2 h-4 w-4" />
-                        Export
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 transition-colors"
+                      onClick={() => handleOpenCreateForm(cls.id)}
+                    >
+                      <PlusCircle className="mr-1.5 h-4 w-4 text-blue-600" />
+                      Edit / Add Category
                     </Button>
                 </div>
               </CardFooter>
@@ -256,16 +271,24 @@ export default function FeeStructuresPage() {
         ))}
       </div>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <Dialog open={isFormOpen} onOpenChange={(open) => {
+        setIsFormOpen(open);
+        if (!open) setSelectedEditStandard(null);
+      }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-black">Define Fee Structure</DialogTitle>
+            <DialogTitle className="text-2xl font-black">
+              {selectedEditStandard ? `Edit Structure: Standard ${selectedEditStandard}` : "Define Fee Structure"}
+            </DialogTitle>
             <DialogDescription className="text-sm font-medium">
-              Create a new mapping between a fee category and an academic standard. This will apply to all students in that standard.
+              {selectedEditStandard 
+                ? `Add new fee categories or update fee components for Standard ${selectedEditStandard}.`
+                : "Create a new mapping between a fee category and an academic standard. This will apply to all students in that standard."
+              }
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-              <FeeStructureForm onSubmit={handleFormSubmit} />
+              <FeeStructureForm initialStandard={selectedEditStandard || undefined} onSubmit={handleFormSubmit} />
           </div>
         </DialogContent>
       </Dialog>

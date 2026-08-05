@@ -5,7 +5,8 @@ import { PaperState, Question, getTotalAssignedMarks } from "../page";
 import { parseSectionName } from "./AddSectionsStep";
 import { BOARD_QUESTION_TYPES } from "./PaperSetupStep";
 import { QuestionForm, makeEmptyQuestion } from "./QuestionForm";
-import { Plus, Trash2, ChevronDown, ChevronUp, Layers, CheckCircle2, AlertCircle, HelpCircle } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp, Layers, CheckCircle2, AlertCircle, HelpCircle, ToggleLeft, ToggleRight } from "lucide-react";
+import { generateClientId, getQuestionKey } from "./clientIdUtils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
@@ -42,8 +43,10 @@ export function groupQuestionsIntoSubsections(questions: Question[]): Subsection
       (customLabel && currentGroup.label !== customLabel)
     ) {
       const groupIdx = groups.length;
+      // Use first question's _clientId or question_id for stable group ID
+      const stableKey = q.question_data?._clientId || q.question_id || `g${groupIdx}`;
       currentGroup = {
-        id: `subsec-group-${groupIdx}-${q.question_type}`,
+        id: `subsec-${stableKey}`,
         type: q.question_type,
         label: labelToUse,
         questions: [q],
@@ -55,6 +58,19 @@ export function groupQuestionsIntoSubsections(questions: Question[]): Subsection
   });
 
   return groups;
+}
+
+/**
+ * Calculate valid "Attempt Any N" options for a subsection group.
+ * Returns all N values from 1 to (totalQuestions - 1) so teachers can set e.g. Any 2 of 3, Any 3 of 5, etc.
+ */
+export function getValidAttemptAnyOptions(_totalMarks: number, totalQuestions: number): number[] {
+  if (totalQuestions <= 1) return [];
+  const options: number[] = [];
+  for (let n = 1; n < totalQuestions; n++) {
+    options.push(n);
+  }
+  return options;
 }
 
 export function flattenSubsectionsToQuestions(groups: SubsectionGroup[]): Question[] {
@@ -132,18 +148,7 @@ export default function ConfigureSubsectionsStep({
   // Group questions in this section into subsections (question-type groups)
   const subsectionGroups = useMemo(() => {
     const rawQs = section?.questions || [];
-    if (rawQs.length === 0) {
-      // Initialize a default subsection (e.g. MCQ) if empty
-      const defaultQ = makeEmptyQuestion("MCQ", 1) as Question;
-      return [
-        {
-          id: `subsec-group-default-MCQ`,
-          type: "MCQ",
-          label: "Multiple Choice Questions",
-          questions: [defaultQ],
-        },
-      ];
-    }
+    if (rawQs.length === 0) return [];
     return groupQuestionsIntoSubsections(rawQs);
   }, [section]);
 
@@ -175,6 +180,8 @@ export default function ConfigureSubsectionsStep({
   const handleAddSubsectionType = (typeKey: string) => {
     const typeInfo = BOARD_QUESTION_TYPES.find((t) => t.key === typeKey);
     const newQ = makeEmptyQuestion(typeKey, 1) as Question;
+    // Assign stable client ID
+    newQ.question_data = { ...(newQ.question_data || {}), _clientId: generateClientId() };
     const newGroup: SubsectionGroup = {
       id: `subsec-${Date.now()}-${Math.random()}`,
       type: typeKey,
@@ -195,6 +202,8 @@ export default function ConfigureSubsectionsStep({
   const handleAddQuestionToSubsection = (groupIdx: number) => {
     const group = subsectionGroups[groupIdx];
     const newQ = makeEmptyQuestion(group.type, group.questions.length + 1) as Question;
+    // Assign stable client ID
+    newQ.question_data = { ...(newQ.question_data || {}), _clientId: generateClientId() };
     
     const nextGroups = [...subsectionGroups];
     nextGroups[groupIdx] = {
@@ -231,6 +240,39 @@ export default function ConfigureSubsectionsStep({
         questions: filteredQs,
       };
     }
+    updateSectionQuestions(nextGroups);
+  };
+
+  // ── Attempt Any Handlers ──────────────────────────────────────────────────
+  const handleToggleAttemptAny = (groupIdx: number, enable: boolean) => {
+    const nextGroups = [...subsectionGroups];
+    const group = nextGroups[groupIdx];
+    const groupMarks = group.questions.reduce((sum, q) => sum + (q.marks || 0), 0);
+    const validOptions = getValidAttemptAnyOptions(groupMarks, group.questions.length);
+    const defaultAny = enable && validOptions.length > 0 ? validOptions[validOptions.length - 1] : undefined;
+
+    const updatedQs = group.questions.map((q) => ({
+      ...q,
+      question_data: {
+        ...q.question_data,
+        attempt_any: enable ? defaultAny : undefined,
+      },
+    }));
+    nextGroups[groupIdx] = { ...group, questions: updatedQs };
+    updateSectionQuestions(nextGroups);
+  };
+
+  const handleSetAttemptAny = (groupIdx: number, value: number) => {
+    const nextGroups = [...subsectionGroups];
+    const group = nextGroups[groupIdx];
+    const updatedQs = group.questions.map((q) => ({
+      ...q,
+      question_data: {
+        ...q.question_data,
+        attempt_any: value,
+      },
+    }));
+    nextGroups[groupIdx] = { ...group, questions: updatedQs };
     updateSectionQuestions(nextGroups);
   };
 
@@ -307,56 +349,107 @@ export default function ConfigureSubsectionsStep({
               className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden transition-all"
             >
               {/* Subsection Header Bar */}
-              <div className="p-4 sm:p-5 bg-slate-50/80 border-b border-slate-200/60 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <button
-                    type="button"
-                    onClick={() => handleToggleCollapse(group.id)}
-                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
-                  >
-                    {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
-                  </button>
-                  <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
-                    <div className="relative flex-1 max-w-sm">
-                      <EditableSubsectionTitle
-                        value={group.label}
-                        onChange={(newLabel) => {
-                          const nextGroups = [...subsectionGroups];
-                          nextGroups[groupIdx] = {
-                            ...group,
-                            label: newLabel,
-                          };
-                          updateSectionQuestions(nextGroups);
-                        }}
-                      />
+              <div className="p-4 sm:p-5 bg-slate-50/80 border-b border-slate-200/60 space-y-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleCollapse(group.id)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
+                    >
+                      {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+                    </button>
+                    <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                      <div className="relative flex-1 max-w-sm">
+                        <EditableSubsectionTitle
+                          value={group.label}
+                          onChange={(newLabel) => {
+                            const nextGroups = [...subsectionGroups];
+                            nextGroups[groupIdx] = {
+                              ...group,
+                              label: newLabel,
+                            };
+                            updateSectionQuestions(nextGroups);
+                          }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider shrink-0">
+                        {typeInfo?.emoji || "✏️"} {group.type}
+                      </span>
                     </div>
-                    <span className="text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider shrink-0">
-                      {typeInfo?.emoji || "✏️"} {group.type}
-                    </span>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-3 shrink-0">
-                  {attemptAny && attemptAny > 0 && (
-                    <span className="text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider shrink-0">
-                      Any {attemptAny} of {group.questions.length}
+                  <div className="flex items-center gap-3 shrink-0">
+                    {/* Attempt Any Controls */}
+                    {(() => {
+                      const validOptions = getValidAttemptAnyOptions(groupMarks, group.questions.length);
+                      const hasAttemptAny = attemptAny && attemptAny > 0;
+                      const marksPerQuestion = hasAttemptAny && attemptAny ? groupMarks / attemptAny : 0;
+
+                      return (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleAttemptAny(groupIdx, !hasAttemptAny)}
+                            disabled={!hasAttemptAny && validOptions.length === 0}
+                            className={`p-1 rounded-lg transition-colors ${
+                              hasAttemptAny
+                                ? "text-[#3335e3] hover:text-[#3335e3]/80"
+                                : validOptions.length === 0
+                                  ? "text-slate-300 cursor-not-allowed"
+                                  : "text-slate-400 hover:text-slate-600"
+                            }`}
+                            title={hasAttemptAny ? "Disable attempt-any choice" : group.questions.length <= 1 ? "Add at least 2 questions to enable choice" : "Enable attempt-any choice"}
+                          >
+                            {hasAttemptAny ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
+                          </button>
+                          {hasAttemptAny ? (
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                              <span className="text-slate-400">Any</span>
+                              <select
+                                value={attemptAny}
+                                onChange={(e) => handleSetAttemptAny(groupIdx, parseInt(e.target.value))}
+                                className="h-7 px-2 text-xs font-black text-center border border-indigo-200 rounded-lg bg-indigo-50 focus:outline-none focus:ring-1 focus:ring-[#3335e3] appearance-none cursor-pointer"
+                              >
+                                {validOptions.map((n) => (
+                                  <option key={n} value={n}>
+                                    {n}
+                                  </option>
+                                ))}
+                              </select>
+                              <span className="text-slate-400">of {group.questions.length}</span>
+                              <span className="text-[10px] font-bold text-slate-400 ml-1">
+                                ({group.questions[0]?.marks || 1}M each)
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] font-medium text-slate-400">
+                              {group.questions.length <= 1
+                                ? "Need 2+ questions"
+                                : "Attempt Any"
+                              }
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    <span className={`text-xs font-black px-3 py-1 rounded-full shadow-2xs ${
+                      attemptAny && attemptAny > 0
+                        ? "text-amber-700 bg-amber-50 border border-amber-200"
+                        : "text-slate-700 bg-white border border-slate-200"
+                    }`}>
+                      {effectiveMarks} Marks
                     </span>
-                  )}
-                  <span className={`text-xs font-black px-3 py-1 rounded-full shadow-2xs ${
-                    attemptAny && attemptAny > 0
-                      ? "text-amber-700 bg-amber-50 border border-amber-200"
-                      : "text-slate-700 bg-white border border-slate-200"
-                  }`}>
-                    {effectiveMarks} Marks
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteSubsection(groupIdx)}
-                    className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-                    title="Delete Subsection Group"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSubsection(groupIdx)}
+                      className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                      title="Delete Subsection Group"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -368,7 +461,7 @@ export default function ConfigureSubsectionsStep({
 
                     return (
                       <div
-                        key={q.question_id || qIdx}
+                        key={getQuestionKey(q)}
                         className="bg-slate-50/50 rounded-2xl border border-slate-200/80 p-5 space-y-4 relative hover:border-[#3335e3]/40 transition-all"
                       >
                         {/* Question Sub-Header */}
@@ -389,13 +482,25 @@ export default function ConfigureSubsectionsStep({
                                 type="number"
                                 min={1}
                                 max={50}
-                                value={q.marks || 1}
-                                onChange={(e) =>
-                                  handleUpdateQuestion(groupIdx, qIdx, {
-                                    marks: parseInt(e.target.value) || 1,
-                                  })
-                                }
-                                className="w-12 h-6 text-xs font-black text-center focus:outline-none bg-transparent"
+                                value={q.marks || ""}
+                                onKeyDown={(e) => {
+                                  if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                onWheel={(e) => e.currentTarget.blur()}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val === "") {
+                                    handleUpdateQuestion(groupIdx, qIdx, { marks: 0 });
+                                  } else {
+                                    const parsed = parseInt(val, 10);
+                                    if (!isNaN(parsed)) {
+                                      handleUpdateQuestion(groupIdx, qIdx, { marks: parsed });
+                                    }
+                                  }
+                                }}
+                                className="w-12 h-6 text-xs font-black text-center focus:outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                             </div>
                             <button

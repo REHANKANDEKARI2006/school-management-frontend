@@ -152,12 +152,12 @@ export default function AttendancePage() {
       const dateString = format(today, 'yyyy-MM-dd');
 
       const storedUserId = typeof window !== 'undefined' ? localStorage.getItem('user_id') : null;
-      const facultyId = storedUserId ? parseInt(storedUserId) : 76;
+      const facultyId = storedUserId ? parseInt(storedUserId) : undefined;
 
       // 1. Create Session
       const sessionRes = await axios.post('/api/attendance/session', {
         class_id: classId,
-        section_id: currentClass.section_id,
+        section_id: currentClass?.section_id,
         subject_id: subjectId,
         attendance_date: dateString,
         faculty_id: facultyId,
@@ -176,16 +176,19 @@ export default function AttendancePage() {
 
         const recordsRes = await axios.post('/api/attendance/record', {
           session_id: sessionId,
+          staff_id: facultyId,
           records: recordsToSave
         });
 
         if (recordsRes.data.success) {
+          toast({ title: "Success", description: "Attendance records saved successfully." });
           router.push(`/main/attendance/${classId}/${subjectId}/summary?date=${dateString}`);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to finalize attendance", err);
-      toast({ title: "Error", description: "Failed to save attendance records.", variant: "destructive" });
+      const errMsg = err?.response?.data?.message || err.message || "Failed to save attendance records.";
+      toast({ title: "Error", description: errMsg, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -193,6 +196,7 @@ export default function AttendancePage() {
 
   const markedStudentsCount = attendanceRecords.filter(r => r.status !== 'pending').length;
   const progress = students.length > 0 ? (markedStudentsCount / students.length) * 100 : 0;
+  const isLastStudent = currentIndex === students.length - 1;
 
   if (!currentClass || !currentSubject) {
     return (
@@ -277,13 +281,22 @@ export default function AttendancePage() {
                 <ArrowLeft className="mr-2 h-4 w-4" /> Previous
               </Button>
 
-              <Button
-                onClick={handleNext}
-                disabled={currentIndex === students.length - 1}
-                className="rounded-[10px] h-11 px-8 bg-[#6366f1] hover:bg-[#4f46e5] text-white font-medium shadow-sm transition-all"
-              >
-                Next <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              {!isLastStudent ? (
+                <Button
+                  onClick={handleNext}
+                  className="rounded-[10px] h-11 px-8 bg-[#6366f1] hover:bg-[#4f46e5] text-white font-medium shadow-sm transition-all"
+                >
+                  Next <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleFinalize}
+                  disabled={isSubmitting}
+                  className="rounded-[10px] h-11 px-6 bg-[#3b82f6] hover:bg-[#2563eb] text-white font-semibold shadow-md transition-all"
+                >
+                  <CheckSquare className="mr-2 h-4 w-4" /> Review & Finalize
+                </Button>
+              )}
             </div>
 
             {/* Review & Finalize Button - Wide and Centered Below */}
@@ -291,8 +304,8 @@ export default function AttendancePage() {
               <div className="flex justify-center w-full">
                 <Button
                   onClick={handleFinalize}
+                  disabled={isSubmitting}
                   className="rounded-[10px] h-[52px] w-[280px] bg-[#3b82f6] hover:bg-[#2563eb] text-white text-[15px] font-semibold transition-all shadow-md"
-                  loading={isSubmitting}
                 >
                   <CheckSquare className="mr-2 h-5 w-5" />
                   Review & Finalize

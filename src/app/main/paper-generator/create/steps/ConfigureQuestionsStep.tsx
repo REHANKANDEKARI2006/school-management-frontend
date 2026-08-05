@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { PaperState, Question, getTotalAssignedMarks } from "../page";
 import { parseSectionName } from "./AddSectionsStep";
 import { BOARD_QUESTION_TYPES } from "./PaperSetupStep";
@@ -14,8 +14,8 @@ import {
   Layers,
   CheckCircle2,
   ChevronDown,
-  ToggleLeft,
-  ToggleRight,
+  AlertCircle,
+  FileQuestion,
 } from "lucide-react";
 
 interface Props {
@@ -32,6 +32,8 @@ export interface QuestionConfig {
   total_questions: number;
   has_choice: boolean;
   attempt_any: number | null;
+  /** Original questions this config represents — preserved to avoid losing DB IDs */
+  questionRefs: Question[];
 }
 
 /** Build QuestionConfig rows from existing section questions (subsection groups) */
@@ -60,28 +62,49 @@ export function buildConfigFromQuestions(questions: Question[]): QuestionConfig[
         total_questions: 1,
         has_choice: attemptAny !== null && attemptAny > 0,
         attempt_any: attemptAny,
+        questionRefs: [q],
       };
       configs.push(currentConfig);
     } else {
-      currentConfig.total_questions += 1;
+      // Continuation of same group — count it, don't accumulate marks
+      currentConfig.total_questions++;
+      currentConfig.questionRefs.push(q);
     }
   });
 
   return configs;
 }
 
-/** Convert QuestionConfig rows back into Question[] for the section */
+/** Convert QuestionConfig rows back into Question[] for the section.
+ *  CRITICAL: Preserves existing question IDs and data from questionRefs
+ *  instead of creating brand-new questions, preventing ID loss / duplication.
+ */
 export function buildQuestionsFromConfig(configs: QuestionConfig[]): Question[] {
   const questions: Question[] = [];
   let globalOrder = 1;
 
   configs.forEach((cfg) => {
-    const count = cfg.total_questions || 1;
-    for (let i = 0; i < count; i++) {
+    // If this config has original question references, preserve them
+    if (cfg.questionRefs && cfg.questionRefs.length > 0) {
+      // Use the first existing question as the representative,
+      // updating its marks and metadata from the config
+      const ref = cfg.questionRefs[0];
+      questions.push({
+        ...ref,
+        marks: cfg.marks_per_question || 1,
+        question_order: globalOrder,
+        subsection_label: cfg.heading,
+        question_data: {
+          ...(ref.question_data || {}),
+          attempt_any: cfg.has_choice ? (cfg.attempt_any || 1) : undefined,
+        },
+      });
+    } else {
+      // Genuinely new config with no existing questions — create from scratch
       const baseQ = makeEmptyQuestion(cfg.question_type, globalOrder) as Question;
       questions.push({
         ...baseQ,
-        marks: cfg.marks_per_question,
+        marks: cfg.marks_per_question || 1,
         question_order: globalOrder,
         subsection_label: cfg.heading,
         question_data: {
@@ -89,8 +112,8 @@ export function buildQuestionsFromConfig(configs: QuestionConfig[]): Question[] 
           attempt_any: cfg.has_choice ? (cfg.attempt_any || 1) : undefined,
         },
       });
-      globalOrder++;
     }
+    globalOrder++;
   });
 
   return questions;
@@ -103,10 +126,7 @@ function getDefaultHeading(type: string): string {
 
 /** Calculate effective marks for a question config row */
 export function getEffectiveMarks(cfg: QuestionConfig): number {
-  if (cfg.has_choice && cfg.attempt_any && cfg.attempt_any > 0) {
-    return cfg.attempt_any * cfg.marks_per_question;
-  }
-  return cfg.total_questions * cfg.marks_per_question;
+  return cfg.marks_per_question || 0;
 }
 
 // ─── Badge Colors ─────────────────────────────────────────────────────────────
@@ -129,23 +149,22 @@ export default function ConfigureQuestionsStep({
   const sectionLetter = String.fromCharCode(65 + activeSectionIdx);
   const sectionTitle = parsedSection.name || parsedSection.title || `Section ${sectionLetter}`;
 
-  // Build question configs from existing questions
+  // Section marks budget (set in AddSectionsStep)
+  const sectionMarksBudget = section?.total_section_marks || 0;
+
+  // Build question configs from existing questions — start empty for new sections
   const [configs, setConfigs] = useState<QuestionConfig[]>(() => {
-    const existing = buildConfigFromQuestions(section?.questions || []);
-    if (existing.length > 0) return existing;
-    // Start with one empty question config
-    return [
-      {
-        id: `qc-init-${Date.now()}`,
-        heading: "Multiple Choice Questions",
-        question_type: "MCQ",
-        marks_per_question: 1,
-        total_questions: 1,
-        has_choice: false,
-        attempt_any: null,
-      },
-    ];
+    return buildConfigFromQuestions(section?.questions || []);
   });
+
+  // ── FIX: Re-initialize configs when activeSectionIdx changes ──────────────
+  // useState initializer only runs on mount, so we need this effect to
+  // reset configs when navigating between sections (Section A → B → C).
+  useEffect(() => {
+    const currentSection = paper.sections[activeSectionIdx];
+    if (!currentSection) return;
+    setConfigs(buildConfigFromQuestions(currentSection.questions || []));
+  }, [activeSectionIdx]);
 
   // Calculate section marks
   const sectionTotalMarks = useMemo(() => {
@@ -153,6 +172,10 @@ export default function ConfigureQuestionsStep({
   }, [configs]);
 
   const totalAssignedMarks = getTotalAssignedMarks(paper);
+
+  // Check if section marks budget is exceeded
+  const isBudgetExceeded = sectionMarksBudget > 0 && sectionTotalMarks > sectionMarksBudget;
+  const isBudgetFull = sectionMarksBudget > 0 && sectionTotalMarks >= sectionMarksBudget;
 
   // Persist configs → section questions whenever configs change
   const persistConfigs = (newConfigs: QuestionConfig[]) => {
@@ -163,7 +186,6 @@ export default function ConfigureQuestionsStep({
     newSections[activeSectionIdx] = {
       ...newSections[activeSectionIdx],
       questions: newQuestions,
-      total_section_marks: sectionMarks,
     };
     onChange({ sections: newSections });
   };
@@ -172,22 +194,13 @@ export default function ConfigureQuestionsStep({
   const handleUpdateConfig = (idx: number, updates: Partial<QuestionConfig>) => {
     const next = [...configs];
     next[idx] = { ...next[idx], ...updates };
-    // If choice is being disabled, clear attempt_any
-    if (updates.has_choice === false) {
-      next[idx].attempt_any = null;
-    }
-    // If choice is being enabled, default attempt_any to total_questions - 1
-    if (updates.has_choice === true && !next[idx].attempt_any) {
-      next[idx].attempt_any = Math.max(1, next[idx].total_questions - 1);
-    }
-    // Ensure attempt_any doesn't exceed total_questions
-    if (next[idx].attempt_any && next[idx].attempt_any! > next[idx].total_questions) {
-      next[idx].attempt_any = next[idx].total_questions;
-    }
     persistConfigs(next);
   };
 
   const handleAddConfig = () => {
+    // Prevent adding if marks budget is full
+    if (isBudgetFull) return;
+
     const newConfig: QuestionConfig = {
       id: `qc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       heading: "",
@@ -196,6 +209,7 @@ export default function ConfigureQuestionsStep({
       total_questions: 1,
       has_choice: false,
       attempt_any: null,
+      questionRefs: [],
     };
     persistConfigs([...configs, newConfig]);
   };
@@ -238,10 +252,26 @@ export default function ConfigureQuestionsStep({
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-center">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Section Marks</p>
-              <p className="text-lg font-black text-[#3335e3]">{sectionTotalMarks} Marks</p>
-            </div>
+            {sectionMarksBudget > 0 && (
+              <div className={`border rounded-xl px-4 py-2.5 text-center ${
+                isBudgetExceeded
+                  ? "bg-red-50 border-red-200"
+                  : sectionTotalMarks === sectionMarksBudget
+                    ? "bg-emerald-50 border-emerald-200"
+                    : "bg-slate-50 border-slate-200"
+              }`}>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Marks Budget</p>
+                <p className={`text-lg font-black ${
+                  isBudgetExceeded
+                    ? "text-red-600"
+                    : sectionTotalMarks === sectionMarksBudget
+                      ? "text-emerald-600"
+                      : "text-[#3335e3]"
+                }`}>
+                  {sectionTotalMarks} / {sectionMarksBudget}
+                </p>
+              </div>
+            )}
             <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-center">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Paper Target</p>
               <p className="text-lg font-black text-slate-800">
@@ -272,16 +302,37 @@ export default function ConfigureQuestionsStep({
         </div>
 
         <div className="overflow-x-auto">
+           {configs.length === 0 ? (
+            /* Empty State — No questions defined yet */
+            <div className="py-16 px-8 flex flex-col items-center justify-center text-center">
+              <div className="h-14 w-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                <FileQuestion className="h-7 w-7 text-slate-400" />
+              </div>
+              <h3 className="text-sm font-black text-slate-700 mb-1">No Question Types Defined</h3>
+              <p className="text-xs text-slate-400 font-medium max-w-sm mb-5">
+                Start by adding question types to this section. Each type defines the heading, format, quantity, and marks per question.
+              </p>
+              <button
+                type="button"
+                onClick={handleAddConfig}
+                disabled={isBudgetFull}
+                className={`flex items-center gap-2 h-10 px-6 rounded-xl text-xs font-bold shadow-sm transition-all ${
+                  isBudgetFull
+                    ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                    : "bg-[#3335e3] hover:bg-[#3335e3]/90 text-white"
+                }`}
+              >
+                <Plus className="h-4 w-4" /> Add Question Type
+              </button>
+            </div>
+          ) : (
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-black text-slate-500 uppercase tracking-wider">
                 <th className="py-3 px-3 w-10 text-center">#</th>
                 <th className="py-3 px-3" style={{ minWidth: 200 }}>Question Heading</th>
                 <th className="py-3 px-3 w-44">Question Type</th>
-                <th className="py-3 px-3 w-16 text-center">Qty</th>
-                <th className="py-3 px-3 w-20 text-center">Marks/Q</th>
-                <th className="py-3 px-3 w-40 text-center">Choice (Any N)</th>
-                <th className="py-3 px-3 w-24 text-center">Total</th>
+                <th className="py-3 px-3 w-24 text-center">Marks</th>
                 <th className="py-3 px-3 w-16 text-right">Actions</th>
               </tr>
             </thead>
@@ -354,86 +405,32 @@ export default function ConfigureQuestionsStep({
                       </select>
                     </td>
 
-                    {/* Quantity (Total Questions) */}
+                    {/* Marks (editable) */}
                     <td className="py-3 px-3 text-center">
                       <input
                         type="number"
                         min={1}
-                        max={50}
-                        value={cfg.total_questions}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value) || 1;
-                          handleUpdateConfig(idx, { total_questions: val });
+                        max={999}
+                        value={effectiveMarks || ""}
+                        onKeyDown={(e) => {
+                          if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                            e.preventDefault();
+                          }
                         }}
-                        className="w-14 h-9 text-xs font-black text-center border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3] transition-all mx-auto"
+                        onWheel={(e) => e.currentTarget.blur()}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "") {
+                            handleUpdateConfig(idx, { marks_per_question: 0 });
+                          } else {
+                            const parsed = parseInt(val, 10);
+                            if (!isNaN(parsed)) {
+                              handleUpdateConfig(idx, { marks_per_question: parsed });
+                            }
+                          }
+                        }}
+                        className="w-16 h-9 text-xs font-black text-center border border-emerald-200 rounded-lg bg-emerald-50 text-emerald-700 focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3] transition-all mx-auto [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
-                    </td>
-
-                    {/* Marks per Question */}
-                    <td className="py-3 px-3 text-center">
-                      <input
-                        type="number"
-                        min={1}
-                        max={50}
-                        value={cfg.marks_per_question}
-                        onChange={(e) =>
-                          handleUpdateConfig(idx, {
-                            marks_per_question: parseInt(e.target.value) || 1,
-                          })
-                        }
-                        className="w-14 h-9 text-xs font-black text-center border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3] transition-all mx-auto"
-                      />
-                    </td>
-
-                    {/* Choice / Attempt Any */}
-                    <td className="py-3 px-3 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateConfig(idx, { has_choice: !cfg.has_choice })}
-                          className={`p-1 rounded-lg transition-colors ${
-                            cfg.has_choice
-                              ? "text-[#3335e3] hover:text-[#3335e3]/80"
-                              : "text-slate-400 hover:text-slate-600"
-                          }`}
-                          title={cfg.has_choice ? "Disable choice" : "Enable choice"}
-                        >
-                          {cfg.has_choice ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
-                        </button>
-                        {cfg.has_choice && (
-                          <div className="flex items-center gap-1 text-xs font-bold text-slate-700">
-                            <span className="text-slate-400">Any</span>
-                            <input
-                              type="number"
-                              min={1}
-                              max={cfg.total_questions}
-                              value={cfg.attempt_any || 1}
-                              onChange={(e) => {
-                                const val = Math.min(
-                                  parseInt(e.target.value) || 1,
-                                  cfg.total_questions
-                                );
-                                handleUpdateConfig(idx, { attempt_any: val });
-                              }}
-                              className="w-10 h-7 text-xs font-black text-center border border-indigo-200 rounded bg-indigo-50 focus:outline-none focus:ring-1 focus:ring-[#3335e3]"
-                            />
-                            <span className="text-slate-400">of {cfg.total_questions}</span>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Total Marks */}
-                    <td className="py-3 px-3 text-center">
-                      <span
-                        className={`inline-flex items-center justify-center h-8 px-3 rounded-full text-xs font-black ${
-                          cfg.has_choice
-                            ? "bg-amber-50 text-amber-700 border border-amber-200"
-                            : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        }`}
-                      >
-                        {effectiveMarks} Marks
-                      </span>
                     </td>
 
                     {/* Actions */}
@@ -441,8 +438,7 @@ export default function ConfigureQuestionsStep({
                       <button
                         type="button"
                         onClick={() => handleDeleteConfig(idx)}
-                        disabled={configs.length <= 1}
-                        className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                        className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                         title="Delete Question"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -453,54 +449,43 @@ export default function ConfigureQuestionsStep({
               })}
             </tbody>
           </table>
+          )}
         </div>
 
-        {/* Add Question Button */}
-        <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={handleAddConfig}
-            className="flex items-center gap-2 h-10 px-5 bg-white border border-slate-300 hover:border-[#3335e3] hover:text-[#3335e3] rounded-xl text-xs font-bold text-slate-700 shadow-sm transition-all"
-          >
-            <Plus className="h-4 w-4" /> Add Question
-          </button>
-          <p className="text-xs text-slate-400 font-medium">
-            Define question headings and types. Sub-questions are configured in the next step.
-          </p>
-        </div>
+        {/* Budget exceeded warning */}
+        {isBudgetExceeded && (
+          <div className="mx-4 mt-3 flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 text-xs font-bold text-red-700 animate-in fade-in">
+            <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
+            Section marks ({sectionTotalMarks}) exceed the allocated budget of {sectionMarksBudget} marks. Please reduce questions or marks.
+          </div>
+        )}
+
+        {/* Add Question Type Button (shown only when there are existing configs) */}
+        {configs.length > 0 && (
+          <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={handleAddConfig}
+              disabled={isBudgetFull}
+              className={`flex items-center gap-2 h-10 px-5 bg-white border rounded-xl text-xs font-bold shadow-sm transition-all ${
+                isBudgetFull
+                  ? "border-slate-200 text-slate-400 cursor-not-allowed opacity-60"
+                  : "border-slate-300 hover:border-[#3335e3] hover:text-[#3335e3] text-slate-700"
+              }`}
+            >
+              <Plus className="h-4 w-4" /> Add Question Type
+            </button>
+            <p className="text-xs text-slate-400 font-medium">
+              {isBudgetFull
+                ? `Section marks budget (${sectionMarksBudget}M) is fully allocated.`
+                : "Define question headings and types. Sub-questions are configured in the next step."
+              }
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Choice/Matrix Info Panel */}
-      {configs.some((c) => c.has_choice) && (
-        <div className="bg-amber-50/80 rounded-2xl border border-amber-200 p-5 space-y-2 animate-in fade-in duration-300">
-          <h3 className="text-sm font-black text-amber-800 flex items-center gap-2">
-            <span className="text-base">📋</span> Choice / Matrix Summary
-          </h3>
-          <div className="space-y-1.5">
-            {configs
-              .filter((c) => c.has_choice)
-              .map((c, i) => (
-                <div
-                  key={c.id}
-                  className="flex items-center justify-between text-xs font-semibold text-amber-700 bg-white/60 rounded-lg px-3 py-2 border border-amber-100"
-                >
-                  <span>
-                    Q{configs.indexOf(c) + 1}. {c.heading || "Untitled"}{" "}
-                    <span className="text-amber-500">
-                      (Any {c.attempt_any} out of {c.total_questions})
-                    </span>
-                  </span>
-                  <span className="font-black">
-                    {getEffectiveMarks(c)} Marks
-                  </span>
-                </div>
-              ))}
-          </div>
-          <p className="text-[11px] text-amber-600 font-medium mt-1">
-            Total marks reflect only the questions required to be attempted, not the total provided.
-          </p>
-        </div>
-      )}
+
     </div>
   );
 }

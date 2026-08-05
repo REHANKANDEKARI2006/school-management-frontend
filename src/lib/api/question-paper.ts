@@ -29,6 +29,11 @@ export const updatePaper = async (id: number | string, payload: any) => {
   return res.data.data;
 };
 
+export const fullSavePaper = async (id: number | string, payload: any) => {
+  const res = await axios.put(`/api/question-papers/${id}/full-save`, payload, { headers: { "x-skip-loader": "true" } });
+  return res.data.data;
+};
+
 export const duplicatePaper = async (id: number | string, overrides?: any) => {
   const res = await axios.post(`/api/question-papers/${id}/duplicate`, overrides || {});
   return res.data.data;

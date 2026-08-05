@@ -23,9 +23,9 @@ import {
 
 import * as React from "react";
 import axios from "@/lib/axios";
-import { getFeeCategories, createFeeStructure, getFeeStructures } from "@/lib/api/fees";
+import { getFeeCategories, createFeeStructure, getFeeStructures, createFeeCategory } from "@/lib/api/fees";
 import { Badge } from "@/components/ui/badge";
-import { Info, Calculator, Layers, AlertCircle, IndianRupee } from "lucide-react";
+import { Info, Calculator, Layers, AlertCircle, IndianRupee, Plus } from "lucide-react";
 
 const schema = z.object({
   class_id: z.string().min(1, "Standard is required"),
@@ -33,11 +33,16 @@ const schema = z.object({
   amount: z.coerce.number().min(1, "Amount must be greater than 0"),
 });
 
-export function FeeStructureForm({ onSubmit }: any) {
+interface FeeStructureFormProps {
+  initialStandard?: string;
+  onSubmit?: (data: any) => void;
+}
+
+export function FeeStructureForm({ initialStandard, onSubmit }: FeeStructureFormProps) {
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      class_id: "",
+      class_id: initialStandard || "",
       fee_cat_id: "",
       amount: 0,
     },
@@ -48,9 +53,20 @@ export function FeeStructureForm({ onSubmit }: any) {
   const [allStructures, setAllStructures] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  
+  // New category inline creation state
+  const [isCreatingCategory, setIsCreatingCategory] = React.useState(false);
+  const [newCategoryName, setNewCategoryName] = React.useState("");
+  const [isCategoryCreating, setIsCategoryCreating] = React.useState(false);
 
   // Watch for current standard selection
   const selectedStandard = form.watch("class_id");
+
+  React.useEffect(() => {
+    if (initialStandard) {
+      form.setValue("class_id", initialStandard);
+    }
+  }, [initialStandard, form]);
 
   const loadData = async () => {
     setLoading(true);
@@ -93,6 +109,28 @@ export function FeeStructureForm({ onSubmit }: any) {
   });
   const currentStandardStructures = Array.from(categoryMap.values());
   const assignedCategoryIds = new Set(currentStandardStructures.map(s => String(s.fee_cat_id)));
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    try {
+      setIsCategoryCreating(true);
+      const newCat = await createFeeCategory({
+        category_name: newCategoryName.trim(),
+        description: `Created for fee structure setup`,
+      });
+      await loadData();
+      if (newCat && newCat.fee_category_id) {
+        form.setValue("fee_cat_id", String(newCat.fee_category_id));
+      }
+      setNewCategoryName("");
+      setIsCreatingCategory(false);
+    } catch (e: any) {
+      console.error(e);
+      alert(e.response?.data?.message || "Failed to create category");
+    } finally {
+      setIsCategoryCreating(false);
+    }
+  };
 
   const submit = async (data: any) => {
     try {
@@ -185,9 +223,41 @@ export function FeeStructureForm({ onSubmit }: any) {
             name="fee_cat_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2">
-                    <Calculator className="h-3 w-3" /> Fee Category
-                </FormLabel>
+                <div className="flex items-center justify-between">
+                  <FormLabel className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2">
+                      <Calculator className="h-3 w-3" /> Fee Category
+                  </FormLabel>
+                  {selectedStandard && (
+                    <button
+                      type="button"
+                      onClick={() => setIsCreatingCategory(!isCreatingCategory)}
+                      className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                    >
+                      <Plus className="h-3 w-3" /> {isCreatingCategory ? "Cancel" : "New Category"}
+                    </button>
+                  )}
+                </div>
+
+                {isCreatingCategory && (
+                  <div className="flex items-center gap-2 p-2 bg-slate-50 border rounded-lg">
+                    <Input
+                      placeholder="e.g. Activity Fee, Transport Fee"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      className="h-9 text-xs"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleCreateCategory}
+                      disabled={isCategoryCreating || !newCategoryName.trim()}
+                      className="h-9 px-3 text-xs bg-blue-600 text-white"
+                    >
+                      {isCategoryCreating ? "Creating..." : "Create"}
+                    </Button>
+                  </div>
+                )}
+
                 <Select
                   disabled={!selectedStandard}
                   value={field.value}

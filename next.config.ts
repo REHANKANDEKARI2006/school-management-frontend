@@ -21,10 +21,15 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
+    const isProd = process.env.NODE_ENV === 'production';
+    const rawBackendUrl = isProd 
+      ? (process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "https://school-management-backend-production-2fbb.up.railway.app")
+      : "http://localhost:5000";
+    const backendUrl = rawBackendUrl.endsWith('/api') ? rawBackendUrl.slice(0, -4) : rawBackendUrl;
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:5000/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },

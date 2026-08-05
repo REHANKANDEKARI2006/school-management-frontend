@@ -3,6 +3,7 @@
 import React from "react";
 import { useGlobalLoaderStore } from "@/store/useGlobalLoaderStore";
 import { DotSpinner } from "@/components/ui/dot-spinner";
+import { GraduationCap } from "lucide-react";
 
 export function GlobalProcessLoader() {
   const { activeProcesses, message } = useGlobalLoaderStore();
@@ -10,26 +11,34 @@ export function GlobalProcessLoader() {
   if (activeProcesses === 0) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-900/50 backdrop-blur-sm transition-all duration-300 animate-in fade-in duration-200">
-      <div className="bg-background rounded-2xl shadow-2xl border border-border/50 flex flex-col items-center gap-5 px-10 py-8 min-w-[220px] animate-in zoom-in-95 duration-200">
-
-        {/* Branding */}
-        <div className="text-xs font-black tracking-[0.25em] uppercase text-muted-foreground/60 select-none">
-          SchoolOS
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-md transition-all duration-300 animate-in fade-in">
+      <div className="w-[340px] max-w-[90vw] bg-white rounded-3xl shadow-2xl border border-slate-100/90 p-8 flex flex-col items-center text-center gap-5 animate-in zoom-in-95 duration-200">
+        
+        {/* Branding Badge */}
+        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-100/80 shadow-2xs">
+          <GraduationCap className="h-4 w-4 text-indigo-600" />
+          <span className="text-[11px] font-extrabold tracking-widest text-indigo-700 uppercase">
+            SchoolOS
+          </span>
         </div>
 
-        {/* Spinner */}
-        <DotSpinner />
+        {/* Center Spinner */}
+        <div className="py-2">
+          <DotSpinner className="h-12 w-12 text-indigo-600" />
+        </div>
 
-        {/* Contextual message */}
-        <div className="text-center">
-          <p className="text-sm font-semibold text-foreground/80 animate-pulse">
-            {message || "Processing…"}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
+        {/* Status Messages */}
+        <div className="space-y-1.5 w-full">
+          <h3 className="text-base font-bold text-slate-800 tracking-tight line-clamp-1">
+            {message || "Processing..."}
+          </h3>
+          <p className="text-xs font-medium text-slate-400">
             Please wait, do not close the page
           </p>
         </div>
+
+        {/* Bottom Accent Bar */}
+        <div className="w-20 h-1 bg-gradient-to-r from-indigo-500 via-blue-500 to-indigo-500 rounded-full animate-pulse opacity-80" />
       </div>
     </div>
   );

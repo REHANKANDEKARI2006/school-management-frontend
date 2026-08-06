@@ -22,6 +22,7 @@ export interface SubsectionGroup {
   id: string;
   type: string;
   label: string;
+  target_marks?: number;
   questions: Question[];
 }
 
@@ -36,6 +37,7 @@ export function groupQuestionsIntoSubsections(questions: Question[]): Subsection
     const typeInfo = BOARD_QUESTION_TYPES.find((t) => t.key === q.question_type);
     const defaultLabel = typeInfo?.label || q.question_type;
     const labelToUse = customLabel || defaultLabel;
+    const qTargetMarks = q.question_data?.target_group_marks;
 
     if (
       !currentGroup ||
@@ -49,11 +51,15 @@ export function groupQuestionsIntoSubsections(questions: Question[]): Subsection
         id: `subsec-${stableKey}`,
         type: q.question_type,
         label: labelToUse,
+        target_marks: qTargetMarks,
         questions: [q],
       };
       groups.push(currentGroup);
     } else {
       currentGroup.questions.push(q);
+      if (!currentGroup.target_marks && qTargetMarks) {
+        currentGroup.target_marks = qTargetMarks;
+      }
     }
   });
 
@@ -201,14 +207,38 @@ export default function ConfigureSubsectionsStep({
   // Question Actions within a Subsection
   const handleAddQuestionToSubsection = (groupIdx: number) => {
     const group = subsectionGroups[groupIdx];
-    const newQ = makeEmptyQuestion(group.type, group.questions.length + 1) as Question;
-    // Assign stable client ID
-    newQ.question_data = { ...(newQ.question_data || {}), _clientId: generateClientId() };
-    
+    const currentAttemptAny = group.questions[0]?.question_data?.attempt_any;
+    const currentQMarks = group.questions[0]?.marks || 1;
+
+    // Total allocated marks budget for this subsection group
+    const targetGroupMarks = group.target_marks || (currentAttemptAny && currentAttemptAny > 0 ? currentAttemptAny * currentQMarks : group.questions.reduce((sum, q) => sum + (q.marks || 0), 0));
+    const newTotalQs = group.questions.length + 1;
+
+    // Divisor is attempt_any N if set, otherwise newTotalQs
+    const divisor = (currentAttemptAny && currentAttemptAny > 0) ? currentAttemptAny : newTotalQs;
+    const splitMarks = Math.floor(targetGroupMarks / divisor);
+    const marksForQs = splitMarks > 0 ? splitMarks : 1;
+
+    const newQ = makeEmptyQuestion(group.type, newTotalQs) as Question;
+    newQ.question_data = {
+      ...(newQ.question_data || {}),
+      _clientId: generateClientId(),
+      attempt_any: currentAttemptAny,
+      target_group_marks: targetGroupMarks,
+    };
+
+    // Auto-split marks evenly across questions based on divisor
+    const updatedExistingQs = group.questions.map((q) => ({
+      ...q,
+      marks: marksForQs,
+      question_data: { ...(q.question_data || {}), target_group_marks: targetGroupMarks },
+    }));
+
     const nextGroups = [...subsectionGroups];
     nextGroups[groupIdx] = {
       ...group,
-      questions: [...group.questions, newQ],
+      target_marks: targetGroupMarks,
+      questions: [...updatedExistingQs, { ...newQ, marks: marksForQs }],
     };
     updateSectionQuestions(nextGroups);
   };
@@ -229,15 +259,40 @@ export default function ConfigureSubsectionsStep({
   const handleDeleteQuestion = (groupIdx: number, qIdx: number) => {
     const nextGroups = [...subsectionGroups];
     const group = nextGroups[groupIdx];
+    const currentAttemptAny = group.questions[0]?.question_data?.attempt_any;
+    const currentQMarks = group.questions[0]?.marks || 1;
+    const targetGroupMarks = group.target_marks || (currentAttemptAny && currentAttemptAny > 0 ? currentAttemptAny * currentQMarks : group.questions.reduce((sum, q) => sum + (q.marks || 0), 0));
+
     const filteredQs = group.questions.filter((_, i) => i !== qIdx);
     
     if (filteredQs.length === 0) {
       // Remove entire subsection if all questions are deleted
       nextGroups.splice(groupIdx, 1);
     } else {
+      const remainingCount = filteredQs.length;
+      let validAttemptAny = currentAttemptAny;
+      if (validAttemptAny && validAttemptAny >= remainingCount) {
+        validAttemptAny = remainingCount > 1 ? remainingCount - 1 : undefined;
+      }
+
+      const divisor = (validAttemptAny && validAttemptAny > 0) ? validAttemptAny : remainingCount;
+      const splitMarks = Math.floor(targetGroupMarks / divisor);
+      const marksForQs = splitMarks > 0 ? splitMarks : 1;
+
+      const updatedRemainingQs = filteredQs.map((q) => ({
+        ...q,
+        marks: marksForQs,
+        question_data: {
+          ...(q.question_data || {}),
+          attempt_any: validAttemptAny,
+          target_group_marks: targetGroupMarks,
+        },
+      }));
+
       nextGroups[groupIdx] = {
         ...group,
-        questions: filteredQs,
+        target_marks: targetGroupMarks,
+        questions: updatedRemainingQs,
       };
     }
     updateSectionQuestions(nextGroups);
@@ -247,32 +302,53 @@ export default function ConfigureSubsectionsStep({
   const handleToggleAttemptAny = (groupIdx: number, enable: boolean) => {
     const nextGroups = [...subsectionGroups];
     const group = nextGroups[groupIdx];
-    const groupMarks = group.questions.reduce((sum, q) => sum + (q.marks || 0), 0);
-    const validOptions = getValidAttemptAnyOptions(groupMarks, group.questions.length);
+    const currentAttemptAny = group.questions[0]?.question_data?.attempt_any;
+    const currentQMarks = group.questions[0]?.marks || 1;
+    const groupNominalMarks = group.questions.reduce((sum, q) => sum + (q.marks || 0), 0);
+
+    const targetGroupMarks = group.target_marks || (currentAttemptAny && currentAttemptAny > 0 ? currentAttemptAny * currentQMarks : groupNominalMarks);
+    const validOptions = getValidAttemptAnyOptions(targetGroupMarks, group.questions.length);
     const defaultAny = enable && validOptions.length > 0 ? validOptions[validOptions.length - 1] : undefined;
+
+    const divisor = enable && defaultAny ? defaultAny : group.questions.length;
+    const splitMarks = Math.floor(targetGroupMarks / divisor);
+    const marksForQs = splitMarks > 0 ? splitMarks : 1;
 
     const updatedQs = group.questions.map((q) => ({
       ...q,
+      marks: marksForQs,
       question_data: {
         ...q.question_data,
         attempt_any: enable ? defaultAny : undefined,
+        target_group_marks: targetGroupMarks,
       },
     }));
-    nextGroups[groupIdx] = { ...group, questions: updatedQs };
+    nextGroups[groupIdx] = { ...group, target_marks: targetGroupMarks, questions: updatedQs };
     updateSectionQuestions(nextGroups);
   };
 
   const handleSetAttemptAny = (groupIdx: number, value: number) => {
     const nextGroups = [...subsectionGroups];
     const group = nextGroups[groupIdx];
+    const currentAttemptAny = group.questions[0]?.question_data?.attempt_any;
+    const currentQMarks = group.questions[0]?.marks || 1;
+    const groupNominalMarks = group.questions.reduce((sum, q) => sum + (q.marks || 0), 0);
+
+    const targetGroupMarks = group.target_marks || (currentAttemptAny && currentAttemptAny > 0 ? currentAttemptAny * currentQMarks : groupNominalMarks);
+
+    const splitMarks = Math.floor(targetGroupMarks / value);
+    const marksForQs = splitMarks > 0 ? splitMarks : 1;
+
     const updatedQs = group.questions.map((q) => ({
       ...q,
+      marks: marksForQs,
       question_data: {
         ...q.question_data,
         attempt_any: value,
+        target_group_marks: targetGroupMarks,
       },
     }));
-    nextGroups[groupIdx] = { ...group, questions: updatedQs };
+    nextGroups[groupIdx] = { ...group, target_marks: targetGroupMarks, questions: updatedQs };
     updateSectionQuestions(nextGroups);
   };
 
@@ -334,7 +410,7 @@ export default function ConfigureSubsectionsStep({
       {/* Subsections List (Question Type Groups) */}
       <div className="space-y-6">
         {subsectionGroups.map((group, groupIdx) => {
-          const isCollapsed = collapsedSubsections[group.id] || false;
+          const isCollapsed = collapsedSubsections[group.id] ?? true;
           const groupMarks = group.questions.reduce((sum, q) => sum + (q.marks || 0), 0);
           const typeInfo = BOARD_QUESTION_TYPES.find((t) => t.key === group.type);
           // Check for attempt_any from question_data
@@ -441,14 +517,6 @@ export default function ConfigureSubsectionsStep({
                     }`}>
                       {effectiveMarks} Marks
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteSubsection(groupIdx)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-                      title="Delete Subsection Group"
-                    >
-                      <Trash2 size={16} />
-                    </button>
                   </div>
                 </div>
               </div>
@@ -456,6 +524,50 @@ export default function ConfigureSubsectionsStep({
               {/* Subsection Body (Questions List) */}
               {!isCollapsed && (
                 <div className="p-6 space-y-6">
+                  {/* Uneven Mark Distribution / Question Count Alert */}
+                  {(() => {
+                    const attemptAny = group.questions[0]?.question_data?.attempt_any;
+                    const currentQMarks = group.questions[0]?.marks || 1;
+                    const targetGroupMarks = group.target_marks || (attemptAny && attemptAny > 0 ? attemptAny * currentQMarks : group.questions.reduce((sum, q) => sum + (q.marks || 0), 0));
+                    const divisor = (attemptAny && attemptAny > 0) ? attemptAny : group.questions.length;
+                    const qCount = group.questions.length;
+                    const isUneven = divisor > 0 && targetGroupMarks > 0 && (targetGroupMarks % divisor !== 0);
+                    const sharePerQ = divisor > 0 ? (targetGroupMarks / divisor) : 0;
+
+                    if (!isUneven) return null;
+
+                    return (
+                      <div className="bg-amber-50 border-2 border-amber-300/80 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3 animate-in fade-in duration-200">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-amber-100 rounded-xl text-amber-700 shrink-0 mt-0.5">
+                            <AlertCircle className="h-5 w-5" />
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            <h4 className="text-sm font-black text-amber-950 flex items-center gap-2">
+                              Uneven Mark Distribution Alert
+                            </h4>
+                            <p className="text-xs font-semibold text-amber-900 leading-relaxed">
+                              The allocated budget of <strong className="font-black underline">{targetGroupMarks} Marks</strong> cannot be evenly split across <strong className="font-black">{attemptAny && attemptAny > 0 ? `${attemptAny} attempted` : `${qCount}`} questions</strong> ({sharePerQ.toFixed(2)} Marks each).
+                            </p>
+                            <p className="text-xs text-amber-800 font-medium">
+                              Please delete a question to restore equal mark distribution (e.g. {Math.max(1, divisor - 1)} question{divisor - 1 !== 1 ? "s" : ""} = {(targetGroupMarks / Math.max(1, divisor - 1)).toFixed(0)}M each).
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-amber-200/80 flex items-center justify-start">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteQuestion(groupIdx, qCount - 1)}
+                            className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Delete Question (Q.{groupIdx + 1}.{qCount})
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {group.questions.map((q, qIdx) => {
                     const qNumberLabel = `${groupIdx + 1}.${qIdx + 1}`;
 
@@ -537,48 +649,6 @@ export default function ConfigureSubsectionsStep({
           );
         })}
       </div>
-
-      {/* Add New Subsection Button */}
-      <div className="pt-2">
-        <button
-          type="button"
-          onClick={() => setIsAddTypeModalOpen(true)}
-          className="w-full flex items-center justify-center gap-2 h-12 border-2 border-dashed border-[#3335e3]/40 bg-[#3335e3]/5 hover:bg-[#3335e3]/10 text-[#3335e3] rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-2xs"
-        >
-          <Plus size={16} /> + Add New Subsection Group (Question Type)
-        </button>
-      </div>
-
-      {/* Add Subsection Type Selection Modal */}
-      <Dialog open={isAddTypeModalOpen} onOpenChange={setIsAddTypeModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-black text-slate-900">Select Subsection Question Type</DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Choose the question type for this new subsection group in Section {sectionLetter}.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-4">
-            {BOARD_QUESTION_TYPES.map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => handleAddSubsectionType(t.key)}
-                className="flex items-start gap-3 p-3.5 border border-slate-200 hover:border-[#3335e3] hover:bg-[#3335e3]/5 rounded-xl text-left transition-all group"
-              >
-                <span className="text-xl p-2 bg-slate-100 group-hover:bg-white rounded-lg shrink-0">
-                  {t.emoji}
-                </span>
-                <div>
-                  <p className="text-xs font-extrabold text-slate-900 group-hover:text-[#3335e3]">{t.label}</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">{t.desc}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

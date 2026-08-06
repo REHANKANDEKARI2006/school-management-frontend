@@ -16,6 +16,7 @@ import {
   ChevronDown,
   AlertCircle,
   FileQuestion,
+  SlidersHorizontal,
 } from "lucide-react";
 
 interface Props {

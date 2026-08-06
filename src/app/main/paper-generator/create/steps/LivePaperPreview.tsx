@@ -575,7 +575,7 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
                 </div>
                 <div className="w-[70px] text-right shrink-0">
                   <span className="text-[9pt] font-normal text-slate-700 whitespace-nowrap">
-                    [{q.marks} Marks]
+                    [{q.marks}]
                   </span>
                 </div>
               </div>
@@ -618,8 +618,8 @@ export default function LivePaperPreview({ paper, fullSize = false, showAnswers 
       let currentHeight = 0;
       // Printable A4 content height threshold — keeps content well inside page border frame
       // A4=297mm, top-pad=9mm, bottom-pad=18mm → content zone ≈ 270mm ≈ 1020px at 96dpi
-      // But border frame sits at bottom:5mm, so we use 750px (~198mm) as a conservative safe limit
-      const MAX_PAGE_HEIGHT = 750;
+      // Puppeteer renders slightly taller than browser, so use 700px (~185mm) as safe limit
+      const MAX_PAGE_HEIGHT = 700;
 
       for (let i = 0; i < blocks.length; i++) {
         const block = blocks[i];

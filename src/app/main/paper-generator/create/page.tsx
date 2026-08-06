@@ -49,6 +49,7 @@ export interface PaperState {
     section_name: string;
     section_order: number;
     total_section_marks: number;
+    allow_arbitrary_questions?: boolean;
     questions: Question[];
   }>;
 }
@@ -151,6 +152,29 @@ function CreatePaperPageInner() {
     sections: [],
   });
 
+  // ── Sync URL & LocalStorage Helper ──────────────────────────────────────────
+  const updateUrlAndStorage = useCallback((paperIdVal: number | null, stepVal: number, sectionIdxVal: number) => {
+    if (typeof window === "undefined" || !paperIdVal) return;
+    const newUrl = `/main/paper-generator/create?paper_id=${paperIdVal}&step=${stepVal}&section=${sectionIdxVal}`;
+    window.history.replaceState(null, "", newUrl);
+    try {
+      localStorage.setItem(`qp_draft_state_${paperIdVal}`, JSON.stringify({
+        step: stepVal,
+        sectionIdx: sectionIdxVal,
+        updatedAt: Date.now(),
+      }));
+    } catch (e) {
+      console.warn("Failed to store draft state in localStorage", e);
+    }
+  }, []);
+
+  // ── Sync URL and LocalStorage whenever step, activeSectionIdx, or paper_id changes ──
+  useEffect(() => {
+    if (paper.paper_id) {
+      updateUrlAndStorage(paper.paper_id, step, activeSectionIdx);
+    }
+  }, [paper.paper_id, step, activeSectionIdx, updateUrlAndStorage]);
+
   // ── Load existing paper ────────────────────────────────────────────────────
   useEffect(() => {
     if (!paperId) return;
@@ -170,7 +194,39 @@ function CreatePaperPageInner() {
             subject: data.subject || data.subject_name || "",
             sections,
           });
-          if (data.status === "Published") setStep(4);
+
+          // ── Restore Step & Active Section Index on Refresh ─────────────────
+          const urlStep = params.get("step");
+          const urlSection = params.get("section");
+
+          let targetStep = 1;
+          let targetSection = 0;
+
+          if (urlStep) {
+            targetStep = parseInt(urlStep, 10);
+          } else {
+            try {
+              const savedStateStr = localStorage.getItem(`qp_draft_state_${paperId}`);
+              if (savedStateStr) {
+                const parsedState = JSON.parse(savedStateStr);
+                if (parsedState.step) targetStep = parsedState.step;
+                if (parsedState.sectionIdx !== undefined) targetSection = parsedState.sectionIdx;
+              } else if (data.status === "Published") {
+                targetStep = 5;
+              } else if (sections.length > 0 && sections.some((s: any) => s.questions && s.questions.length > 0)) {
+                targetStep = 3;
+              }
+            } catch (e) {
+              console.warn("Failed to parse saved draft state", e);
+            }
+          }
+
+          if (urlSection) {
+            targetSection = parseInt(urlSection, 10);
+          }
+
+          if (targetStep >= 1 && targetStep <= 5) setStep(targetStep);
+          if (targetSection >= 0) setActiveSectionIdx(Math.min(targetSection, Math.max(0, sections.length - 1)));
         }
       } catch (err) {
         console.error("Failed to load paper", err);
@@ -322,6 +378,7 @@ function CreatePaperPageInner() {
           activePaperId = saved.paper_id;
           currentPaper = { ...paper, paper_id: saved.paper_id, title: saved.title || autoTitle };
           setPaper(currentPaper);
+          updateUrlAndStorage(saved.paper_id, 2, 0);
           setSaveStatus("saved");
           if (savedStatusTimer.current) clearTimeout(savedStatusTimer.current);
           savedStatusTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);

@@ -84,14 +84,12 @@ export function ManageScheduleGrid({ onSave, existingSchedules = [] }: ManageSch
     React.useEffect(() => {
         const fetchMetadata = async () => {
             try {
-                const [clsRes, subRes, staffRes] = await Promise.all([
+                const [clsRes, staffRes] = await Promise.all([
                     axios.get("/api/classes"),
-                    axios.get("/api/subjects"),
                     axios.get("/api/faculty")
                 ]);
 
                 setClasses(clsRes.data.data || clsRes.data || []);
-                setSubjects(subRes.data.data || subRes.data || []);
 
                 const facultyData = staffRes.data.data || staffRes.data || [];
                 setStaffList(Array.isArray(facultyData) ? facultyData : Object.values(facultyData).flat() || []);
@@ -101,6 +99,28 @@ export function ManageScheduleGrid({ onSave, existingSchedules = [] }: ManageSch
         };
         fetchMetadata();
     }, [toast]);
+
+    // Fetch subjects dynamically based on selected class
+    React.useEffect(() => {
+        if (!selectedClass) {
+            setSubjects([]);
+            return;
+        }
+
+        const fetchClassSubjects = async () => {
+            try {
+                const res = await axios.get("/api/subjects", {
+                    params: { class_id: selectedClass }
+                });
+                setSubjects(res.data.data || []);
+            } catch (e) {
+                console.error("Failed to load subjects for class", e);
+                setSubjects([]);
+            }
+        };
+
+        fetchClassSubjects();
+    }, [selectedClass]);
 
     // When selectedClass or existingSchedules change, populate grid + restore periods
     React.useEffect(() => {

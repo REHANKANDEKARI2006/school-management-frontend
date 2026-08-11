@@ -284,9 +284,8 @@ export default function CreateExamPage() {
   React.useEffect(() => {
     const load = async () => {
       try {
-        const [cR, sR, tR] = await Promise.all([
+        const [cR, tR] = await Promise.all([
           axios.get("/api/classes/class-enrollments/list"),
-          axios.get("/api/subjects"),
           axios.get("/api/exams/types"),
         ]);
         const clsData: any[] = cR.data.data || [];
@@ -301,7 +300,6 @@ export default function CreateExamPage() {
           return !isNaN(na) && !isNaN(nb) ? na - nb : a.name.localeCompare(b.name);
         });
         setUniqueStandards(standards);
-        setSubjects(sR.data.data || []);
         setExamTypes(tR.data.data || []);
 
         if (isEdit && editExamName && editClassName && editExamTypeId) {
@@ -364,6 +362,26 @@ export default function CreateExamPage() {
     };
     load();
   }, [isEdit, editExamName, editClassName, editExamTypeId]);
+
+  React.useEffect(() => {
+    if (!selectedClassId && !selectedClassName) {
+      setSubjects([]);
+      return;
+    }
+
+    const fetchClassSubjects = async () => {
+      try {
+        const res = await axios.get("/api/subjects", {
+          params: { class_id: selectedClassId, standard: selectedClassName }
+        });
+        setSubjects(res.data.data || []);
+      } catch (err) {
+        console.error("Failed to load subjects for class in exam creator", err);
+      }
+    };
+
+    fetchClassSubjects();
+  }, [selectedClassId, selectedClassName]);
 
   const handleRowChange = (id: string, field: keyof TimetableSubjectRow, value: string) =>
     setRows((p) => p.map((r) => (r.id === id ? { ...r, [field]: value } : r)));

@@ -46,6 +46,7 @@ export function normalizeClassName(raw: string | null | undefined): string {
 export default function PaperDetailsStep({ paper, onChange }: Props) {
   const [exams, setExams] = useState<any[]>([]);
   const [apiClasses, setApiClasses] = useState<string[]>([]);
+  const [apiSubjects, setApiSubjects] = useState<string[]>([]);
 
   useEffect(() => {
     getUpcomingExams()
@@ -62,18 +63,36 @@ export default function PaperDetailsStep({ paper, onChange }: Props) {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (!paper.class_name && !paper.class_id) {
+      setApiSubjects([]);
+      return;
+    }
+    const cleanStd = paper.class_name?.replace(/^class\s+/i, '') || '';
+    axios.get("/api/subjects", {
+      params: { class_id: paper.class_id, standard: cleanStd }
+    }).then((res) => {
+      if (res.data?.data) {
+        const subNames = res.data.data.map((s: any) => s.subject_name);
+        setApiSubjects(subNames);
+      }
+    }).catch(err => {
+      console.error("Failed to load subjects for paper generator step", err);
+    });
+  }, [paper.class_name, paper.class_id]);
+
   const linkedExam = useMemo(
     () => exams.find((ex) => ex.exam_id === paper.exam_id) ?? null,
     [exams, paper.exam_id]
   );
 
   const subjectOptions = useMemo(() => {
-    const base = [...SUBJECTS_FALLBACK];
+    const base = apiSubjects.length > 0 ? apiSubjects : [...SUBJECTS_FALLBACK];
     if (linkedExam?.subject_name && !base.includes(linkedExam.subject_name)) {
       base.unshift(linkedExam.subject_name);
     }
     return base;
-  }, [linkedExam]);
+  }, [apiSubjects, linkedExam]);
 
   const classOptions = useMemo(() => {
     const base = apiClasses.length > 0 ? apiClasses : CLASSES_FALLBACK.map((c) => `Class ${c}`);

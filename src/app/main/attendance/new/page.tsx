@@ -32,29 +32,44 @@ export default function AttendanceSetupPage() {
   const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
-    const fetchInitialData = async () => {
+    const fetchClasses = async () => {
       try {
-        const [classesRes, subjectsRes] = await Promise.all([
-          axios.get("/api/classes/class-enrollments/list"),
-          axios.get("/api/subjects")
-        ]);
-
+        const classesRes = await axios.get("/api/classes/class-enrollments/list");
         if (classesRes.data.data) {
           setClasses(classesRes.data.data);
         }
-        if (subjectsRes.data.success) {
-          setSubjects(subjectsRes.data.data);
-        }
       } catch (err) {
-        console.error("Failed to fetch setup data", err);
-        toast({ title: "Error", description: "Failed to load classes or subjects.", variant: "destructive" });
+        console.error("Failed to fetch classes", err);
+        toast({ title: "Error", description: "Failed to load classes.", variant: "destructive" });
       } finally {
         setIsLoading(false);
       }
     };
-
-    fetchInitialData();
+    fetchClasses();
   }, [toast]);
+
+  React.useEffect(() => {
+    if (!selectedClassId) {
+      setSubjects([]);
+      setSelectedSubjectId(null);
+      return;
+    }
+
+    const fetchSubjectsForClass = async () => {
+      try {
+        const subjectsRes = await axios.get("/api/subjects", {
+          params: { class_id: selectedClassId }
+        });
+        if (subjectsRes.data.success) {
+          setSubjects(subjectsRes.data.data);
+          setSelectedSubjectId(null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch subjects for class", err);
+      }
+    };
+    fetchSubjectsForClass();
+  }, [selectedClassId]);
 
   const handleStartSession = () => {
     if (!selectedClassId || !selectedSubjectId) {

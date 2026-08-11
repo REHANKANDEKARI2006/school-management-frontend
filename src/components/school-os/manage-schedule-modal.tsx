@@ -45,28 +45,6 @@ export function ManageScheduleModal({ onSubmit }: ManageScheduleModalProps) {
     const [subjects, setSubjects] = React.useState<any[]>([]);
     const [staffList, setStaffList] = React.useState<any[]>([]);
 
-    React.useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [clsRes, subRes, staffRes] = await Promise.all([
-                    axios.get("/api/classes"),
-                    axios.get("/api/subjects"),
-                    axios.get("/api/faculty")
-                ]);
-
-                setClasses(clsRes.data.data || clsRes.data || []);
-                setSubjects(subRes.data.data || subRes.data || []);
-
-                const facultyData = staffRes.data.data || staffRes.data || [];
-                // Handle object map returned by some faculty routes vs array
-                setStaffList(Array.isArray(facultyData) ? facultyData : Object.values(facultyData).flat() || []);
-            } catch (e) {
-                console.error("Failed to load dropdown data", e);
-            }
-        };
-        fetchData();
-    }, []);
-
     const form = useForm<ScheduleFormValues>({
         resolver: zodResolver(scheduleSchema),
         defaultValues: {
@@ -79,6 +57,47 @@ export function ManageScheduleModal({ onSubmit }: ManageScheduleModalProps) {
             end_time: "09:45",
         },
     });
+
+    const selectedClassId = form.watch("class_id");
+
+    React.useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [clsRes, staffRes] = await Promise.all([
+                    axios.get("/api/classes"),
+                    axios.get("/api/faculty")
+                ]);
+
+                setClasses(clsRes.data.data || clsRes.data || []);
+                const facultyData = staffRes.data.data || staffRes.data || [];
+                setStaffList(Array.isArray(facultyData) ? facultyData : Object.values(facultyData).flat() || []);
+            } catch (e) {
+                console.error("Failed to load dropdown data", e);
+            }
+        };
+        fetchData();
+    }, []);
+
+    React.useEffect(() => {
+        if (!selectedClassId) {
+            setSubjects([]);
+            form.setValue("subject_id", "");
+            return;
+        }
+
+        const fetchSubjects = async () => {
+            try {
+                const subRes = await axios.get("/api/subjects", {
+                    params: { class_id: selectedClassId }
+                });
+                setSubjects(subRes.data.data || []);
+                form.setValue("subject_id", "");
+            } catch (e) {
+                console.error("Failed to load subjects for class", e);
+            }
+        };
+        fetchSubjects();
+    }, [selectedClassId, form]);
 
     const handleFormSubmit = async (values: ScheduleFormValues) => {
         await onSubmit(values);

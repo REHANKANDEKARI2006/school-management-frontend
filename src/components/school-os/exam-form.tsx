@@ -72,9 +72,8 @@ export function ExamForm({ onSubmit, exam, loading }: ExamFormProps) {
   React.useEffect(() => {
     const loadDropdowns = async () => {
       try {
-        const [classRes, subjectRes, typeRes, statusRes] = await Promise.all([
+        const [classRes, typeRes, statusRes] = await Promise.all([
           axios.get("/api/classes/class-enrollments/list"),
-          axios.get("/api/subjects"),
           axios.get("/api/exams/types"),
           axios.get("/api/exams/statuses"),
         ]);
@@ -90,7 +89,6 @@ export function ExamForm({ onSubmit, exam, loading }: ExamFormProps) {
           return a.localeCompare(b);
         }));
 
-        setSubjects(subjectRes.data.data || []);
         setExamTypes(typeRes.data.data || []);
         setStatuses(statusRes.data.data || []);
       } catch {
@@ -140,6 +138,27 @@ export function ExamForm({ onSubmit, exam, loading }: ExamFormProps) {
         exam_status_id: "1",
       },
   });
+
+  const selectedClassId = form.watch("class_id");
+
+  React.useEffect(() => {
+    if (!selectedClassId) {
+      setSubjects([]);
+      return;
+    }
+
+    const fetchClassSubjects = async () => {
+      try {
+        const res = await axios.get("/api/subjects", {
+          params: { class_id: selectedClassId }
+        });
+        setSubjects(res.data.data || []);
+      } catch (err) {
+        console.error("Failed to fetch subjects for class", err);
+      }
+    };
+    fetchClassSubjects();
+  }, [selectedClassId]);
 
   const handleSubmit = async (values: ExamFormValues) => {
     await onSubmit(values);

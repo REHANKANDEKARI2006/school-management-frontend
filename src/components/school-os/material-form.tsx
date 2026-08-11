@@ -55,15 +55,13 @@ export function MaterialForm({ onSubmit, onCancel, material }: MaterialFormProps
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      axios.get('/api/classes'),
-      axios.get('/api/subjects')
-    ]).then(([classesRes, subjectsRes]) => {
-      setClasses(classesRes.data.data || []);
-      setSubjects(subjectsRes.data.data || []);
-    }).catch(err => {
-      console.error("Failed to load classes or subjects", err);
-    });
+    axios.get('/api/classes')
+      .then((classesRes) => {
+        setClasses(classesRes.data.data || []);
+      })
+      .catch(err => {
+        console.error("Failed to load classes", err);
+      });
   }, []);
 
   const form = useForm<Material>({
@@ -80,6 +78,23 @@ export function MaterialForm({ onSubmit, onCancel, material }: MaterialFormProps
       date: new Date(),
     },
   });
+
+  const selectedClassId = form.watch("class_id");
+
+  useEffect(() => {
+    if (!selectedClassId) {
+      setSubjects([]);
+      return;
+    }
+
+    axios.get('/api/subjects', { params: { class_id: selectedClassId } })
+      .then((res) => {
+        setSubjects(res.data.data || []);
+      })
+      .catch(err => {
+        console.error("Failed to load subjects for class", err);
+      });
+  }, [selectedClassId]);
 
   const handleSubmit = async (values: Material) => {
     if (selectedFiles.length === 0 && !material) {

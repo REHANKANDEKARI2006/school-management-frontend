@@ -39,11 +39,11 @@ export function Logo({ className, iconClassName, textClassName, showText = true 
 
   return (
     <div className={cn("inline-flex items-center justify-center gap-2.5 select-none shrink-0", containerClass)}>
-      <div className={cn("flex items-center justify-center shrink-0 text-primary", extractedIconClass, iconClassName)}>
-        <GraduationCap className={cn("h-8 w-8 text-primary", extractedIconClass ? "h-full w-full" : "")} />
+      <div className={cn("flex items-center justify-center shrink-0 text-indigo-400", extractedIconClass, iconClassName)}>
+        <GraduationCap className={cn("h-8 w-8 text-indigo-400", extractedIconClass ? "h-full w-full" : "", iconClassName)} />
       </div>
       {showText && (
-        <span className={cn("text-xl font-bold font-headline tracking-tighter text-slate-900 dark:text-white shrink-0", textClassName)}>
+        <span className={cn("text-xl font-bold font-headline tracking-tighter text-white shrink-0", textClassName)}>
           SchoolOS
         </span>
       )}
@@ -57,12 +57,12 @@ export function HeaderLogo() {
     <div className="flex h-14 items-center justify-between border-b border-sidebar-border px-4 group-data-[collapsible=icon]:px-2">
       <Button
         variant="ghost"
-        className="h-auto p-1 group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:justify-center focus-visible:ring-0 focus-visible:ring-offset-0"
+        className="h-auto p-1 group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:justify-center focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-sidebar-accent/50"
         onClick={toggleSidebar}
       >
-        <Logo showText={state === 'expanded'}/>
+        <Logo showText={state === 'expanded'} textClassName="text-white font-bold tracking-tight" iconClassName="text-indigo-400" />
       </Button>
-      <SidebarTrigger className="group-data-[collapsible=icon]:hidden" />
+      <SidebarTrigger className="group-data-[collapsible=icon]:hidden text-slate-300 hover:text-white" />
     </div>
   );
 }

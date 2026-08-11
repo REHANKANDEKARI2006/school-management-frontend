@@ -193,7 +193,7 @@ export default function FeeStructuresPage() {
         </CardHeader>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {structuresByClass.map((cls) => (
             <Card key={cls.id} className="flex flex-col border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
               <CardHeader className="bg-muted/30 border-b pb-4">
@@ -219,24 +219,24 @@ export default function FeeStructuresPage() {
                           <TableCell className="font-medium p-3 sm:p-4">
                               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between group/row gap-2 sm:gap-0">
                                   <span className="truncate max-w-[200px] whitespace-normal sm:whitespace-nowrap">{s.categoryName}</span>
-                                  <div className="flex items-center gap-1 opacity-90 sm:opacity-0 sm:group-hover/row:opacity-100 transition-opacity self-end sm:self-auto">
+                                  <div className="flex items-center gap-1 self-end sm:self-auto">
                                       <Button 
                                           variant="ghost" 
                                           size="icon" 
-                                          className="h-8 w-8 sm:h-6 sm:w-6 text-muted-foreground hover:text-primary"
+                                          className="h-8 w-8 sm:h-7 sm:w-7 text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                                           onClick={() => handleEditAmount(cls.id, s.categoryName, s.fee_cat_id, s.amount)}
                                           title="Edit Amount"
                                       >
-                                          <Edit className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                                          <Edit className="h-4 w-4" />
                                       </Button>
                                       <Button 
                                           variant="ghost" 
                                           size="icon" 
-                                          className="h-8 w-8 sm:h-6 sm:w-6 text-muted-foreground hover:text-destructive"
+                                          className="h-8 w-8 sm:h-7 sm:w-7 text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                                           onClick={() => handleDelete(cls.id, s.fee_cat_id)}
                                           title="Remove Category"
                                       >
-                                          <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                                          <Trash2 className="h-4 w-4" />
                                       </Button>
                                   </div>
                               </div>
@@ -275,7 +275,7 @@ export default function FeeStructuresPage() {
         setIsFormOpen(open);
         if (!open) setSelectedEditStandard(null);
       }}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black">
               {selectedEditStandard ? `Edit Structure: Standard ${selectedEditStandard}` : "Define Fee Structure"}

@@ -308,7 +308,7 @@ export function FeeStructureForm({ initialStandard, onSubmit }: FeeStructureForm
           )}
 
           {/* Category Item Rows */}
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1 sm:pr-2 scrollbar-thin">
             {items.map((item, index) => (
               <div key={index} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 p-3 bg-slate-50/70 border border-slate-200/80 rounded-xl relative group">
                 {/* Category Dropdown */}

@@ -73,6 +73,7 @@ export function ManageScheduleGrid({ onSave, existingSchedules = [] }: ManageSch
 
     // Which period is currently being time-edited (by period number)
     const [editingTimePeriod, setEditingTimePeriod] = React.useState<number | null>(null);
+    const [editingTargetDay, setEditingTargetDay] = React.useState<number | "all">("all");
     const [editStart, setEditStart] = React.useState("");
     const [editEnd, setEditEnd] = React.useState("");
 
@@ -142,11 +143,10 @@ export function ManageScheduleGrid({ onSave, existingSchedules = [] }: ManageSch
                 const existingIdx = mergedPeriods.findIndex(p => p.period === pNum);
                 const periodEntry: PeriodTime = {
                     period: pNum,
-                    start: sample.start_time?.substring(0, 5) || "00:00",
-                    end: sample.end_time?.substring(0, 5) || "00:00",
+                    start: sample.start_time?.substring(0, 5) || "09:00",
+                    end: sample.end_time?.substring(0, 5) || "09:45",
                 };
                 if (existingIdx >= 0) {
-                    // Update times from DB (school may have customised them)
                     mergedPeriods[existingIdx] = periodEntry;
                 } else {
                     mergedPeriods.push(periodEntry);
@@ -163,6 +163,8 @@ export function ManageScheduleGrid({ onSave, existingSchedules = [] }: ManageSch
                 subject_id: slot.subject_id?.toString() || "",
                 staff_id: slot.staff_id?.toString() || "",
                 is_break: slot.is_break || false,
+                start_time: slot.start_time?.substring(0, 5) || "",
+                end_time: slot.end_time?.substring(0, 5) || "",
             };
         });
 
@@ -170,10 +172,19 @@ export function ManageScheduleGrid({ onSave, existingSchedules = [] }: ManageSch
     }, [selectedClass, existingSchedules]);
 
     // ── Time editing helpers ──────────────────────────────────────────────────
-    const startEditTime = (pt: PeriodTime) => {
+    const startEditTime = (pt: PeriodTime, day: number | "all" = "all") => {
         setEditingTimePeriod(pt.period);
-        setEditStart(pt.start);
-        setEditEnd(pt.end);
+        setEditingTargetDay(day);
+        
+        if (day !== "all") {
+            const key = `${day}-${pt.period}`;
+            const cell = gridData[key];
+            setEditStart(cell?.start_time || pt.start);
+            setEditEnd(cell?.end_time || pt.end);
+        } else {
+            setEditStart(pt.start);
+            setEditEnd(pt.end);
+        }
     };
 
     const confirmEditTime = (periodNum: number) => {
@@ -185,9 +196,34 @@ export function ManageScheduleGrid({ onSave, existingSchedules = [] }: ManageSch
             toast({ title: "Start time must be before end time", variant: "destructive" });
             return;
         }
-        setPeriodTimes(prev =>
-            prev.map(p => p.period === periodNum ? { ...p, start: editStart, end: editEnd } : p)
-        );
+
+        if (editingTargetDay === "all") {
+            // Update base period time
+            setPeriodTimes(prev =>
+                prev.map(p => p.period === periodNum ? { ...p, start: editStart, end: editEnd } : p)
+            );
+            // Apply to all cells in grid for this period
+            setGridData(prev => {
+                const next = { ...prev };
+                DAYS.forEach(d => {
+                    const key = `${d.id}-${periodNum}`;
+                    const cell = next[key] || { subject_id: "", staff_id: "", is_break: false };
+                    next[key] = { ...cell, start_time: editStart, end_time: editEnd };
+                });
+                return next;
+            });
+        } else {
+            // Update specific day cell
+            const key = `${editingTargetDay}-${periodNum}`;
+            setGridData(prev => {
+                const cell = prev[key] || { subject_id: "", staff_id: "", is_break: false };
+                return {
+                    ...prev,
+                    [key]: { ...cell, start_time: editStart, end_time: editEnd }
+                };
+            });
+        }
+
         setEditingTimePeriod(null);
     };
 
@@ -377,10 +413,10 @@ export function ManageScheduleGrid({ onSave, existingSchedules = [] }: ManageSch
                                             </div>
 
                                             {/* Time display / edit */}
-                                            {isEditing ? (
-                                                <div className="space-y-1.5">
+                                            {editingTimePeriod === pt.period && editingTargetDay === "all" ? (
+                                                <div className="space-y-1.5 bg-background p-2 rounded border border-primary/20 shadow-sm">
                                                     <div className="flex items-center gap-1">
-                                                        <span className="text-[10px] text-muted-foreground w-7">From</span>
+                                                        <span className="text-[10px] text-muted-foreground w-10 shrink-0">From</span>
                                                         <Input
                                                             type="time"
                                                             value={editStart}
@@ -389,7 +425,7 @@ export function ManageScheduleGrid({ onSave, existingSchedules = [] }: ManageSch
                                                         />
                                                     </div>
                                                     <div className="flex items-center gap-1">
-                                                        <span className="text-[10px] text-muted-foreground w-7">To</span>
+                                                        <span className="text-[10px] text-muted-foreground w-10 shrink-0">To</span>
                                                         <Input
                                                             type="time"
                                                             value={editEnd}
@@ -397,17 +433,16 @@ export function ManageScheduleGrid({ onSave, existingSchedules = [] }: ManageSch
                                                             className="h-6 text-[11px] px-1.5 py-0"
                                                         />
                                                     </div>
-                                                    <div className="flex gap-1 pt-0.5">
+                                                    <div className="flex gap-1 pt-0.5 justify-end">
                                                         <button
                                                             onClick={() => confirmEditTime(pt.period)}
-                                                            className="flex items-center gap-0.5 text-[10px] text-emerald-600 hover:text-emerald-700 font-medium"
+                                                            className="flex items-center gap-0.5 text-[10px] bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-emerald-700 hover:bg-emerald-100 font-medium"
                                                         >
                                                             <Check className="w-3 h-3" /> Save
                                                         </button>
-                                                        <span className="text-muted-foreground/40">·</span>
                                                         <button
                                                             onClick={cancelEditTime}
-                                                            className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+                                                            className="flex items-center gap-0.5 text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground hover:text-foreground"
                                                         >
                                                             <X className="w-3 h-3" /> Cancel
                                                         </button>
@@ -418,9 +453,9 @@ export function ManageScheduleGrid({ onSave, existingSchedules = [] }: ManageSch
                                                     <Clock className="w-3 h-3 text-muted-foreground/60 shrink-0" />
                                                     <span className="text-xs text-muted-foreground">{to12h(pt.start)} – {to12h(pt.end)}</span>
                                                     <button
-                                                        onClick={() => startEditTime(pt)}
-                                                        className="opacity-0 group-hover/time:opacity-100 transition-opacity ml-auto text-muted-foreground hover:text-foreground"
-                                                        title="Adjust time"
+                                                        onClick={() => startEditTime(pt, "all")}
+                                                        className="ml-auto text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors p-0.5"
+                                                        title="Adjust period time for all days"
                                                     >
                                                         <Pencil className="w-3 h-3" />
                                                     </button>
@@ -443,23 +478,84 @@ export function ManageScheduleGrid({ onSave, existingSchedules = [] }: ManageSch
                                         {DAYS.map(day => {
                                             const key = `${day.id}-${pt.period}`;
                                             const cell = gridData[key] || { subject_id: "", staff_id: "", is_break: false };
+                                            const activeStart = cell.start_time || pt.start;
+                                            const activeEnd = cell.end_time || pt.end;
+                                            const isCustomDayTime = cell.start_time && cell.end_time && (cell.start_time !== pt.start || cell.end_time !== pt.end);
+                                            const isEditingCell = editingTimePeriod === pt.period && editingTargetDay === day.id;
                                             const isEmpty = !cell.is_break && !cell.subject_id && !cell.staff_id;
 
                                             return (
                                                 <div key={key} className="flex-1 p-2 border-l relative group">
-                                                    {cell.is_break ? (
-                                                        <div className="w-full h-full min-h-[100px] flex items-center justify-center bg-orange-50/50 rounded-md border border-orange-200/50 relative">
-                                                            <Badge variant="outline" className="bg-orange-100 text-orange-800 hover:bg-orange-100 border-orange-200">
-                                                                LUNCH / BREAK
-                                                            </Badge>
-                                                            <button
-                                                                onClick={() => handleClearCell(day.id, pt.period)}
-                                                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-1 hover:bg-orange-200 rounded text-orange-700 transition-opacity"
-                                                            >
-                                                                <Trash2 className="w-3 h-3" />
-                                                            </button>
+                                                    {isEditingCell ? (
+                                                        <div className="space-y-1.5 bg-background p-2 rounded-md border border-primary/30 shadow-md">
+                                                            <div className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 border-b pb-1 flex items-center justify-between">
+                                                                <span>{day.name} Time</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="text-[10px] text-muted-foreground w-8 shrink-0">From</span>
+                                                                <Input
+                                                                    type="time"
+                                                                    value={editStart}
+                                                                    onChange={e => setEditStart(e.target.value)}
+                                                                    className="h-6 text-[11px] px-1 py-0 bg-background"
+                                                                />
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="text-[10px] text-muted-foreground w-8 shrink-0">To</span>
+                                                                <Input
+                                                                    type="time"
+                                                                    value={editEnd}
+                                                                    onChange={e => setEditEnd(e.target.value)}
+                                                                    className="h-6 text-[11px] px-1 py-0 bg-background"
+                                                                />
+                                                            </div>
+                                                            <div className="flex gap-1 pt-1 justify-end">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => confirmEditTime(pt.period)}
+                                                                    className="flex items-center gap-0.5 text-[10px] bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-emerald-700 hover:bg-emerald-100 font-medium"
+                                                                >
+                                                                    <Check className="w-3 h-3" /> Save
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={cancelEditTime}
+                                                                    className="flex items-center gap-0.5 text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground hover:text-foreground"
+                                                                >
+                                                                    <X className="w-3 h-3" /> Cancel
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     ) : (
+                                                        <>
+                                                            {/* Day-specific time bar */}
+                                                            <div className="flex items-center justify-between text-[9px] text-muted-foreground mb-1.5 bg-muted/40 px-1.5 py-0.5 rounded border border-muted/50 group/timechip">
+                                                                <span className={isCustomDayTime ? "font-bold text-amber-700 dark:text-amber-400" : ""}>
+                                                                    {to12h(activeStart)} – {to12h(activeEnd)}
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => startEditTime(pt, day.id)}
+                                                                    className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors p-0.5"
+                                                                    title={`Set custom time for ${day.name}`}
+                                                                >
+                                                                    <Pencil className="w-2.5 h-2.5" />
+                                                                </button>
+                                                            </div>
+
+                                                            {cell.is_break ? (
+                                                                <div className="w-full h-[70px] flex items-center justify-center bg-orange-50/50 rounded-md border border-orange-200/50 relative">
+                                                                    <Badge variant="outline" className="bg-orange-100 text-orange-800 hover:bg-orange-100 border-orange-200">
+                                                                        LUNCH / BREAK
+                                                                    </Badge>
+                                                                    <button
+                                                                        onClick={() => handleClearCell(day.id, pt.period)}
+                                                                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-1 hover:bg-orange-200 rounded text-orange-700 transition-opacity"
+                                                                    >
+                                                                        <Trash2 className="w-3 h-3" />
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
                                                         <div className="space-y-2 relative">
                                                             <Select
                                                                 value={cell.subject_id}
@@ -503,6 +599,8 @@ export function ManageScheduleGrid({ onSave, existingSchedules = [] }: ManageSch
                                                                 </button>
                                                             )}
                                                         </div>
+                                                    )}
+                                                        </>
                                                     )}
                                                 </div>
                                             );

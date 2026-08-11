@@ -228,14 +228,17 @@ export default function SchedulePage() {
 
                   {DAYS.map((day) => {
                     const cellData = classSchedules.find(s => s.period_number === periodNum && s.day_of_week === day.id);
-
                     const isMyPeriod = userName && cellData && userName.trim().toLowerCase() === `${cellData.staff_first_name || ''} ${cellData.staff_last_name || ''}`.trim().toLowerCase();
+                    const cellStartTime = cellData?.start_time ? to12h(cellData.start_time.substring(0, 5)) : null;
+                    const cellEndTime = cellData?.end_time ? to12h(cellData.end_time.substring(0, 5)) : null;
 
                     return (
                       <TableCell key={`${day.id}-${periodNum}`} className="h-[75px] min-w-[110px] align-top px-1.5 py-2 border-r-transparent">
                         {cellData ? (
                           cellData.is_break ? (
-                            <div className="text-center text-[10px] text-orange-400 font-medium py-1">Break</div>
+                            <div className="text-center text-[10px] text-orange-400 font-medium py-1">
+                              {cellStartTime && cellEndTime ? `${cellStartTime} – ${cellEndTime} · ` : ''}Break
+                            </div>
                           ) : (
                             <div className={`rounded-md p-2 border h-full transition-all duration-300 ${
                                cellData.is_substitute
@@ -244,6 +247,11 @@ export default function SchedulePage() {
                                    ? "bg-emerald-100/60 border-emerald-300 dark:bg-emerald-900/30 dark:border-emerald-700/50 ring-1 ring-emerald-400"
                                    : "bg-blue-50/50 border-blue-100/50 hover:bg-blue-50 dark:bg-blue-950/20 dark:border-blue-900/30 dark:hover:bg-blue-900/30"
                               }`}>
+                              {cellStartTime && cellEndTime && (
+                                <div className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 mb-0.5 tracking-tight opacity-80">
+                                  {cellStartTime} – {cellEndTime}
+                                </div>
+                              )}
                               <div className={`font-semibold text-[11px] leading-tight truncate ${
                                 cellData.is_substitute
                                   ? "text-purple-900"

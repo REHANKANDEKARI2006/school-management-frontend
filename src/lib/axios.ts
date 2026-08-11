@@ -164,7 +164,10 @@ instance.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const requestUrl = originalRequest?.url || '';
+    const isAuthRoute = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/refresh-token');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRoute) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });

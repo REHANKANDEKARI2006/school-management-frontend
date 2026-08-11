@@ -84,18 +84,18 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
 
             {/* MAIN CONTENT */}
             <div className="flex-1 flex flex-col overflow-hidden">
-              <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-white px-3 sm:px-6 md:backdrop-blur md:supports-[backdrop-filter]:bg-background/60">
-                <SidebarTrigger className="shrink-0" />
+              <header className="sticky top-0 z-30 flex h-14 items-center gap-3 sm:gap-2 border-b bg-white px-4 sm:px-6 md:backdrop-blur md:supports-[backdrop-filter]:bg-background/60" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+                <SidebarTrigger className="shrink-0 min-w-[40px] min-h-[40px] flex items-center justify-center" />
                 {/* Search — takes remaining space on desktop, shows icon on mobile */}
                 <SearchInput />
-                <div className="ml-auto flex items-center gap-1 sm:gap-2 shrink-0">
+                <div className="ml-auto flex items-center gap-2 sm:gap-2 shrink-0">
                    <SchoolSwitcher />
                    <NotificationBell />
                    <UserNav />
                 </div>
               </header>
 
-              <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F8FAFC]">
+              <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F8FAFC] overflow-x-hidden">
                 {children}
               </main>
             </div>

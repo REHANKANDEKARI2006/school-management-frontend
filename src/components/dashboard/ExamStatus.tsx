@@ -35,7 +35,7 @@ export const ExamStatus = ({ events = [] }: ExamStatusProps) => {
 
   return (
     <Card className="border border-slate-100/80 shadow-sm bg-white h-full rounded-2xl">
-      <CardHeader className="p-6 pb-0">
+      <CardHeader className="p-4 sm:p-6 pb-0">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-3 select-none">
             <div className="h-10 w-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 border border-indigo-100/50">
@@ -53,10 +53,10 @@ export const ExamStatus = ({ events = [] }: ExamStatusProps) => {
           </Link>
         </div>
       </CardHeader>
-      <CardContent className="p-6 pt-4 space-y-4">
+      <CardContent className="p-4 sm:p-6 pt-4 space-y-3 sm:space-y-4">
         {upcomingExams.length > 0 ? (
           upcomingExams.map((exam) => (
-            <div key={exam.id} className="p-4 bg-slate-50/50 rounded-xl border border-slate-100 hover:bg-white hover:border-indigo-100 hover:shadow-sm transition-all group">
+            <div key={exam.id} className="p-3 sm:p-4 bg-slate-50/50 rounded-xl border border-slate-100 hover:bg-white hover:border-indigo-100 hover:shadow-sm transition-all group">
               <div className="flex justify-between items-start mb-2 gap-4">
                 <h4 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1">{exam.title}</h4>
                 <Badge variant="outline" className="bg-white text-indigo-600 border-indigo-100 shrink-0 font-bold">

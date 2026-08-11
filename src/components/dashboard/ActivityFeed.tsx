@@ -62,7 +62,7 @@ export const ActivityFeed = ({ activities = [] }: ActivityFeedProps) => {
 
   return (
     <Card className="border border-slate-100/80 shadow-sm bg-white overflow-hidden h-full flex flex-col rounded-2xl">
-      <CardHeader className="p-6 pb-2">
+      <CardHeader className="p-4 sm:p-6 pb-2">
         <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-3 select-none">
           <div className="h-10 w-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 border border-indigo-100/50">
             <History size={18} />
@@ -74,7 +74,7 @@ export const ActivityFeed = ({ activities = [] }: ActivityFeedProps) => {
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="p-6 pt-2 flex-grow flex flex-col justify-between gap-4">
+      <CardContent className="p-4 sm:p-6 pt-2 flex-grow flex flex-col justify-between gap-4">
         <div className="relative space-y-3 before:absolute before:inset-0 before:ml-3.5 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-50">
           {activities && activities.length > 0 ? (
             displayedActivities.map((activity, idx) => (
@@ -93,7 +93,7 @@ export const ActivityFeed = ({ activities = [] }: ActivityFeedProps) => {
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
               <DialogTrigger asChild>
                 <button 
-                  className="flex items-center gap-1.5 px-4 py-2 border border-slate-100 bg-white hover:bg-slate-50/50 text-indigo-600 hover:text-indigo-700 font-extrabold text-[10px] uppercase tracking-wider rounded-xl shadow-sm transition-all duration-200 select-none"
+                  className="flex items-center justify-center gap-1.5 w-full sm:w-auto px-4 py-2.5 sm:py-2 border border-slate-100 bg-white hover:bg-slate-50/50 text-indigo-600 hover:text-indigo-700 font-extrabold text-[10px] uppercase tracking-wider rounded-xl shadow-sm transition-all duration-200 select-none min-h-[44px]"
                 >
                   View All Activities ({activities.length})
                 </button>

@@ -38,7 +38,7 @@ export const FinanceChart = ({ data }: FinanceChartProps) => {
 
   return (
     <Card className="border border-slate-100/80 shadow-sm bg-white overflow-hidden rounded-2xl flex flex-col justify-between h-full">
-      <CardHeader className="p-6 pb-2">
+      <CardHeader className="p-4 sm:p-6 pb-2">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-3 select-none">
              <div className="h-10 w-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 border border-emerald-100/50">
@@ -63,8 +63,8 @@ export const FinanceChart = ({ data }: FinanceChartProps) => {
         </div>
       </CardHeader>
       
-      <CardContent className="p-6 pt-2 flex flex-col justify-between flex-grow gap-4">
-        <div className="w-full h-[220px]">
+      <CardContent className="p-4 sm:p-6 pt-2 flex flex-col justify-between flex-grow gap-4">
+        <div className="w-full h-[180px] sm:h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={chartData}

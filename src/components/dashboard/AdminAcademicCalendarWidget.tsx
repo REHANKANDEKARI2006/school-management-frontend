@@ -204,7 +204,7 @@ export function AdminCalendarDayDetail({ date, events = [] }: { date: Date; even
       .map(ev => ({ label: ev.title || ev.event_name, category: ev.category || ev.event_type || 'event' }));
     
     return (
-        <Card className="border border-slate-100/80 shadow-sm bg-white overflow-hidden rounded-2xl p-5">
+        <Card className="border border-slate-100/80 shadow-sm bg-white overflow-hidden rounded-2xl p-4 sm:p-5">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest select-none">
                 Selected Date
             </p>

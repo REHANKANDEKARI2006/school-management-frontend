@@ -42,7 +42,7 @@ export const AdminAnnouncements = ({ announcements = defaultAnnouncements }: Ann
 
   return (
     <Card className="border border-slate-100/80 shadow-sm bg-white overflow-hidden rounded-2xl w-full flex flex-col">
-      <CardHeader className="p-4 sm:p-6 pb-3 shrink-0 flex flex-row items-center justify-between border-b border-slate-50">
+      <CardHeader className="p-4 sm:p-6 pb-3 shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 border-b border-slate-50">
         <CardTitle className="text-[13px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
           <Megaphone className="h-4.5 w-4.5 text-blue-500" />
           Recent Notices
@@ -62,7 +62,7 @@ export const AdminAnnouncements = ({ announcements = defaultAnnouncements }: Ann
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 + idx * 0.08 }}
-            className="p-4 rounded-2xl bg-white border border-slate-100/80 hover:bg-slate-50/20 hover:border-slate-200 transition-all duration-300 group"
+            className="p-3 sm:p-4 rounded-2xl bg-white border border-slate-100/80 hover:bg-slate-50/20 hover:border-slate-200 transition-all duration-300 group"
           >
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full">
               <div className="flex-1 min-w-0">

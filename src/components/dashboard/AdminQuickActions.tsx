@@ -32,24 +32,24 @@ const actions = [
 export const AdminQuickActions = () => {
   return (
     <Card className="border border-slate-100/80 shadow-sm bg-white overflow-hidden rounded-2xl">
-      <CardHeader className="p-6 pb-2">
+      <CardHeader className="p-4 sm:p-6 pb-2">
         <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
           <Zap className="h-5 w-5 text-amber-500 fill-amber-500" />
           Quick Actions
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-6 grid grid-cols-2 md:grid-cols-5 lg:grid-cols-9 gap-4">
+      <CardContent className="p-4 sm:p-6 grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2.5 sm:gap-4">
         {actions.map((action, i) => (
           <Link key={i} href={action.href} className="w-full">
             <motion.div
               whileHover={{ y: -3, scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
-              className="flex flex-col items-center justify-center gap-3 p-4 sm:p-5 rounded-2xl bg-white border border-slate-100/80 hover:bg-slate-50 hover:border-slate-200 transition-all duration-300 group cursor-pointer h-full"
+              className="flex flex-col items-center justify-center gap-2 sm:gap-3 p-3 sm:p-5 rounded-2xl bg-white border border-slate-100/80 hover:bg-slate-50 hover:border-slate-200 transition-all duration-300 group cursor-pointer h-full min-h-[80px] sm:min-h-0"
             >
-              <div className={cn("p-2.5 rounded-xl border", action.bg, action.bg.replace("bg-", "border-").replace("50", "100"))}>
-                <action.icon className={cn("h-5 w-5", action.color)} />
+              <div className={cn("p-2 sm:p-2.5 rounded-xl border", action.bg, action.bg.replace("bg-", "border-").replace("50", "100"))}>
+                <action.icon className={cn("h-4 w-4 sm:h-5 sm:w-5", action.color)} />
               </div>
-              <span className="text-[11px] font-extrabold text-slate-600 text-center leading-tight group-hover:text-primary transition-colors">
+              <span className="text-[10px] sm:text-[11px] font-extrabold text-slate-600 text-center leading-tight group-hover:text-primary transition-colors">
                 {action.label}
               </span>
             </motion.div>

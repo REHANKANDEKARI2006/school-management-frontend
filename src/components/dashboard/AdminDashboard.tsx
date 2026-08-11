@@ -181,32 +181,32 @@ export const AdminDashboard = () => {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="max-w-[1600px] mx-auto space-y-6">
+    <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500 overflow-x-hidden">
+      <div className="max-w-[1600px] mx-auto space-y-4 sm:space-y-6">
         <HolidayBanner />
 
         {/* WELCOME HEADER */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-100/80 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 select-none">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100/80 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4 select-none">
           <div className="text-left">
-            <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
               {roleName} Dashboard
             </h1>
-            <p className="text-slate-405 font-bold text-xs mt-1">
+            <p className="text-slate-400 font-bold text-xs mt-1">
               Here's what's happening in your institute today.
+              {lastUpdatedText && (
+                <span className="ml-2 text-[10px] font-semibold text-slate-400 hidden sm:inline">
+                  • {lastUpdatedText}
+                </span>
+              )}
             </p>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            {lastUpdatedText && (
-              <span className="text-[10px] font-semibold text-slate-400 hidden sm:inline">
-                {lastUpdatedText}
-              </span>
-            )}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0 w-full sm:w-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={() => fetchDashboardData(true)}
               disabled={refreshing}
-              className="gap-1.5 border-slate-200 rounded-xl text-xs font-bold h-9 px-3"
+              className="gap-1.5 border-slate-200 rounded-xl text-xs font-bold h-9 px-3.5"
             >
               {refreshing ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -215,7 +215,7 @@ export const AdminDashboard = () => {
               )}
               {refreshing ? "Refreshing..." : "Refresh"}
             </Button>
-            <div className="flex items-center gap-2 px-3 py-2 bg-blue-50/50 border border-blue-100/50 rounded-xl text-xs font-black text-blue-650">
+            <div className="flex items-center gap-2 px-3 py-2 bg-blue-50/50 border border-blue-100/50 rounded-xl text-xs font-black text-blue-650 justify-center sm:justify-start">
               <span className="text-[11px] uppercase tracking-wide">
                 {format(new Date(), "dd MMMM yyyy, EEEE")}
               </span>
@@ -230,10 +230,10 @@ export const AdminDashboard = () => {
         <AdminQuickActions />
 
         {/* ZONE 3 — THREE COLUMN MAIN CONTENT */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
           
           {/* COLUMN 1 (4/12 width) */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
+          <div className="lg:col-span-4 flex flex-col gap-4 sm:gap-6">
             <AttendanceChart 
               stats={dashboardData?.stats?.monthAttendance} 
               isHoliday={isTodayHoliday}
@@ -243,7 +243,7 @@ export const AdminDashboard = () => {
           </div>
 
           {/* COLUMN 2 (4/12 width) */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
+          <div className="lg:col-span-4 flex flex-col gap-4 sm:gap-6">
             <ExamStatus events={dashboardData?.events || []} />
             <FeeCollection stats={{ 
               feesMonth: dashboardData?.stats?.feesMonth || 0,
@@ -254,9 +254,9 @@ export const AdminDashboard = () => {
           </div>
 
           {/* COLUMN 3 (4/12 width) */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
+          <div className="lg:col-span-4 flex flex-col gap-4 sm:gap-6">
             {/* Calendar Widget Card */}
-            <Card className="rounded-2xl border border-slate-100/80 shadow-sm overflow-hidden bg-white p-3">
+            <Card className="rounded-2xl border border-slate-100/80 shadow-sm overflow-hidden bg-white p-2 sm:p-3">
               <AdminAcademicCalendarWidget 
                 selectedDate={selectedDate} 
                 onSelect={setSelectedDate} 
@@ -267,7 +267,7 @@ export const AdminDashboard = () => {
             </Card>
 
             {/* Upcoming Holidays & Events */}
-            <Card className="bg-white p-6 rounded-2xl border border-slate-100/80 shadow-sm">
+            <Card className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100/80 shadow-sm">
               <AdminUpcomingEventsList events={allCalendarEvents} />
             </Card>
             
@@ -275,7 +275,7 @@ export const AdminDashboard = () => {
             <AdminCalendarDayDetail date={selectedDate} events={allCalendarEvents} />
 
             {/* Stay Connected Card */}
-            <Card className="bg-gradient-to-br from-indigo-50/40 to-blue-50/20 p-6 rounded-2xl border border-slate-100/80 shadow-sm flex flex-col items-center text-center">
+            <Card className="bg-gradient-to-br from-indigo-50/40 to-blue-50/20 p-4 sm:p-6 rounded-2xl border border-slate-100/80 shadow-sm flex flex-col items-center text-center">
               <div className="h-12 w-12 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-500 mb-3">
                 <Megaphone className="h-5 w-5" />
               </div>
@@ -284,7 +284,7 @@ export const AdminDashboard = () => {
                 Get important updates and announcements instantly.
               </p>
               <Link href="/main/notices" className="w-full">
-                <Button variant="outline" className="w-full mt-4 bg-white border border-slate-200 text-blue-650 hover:bg-slate-50 font-black text-[10px] uppercase tracking-wider py-2.5 rounded-xl shadow-sm">
+                <Button variant="outline" className="w-full mt-4 bg-white border border-slate-200 text-blue-650 hover:bg-slate-50 font-black text-[10px] uppercase tracking-wider py-2.5 rounded-xl shadow-sm min-h-[44px]">
                   Send Announcement
                 </Button>
               </Link>

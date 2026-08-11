@@ -55,17 +55,17 @@ const renderSecondaryLabel = (label: string) => {
   );
 };
 
-const AdminStatsCard = ({ title, value, secondaryLabel, icon: Icon, iconColor, iconBg }: any) => {
+const AdminStatsCard = ({ title, value, secondaryLabel, icon: Icon, iconColor, iconBg, className }: any) => {
   return (
-    <Card className="border border-slate-100/80 shadow-sm bg-white overflow-hidden rounded-2xl p-5 flex flex-col justify-between h-full min-h-[135px] hover:shadow-md transition-all duration-300">
-      <div className="flex items-center gap-3">
-        <div className={cn("h-8 w-8 rounded-full flex items-center justify-center border", iconBg.replace("bg-", "border-").replace("50", "100"), iconBg)}>
-          {Icon && <Icon className={cn("h-4 w-4", iconColor)} />}
+    <Card className={cn("border border-slate-100/80 shadow-sm bg-white overflow-hidden rounded-2xl p-3 sm:p-5 flex flex-col justify-between h-full min-h-[100px] sm:min-h-[135px] hover:shadow-md transition-all duration-300", className)}>
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className={cn("h-7 w-7 sm:h-8 sm:w-8 rounded-full flex items-center justify-center border shrink-0", iconBg.replace("bg-", "border-").replace("50", "100"), iconBg)}>
+          {Icon && <Icon className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", iconColor)} />}
         </div>
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</h3>
+        <h3 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">{title}</h3>
       </div>
-      <div className="mt-4 space-y-1">
-        <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
+      <div className="mt-2 sm:mt-4 space-y-0.5 sm:space-y-1">
+        <h2 className="text-base sm:text-xl font-extrabold text-slate-900 tracking-tight truncate">
           {typeof value === "number" ? value.toLocaleString() : value}
         </h2>
         {renderSecondaryLabel(secondaryLabel)}
@@ -80,7 +80,7 @@ export const AdminStatsBar = ({ stats, isHoliday }: StatsBarProps) => {
     : 0;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-5">
       <AdminStatsCard
         title="Total Students"
         value={stats?.students.total || 0}
@@ -111,7 +111,7 @@ export const AdminStatsBar = ({ stats, isHoliday }: StatsBarProps) => {
         secondaryLabel={isHoliday ? "School Closed" : `${stats?.attendance.present ?? 0} / ${stats?.attendance.total ?? 0} present`}
         icon={ClipboardCheck}
         iconColor={isHoliday ? "text-orange-600" : "text-amber-600"}
-        iconBg={isHoliday ? "bg-orange-50" : "bg-amber-50"}
+        iconBg="bg-amber-50"
       />
       <AdminStatsCard
         title="Fees Collected"

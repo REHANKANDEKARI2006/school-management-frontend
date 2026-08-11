@@ -30,8 +30,8 @@ export const AttendanceChart = ({ data, isHoliday, stats }: AttendanceChartProps
   ];
 
   return (
-    <Card className="border border-slate-100/80 shadow-sm bg-white overflow-hidden rounded-2xl h-full flex flex-col min-h-[380px] hover:shadow-md transition-all duration-300">
-      <CardHeader className="p-6 pb-2 shrink-0">
+    <Card className="border border-slate-100/80 shadow-sm bg-white overflow-hidden rounded-2xl h-full flex flex-col min-h-[320px] sm:min-h-[380px] hover:shadow-md transition-all duration-300">
+      <CardHeader className="p-4 sm:p-6 pb-2 shrink-0">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-2 select-none">
              Attendance Overview
@@ -42,7 +42,7 @@ export const AttendanceChart = ({ data, isHoliday, stats }: AttendanceChartProps
         </div>
       </CardHeader>
       
-      <CardContent className="p-6 pt-0 flex-grow flex flex-col justify-between">
+      <CardContent className="p-4 sm:p-6 pt-0 flex-grow flex flex-col justify-between">
         <div className="w-full relative flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-4 h-auto sm:h-[220px] py-4 sm:py-0">
           <AnimatePresence>
             {isHoliday && (
@@ -62,15 +62,15 @@ export const AttendanceChart = ({ data, isHoliday, stats }: AttendanceChartProps
           </AnimatePresence>
 
           {/* Left half: Pie chart */}
-          <div className="w-full sm:w-1/2 h-[160px] sm:h-full relative">
+          <div className="w-full sm:w-1/2 h-[140px] sm:h-full relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={chartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={55}
-                  outerRadius={75}
+                  innerRadius={45}
+                  outerRadius={65}
                   paddingAngle={3}
                   dataKey="value"
                   nameKey="name"
@@ -84,7 +84,7 @@ export const AttendanceChart = ({ data, isHoliday, stats }: AttendanceChartProps
             
             {/* Center percentage indicator */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
-              <span className="text-xl font-extrabold text-slate-900 leading-none">
+              <span className="text-lg sm:text-xl font-extrabold text-slate-900 leading-none">
                 {attendancePercentage}%
               </span>
               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1">

@@ -28,7 +28,7 @@ export function parseSectionName(raw: string): ParsedSection {
 }
 
 export function serializeSectionName(parsed: ParsedSection): string {
-  return `${parsed.title.trim()}///${parsed.group.trim()}///${parsed.name.trim()}`;
+  return `${parsed.title || ""}///${parsed.group || ""}///${parsed.name || ""}`;
 }
 
 const BADGE_COLORS = [

@@ -155,6 +155,22 @@ export default function StudentsPage() {
   const [selectedSection, setSelectedSection] = React.useState<string>("all");
   const [selectedStatus, setSelectedStatus] = React.useState<string>("all");
 
+  const [isMobile, setIsMobile] = React.useState(false);
+  const [currentPage, setCurrentPage] = React.useState(1);
+
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedStandard, selectedSection, selectedStatus, searchQuery]);
+
   /* =========================
      FETCH
   ========================= */
@@ -489,8 +505,6 @@ export default function StudentsPage() {
     }
   };
 
-
-
   const filtered = React.useMemo(() => {
     let result = students;
 
@@ -514,6 +528,14 @@ export default function StudentsPage() {
     }
     return result;
   }, [students, searchQuery, selectedStandard, selectedSection, selectedStatus]);
+
+  const totalPages = Math.ceil(filtered.length / 10) || 1;
+
+  const displayedStudents = React.useMemo(() => {
+    if (!isMobile) return filtered;
+    const start = (currentPage - 1) * 10;
+    return filtered.slice(start, start + 10);
+  }, [filtered, isMobile, currentPage]);
 
   const uniqueStatuses = React.useMemo(() => {
     const statuses = Array.from(new Set(students.map((s) => s.status).filter(Boolean)));
@@ -550,14 +572,14 @@ export default function StudentsPage() {
   return (
     <>
       <Card className="border-none shadow-sm overflow-hidden">
-        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-6 border-b">
+        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 sm:p-6 border-b">
           <div className="space-y-1">
             <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight">Students</CardTitle>
             <CardDescription className="text-sm">Manage and monitor student records</CardDescription>
           </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full md:w-auto">
             <Select value={selectedStandard} onValueChange={setSelectedStandard}>
-              <SelectTrigger className="w-full sm:w-[140px] h-9">
+              <SelectTrigger className="w-full sm:w-[140px] h-10 sm:h-9 text-xs sm:text-sm font-semibold rounded-xl bg-white border-slate-200">
                 <SelectValue placeholder="Standard" />
               </SelectTrigger>
               <SelectContent>
@@ -575,7 +597,7 @@ export default function StudentsPage() {
               onValueChange={setSelectedSection}
               disabled={selectedStandard === "all"}
             >
-              <SelectTrigger className="w-full sm:w-[130px] h-9">
+              <SelectTrigger className="w-full sm:w-[130px] h-10 sm:h-9 text-xs sm:text-sm font-semibold rounded-xl bg-white border-slate-200 disabled:opacity-60">
                 <SelectValue placeholder="Section" />
               </SelectTrigger>
               <SelectContent>
@@ -589,7 +611,7 @@ export default function StudentsPage() {
             </Select>
 
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-full sm:w-[130px] h-9">
+              <SelectTrigger className="w-full sm:w-[130px] h-10 sm:h-9 text-xs sm:text-sm font-semibold rounded-xl bg-white border-slate-200">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -602,7 +624,7 @@ export default function StudentsPage() {
               </SelectContent>
             </Select>
 
-            <Button asChild variant="outline" className="w-full sm:w-auto border-blue-200 text-blue-700 hover:bg-blue-50">
+            <Button asChild variant="outline" className="w-full sm:w-auto h-11 sm:h-9 border-blue-200 text-blue-700 hover:bg-blue-50 font-bold rounded-xl">
               <a href="/main/bulk-documents">
                 <Printer className="h-4 w-4 mr-2 text-blue-600" />
                 Bulk Generator
@@ -610,7 +632,7 @@ export default function StudentsPage() {
             </Button>
 
             {canManage && (
-              <Button onClick={() => setAddOpen(true)} loading={addLoading} className="w-full sm:w-auto">
+              <Button onClick={() => setAddOpen(true)} loading={addLoading} className="w-full sm:w-auto h-11 sm:h-9 font-bold rounded-xl">
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Add Student
               </Button>
@@ -619,115 +641,242 @@ export default function StudentsPage() {
         </CardHeader>
 
         <CardContent className="p-0">
-          <div className="w-full overflow-x-auto">
-            <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-4 sm:pl-6 min-w-[200px]">Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden md:table-cell">Class</TableHead>
-                <TableHead className="hidden md:table-cell">Joined At</TableHead>
-                <TableHead className="text-right pr-4 sm:pr-6" />
-              </TableRow>
-            </TableHeader>
-
-            <TableBody>
+          {isMobile ? (
+            <div className="p-3">
               {loading ? (
-                <TableSkeleton cols={5} rows={6} />
-              ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-sm">No students found.</TableCell>
-                </TableRow>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="h-36 rounded-2xl bg-slate-100 animate-pulse" />
+                  ))}
+                </div>
+              ) : displayedStudents.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground text-sm">No students found.</div>
               ) : (
-                filtered.map((s) => (
-                <TableRow key={`${s.id}-${s.class}`}>
-                  <TableCell className="flex items-center gap-3 pl-4 sm:pl-6">
-                    <Avatar className="h-10 w-10 shrink-0">
-                      <AvatarImage src={s.avatar} className="object-cover" />
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {s.initials}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-medium text-slate-900 dark:text-slate-100 truncate">{s.name}</span>
-                      <span className="text-sm text-slate-500 dark:text-slate-400 truncate">
-                        {s.email ? (
-                          <a href={`mailto:${s.email}`} className="hover:underline hover:text-blue-600 transition-colors">
-                            {s.email}
-                          </a>
-                        ) : (
-                          "No email"
-                        )}
-                      </span>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {displayedStudents.map((s) => (
+                    <div
+                      key={`${s.id}-${s.class}`}
+                      className="bg-white rounded-2xl border border-slate-100 shadow-sm p-3 flex flex-col justify-between h-full min-h-[140px] hover:border-slate-200 transition-all select-none"
+                    >
+                      <div className="flex items-start justify-between gap-1.5">
+                        <Avatar className="h-9 w-9 shrink-0 border border-slate-100">
+                          <AvatarImage src={s.avatar} className="object-cover" />
+                          <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+                            {s.initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg hover:bg-slate-100 -mr-1 -mt-1 shrink-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleViewDetails(s.id)}>
+                              View Details
+                            </DropdownMenuItem>
+                            {canManage && (
+                              <DropdownMenuItem onClick={() => handleEditClick(s.id)}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                            )}
+                            {canDelete && (
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                onClick={() => handleDelete(s.id)}
+                              >
+                                <Trash className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            )}
+                            {canManage && (
+                              <>
+                                <DropdownMenuLabel className="border-t mt-1 pt-2">Documents</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => generateIdCard(s)} disabled={docLoadingId === `${s.id}_idcard`}>
+                                  <CreditCard className="h-4 w-4 mr-2" />
+                                  {docLoadingId === `${s.id}_idcard` ? "Generating..." : "ID Card"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => generateBonafide(s)} disabled={docLoadingId === `${s.id}_bonafide`}>
+                                  <FileCheck className="h-4 w-4 mr-2" />
+                                  {docLoadingId === `${s.id}_bonafide` ? "Generating..." : "Bonafide"}
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      <div className="mt-2 space-y-0.5 min-w-0">
+                        <span className="font-bold text-slate-900 text-xs leading-snug block truncate" title={s.name}>
+                          {s.name}
+                        </span>
+                        <span className="text-[10px] text-slate-500 block truncate leading-tight">
+                          {s.email ? (
+                            <a href={`mailto:${s.email}`} className="hover:underline hover:text-blue-600">
+                              {s.email}
+                            </a>
+                          ) : (
+                            "No email"
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="mt-2.5 pt-2 border-t border-slate-50 flex items-center justify-between gap-1">
+                        <span className="text-[9px] font-bold text-slate-400 truncate max-w-[50%]">
+                          {s.class}
+                        </span>
+                        <Badge variant={statusVariant(s.status)} className="text-[9px] px-1.5 py-0.5 font-bold shrink-0">
+                          {s.status}
+                        </Badge>
+                      </div>
                     </div>
-                  </TableCell>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="w-full overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-4 sm:pl-6 min-w-[200px]">Name</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="hidden md:table-cell">Class</TableHead>
+                    <TableHead className="hidden md:table-cell">Joined At</TableHead>
+                    <TableHead className="text-right pr-4 sm:pr-6" />
+                  </TableRow>
+                </TableHeader>
 
-                  <TableCell>
-                    <Badge variant={statusVariant(s.status)}>
-                      {s.status}
-                    </Badge>
-                  </TableCell>
+                <TableBody>
+                  {loading ? (
+                    <TableSkeleton cols={5} rows={6} />
+                  ) : displayedStudents.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-sm">No students found.</TableCell>
+                    </TableRow>
+                  ) : (
+                    displayedStudents.map((s) => (
+                      <TableRow key={`${s.id}-${s.class}`} className="hover:bg-slate-50/60 transition-colors">
+                        <TableCell className="flex items-center gap-3 py-3 pl-4 sm:pl-6">
+                          <Avatar className="h-10 w-10 shrink-0 border border-slate-100">
+                            <AvatarImage src={s.avatar} className="object-cover" />
+                            <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                              {s.initials}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <span className="font-bold text-slate-900 dark:text-slate-100 text-sm truncate">{s.name}</span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                              {s.email ? (
+                                <a href={`mailto:${s.email}`} className="hover:underline hover:text-blue-600 transition-colors">
+                                  {s.email}
+                                </a>
+                              ) : (
+                                "No email"
+                              )}
+                            </span>
+                          </div>
+                        </TableCell>
 
-                  <TableCell className="hidden md:table-cell">{s.class}</TableCell>
-                  <TableCell className="hidden md:table-cell">{s.joined}</TableCell>
+                        <TableCell>
+                          <Badge variant={statusVariant(s.status)}>
+                            {s.status}
+                          </Badge>
+                        </TableCell>
 
-                  <TableCell className="text-right pr-4 sm:pr-6">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <TableCell className="hidden md:table-cell">{s.class}</TableCell>
+                        <TableCell className="hidden md:table-cell">{s.joined}</TableCell>
 
-                          <DropdownMenuItem
-                            onClick={() => handleViewDetails(s.id)}
-                          >
-                            View Details
-                          </DropdownMenuItem>
+                        <TableCell className="text-right pr-4 sm:pr-6">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
 
-                          {canManage && (
-                            <DropdownMenuItem
-                              onClick={() => handleEditClick(s.id)}
-                            >
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                          )}
-
-                          {canDelete && (
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                              onClick={() => handleDelete(s.id)}
-                            >
-                              <Trash className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          )}
-
-                          {canManage && (
-                            <>
-                              <DropdownMenuLabel className="border-t mt-1 pt-2">Documents</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => generateIdCard(s)} disabled={docLoadingId === `${s.id}_idcard`}>
-                                <CreditCard className="h-4 w-4 mr-2" />
-                                {docLoadingId === `${s.id}_idcard` ? "Generating..." : "ID Card"}
+                              <DropdownMenuItem
+                                onClick={() => handleViewDetails(s.id)}
+                              >
+                                View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => generateBonafide(s)} disabled={docLoadingId === `${s.id}_bonafide`}>
-                                <FileCheck className="h-4 w-4 mr-2" />
-                                {docLoadingId === `${s.id}_bonafide` ? "Generating..." : "Bonafide"}
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              )))}
-            </TableBody>
-          </Table>
-          </div>
+
+                              {canManage && (
+                                <DropdownMenuItem
+                                  onClick={() => handleEditClick(s.id)}
+                                >
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                              )}
+
+                              {canDelete && (
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                  onClick={() => handleDelete(s.id)}
+                                >
+                                  <Trash className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              )}
+
+                              {canManage && (
+                                <>
+                                  <DropdownMenuLabel className="border-t mt-1 pt-2">Documents</DropdownMenuLabel>
+                                  <DropdownMenuItem onClick={() => generateIdCard(s)} disabled={docLoadingId === `${s.id}_idcard`}>
+                                    <CreditCard className="h-4 w-4 mr-2" />
+                                    {docLoadingId === `${s.id}_idcard` ? "Generating..." : "ID Card"}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => generateBonafide(s)} disabled={docLoadingId === `${s.id}_bonafide`}>
+                                    <FileCheck className="h-4 w-4 mr-2" />
+                                    {docLoadingId === `${s.id}_bonafide` ? "Generating..." : "Bonafide"}
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
+
+        {/* Mobile Pagination Controls */}
+        {isMobile && filtered.length > 0 && (
+          <div className="flex items-center justify-between px-4 py-3 bg-slate-50/50 border-t border-slate-200/80 select-none">
+            <span className="text-xs font-bold text-slate-500">
+              Page {currentPage} of {totalPages} ({filtered.length} students)
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="h-9 px-3.5 text-xs font-bold rounded-xl border-slate-200 min-w-[40px]"
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                className="h-9 px-3.5 text-xs font-bold rounded-xl border-slate-200 min-w-[40px]"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* ADD */}

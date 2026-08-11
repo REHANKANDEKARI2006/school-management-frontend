@@ -27,8 +27,8 @@ export const StudentDistribution = ({ genderRatio = [] }: StudentDistributionPro
   const totalStudents = data.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <Card className="border border-slate-100/80 shadow-sm bg-white overflow-hidden rounded-2xl h-full flex flex-col min-h-[380px] hover:shadow-md transition-all duration-300">
-      <CardHeader className="p-6 pb-2 shrink-0">
+    <Card className="border border-slate-100/80 shadow-sm bg-white overflow-hidden rounded-2xl h-full flex flex-col min-h-[320px] sm:min-h-[380px] hover:shadow-md transition-all duration-300">
+      <CardHeader className="p-4 sm:p-6 pb-2 shrink-0">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-2 select-none">
              Student Distribution
@@ -39,16 +39,16 @@ export const StudentDistribution = ({ genderRatio = [] }: StudentDistributionPro
         </div>
       </CardHeader>
       
-      <CardContent className="p-6 pt-0 flex-grow flex flex-col justify-between">
-        <div className="relative w-full h-[220px]">
+      <CardContent className="p-4 sm:p-6 pt-0 flex-grow flex flex-col justify-between">
+        <div className="relative w-full h-[180px] sm:h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={data}
                 cx="50%"
                 cy="50%"
-                innerRadius={55}
-                outerRadius={75}
+                innerRadius={45}
+                outerRadius={65}
                 paddingAngle={3}
                 dataKey="value"
                 nameKey="name"
@@ -62,7 +62,7 @@ export const StudentDistribution = ({ genderRatio = [] }: StudentDistributionPro
           
           {/* Centered text overlay */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
-            <span className="text-2xl font-black text-slate-900 leading-none">
+            <span className="text-xl sm:text-2xl font-black text-slate-900 leading-none">
               {totalStudents}
             </span>
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1.5">

@@ -124,12 +124,7 @@ export function EventGallery({ eventId, isAdmin, eventStatus }: EventGalleryProp
   }, [lightboxIndex]);
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 gap-3">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        <p className="text-xs font-medium text-muted-foreground">Loading gallery...</p>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -149,9 +144,9 @@ export function EventGallery({ eventId, isAdmin, eventStatus }: EventGalleryProp
           </div>
           <div className="text-center">
             <p className="text-sm font-semibold text-slate-800">
-              {uploading ? "Uploading..." : "Upload Event Photos"}
+              {uploading ? "Uploading…" : "Upload Event Photos"}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">Up to 10 images at once · JPG, PNG, WEBP</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{uploading ? "Please wait while photos are being uploaded" : "Up to 10 images at once · JPG, PNG, WEBP"}</p>
           </div>
           <input
             type="file"
@@ -306,7 +301,6 @@ export function EventGallery({ eventId, isAdmin, eventStatus }: EventGalleryProp
               disabled={deleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
               Delete Photo
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -28,6 +28,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PageSkeleton } from "@/components/ui/skeletons";
 import {
   Table,
   TableBody,
@@ -66,11 +67,7 @@ export default function ResultsPage() {
   }, []);
 
   if (roleId === null) {
-    return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-      </div>
-    );
+    return null;
   }
 
   // Determine view based on role
@@ -80,10 +77,10 @@ export default function ResultsPage() {
 
   return (
     <RouteGuard allowedRoles={RESULTS_ALLOWED_ROLES}>
-      <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 space-y-8">
+      <div className="max-w-6xl mx-auto pt-0 sm:py-8 pb-16 md:pb-6 px-3.5 sm:px-6 space-y-5 sm:space-y-8">
         
         {/* HEADER SECTION */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-6">
+        <div className="hidden md:flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-6">
           <div className="space-y-1">
             <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-2">
               <Award className="h-8 w-8 text-indigo-600 animate-pulse" />
@@ -279,13 +276,13 @@ function AdminResultsDashboard() {
     <div className="space-y-6">
       
       {/* FILTER BAR CARDS */}
-      <Card className="border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-[1.5rem]">
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-wider">Select Standard Class</label>
+      <Card className="border border-slate-200/80 bg-white shadow-sm rounded-2xl sm:rounded-[1.5rem]">
+        <CardContent className="p-4 sm:p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            <div className="space-y-1.5 sm:space-y-2">
+              <label className="text-[10px] sm:text-xs font-extrabold text-slate-400 uppercase tracking-wider">Select Standard Class</label>
               <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger className="w-full h-11 rounded-xl">
+                <SelectTrigger className="w-full h-10 sm:h-11 rounded-xl border-slate-200 text-xs sm:text-sm bg-white">
                   <SelectValue placeholder="Choose Class" />
                 </SelectTrigger>
                 <SelectContent>
@@ -297,10 +294,10 @@ function AdminResultsDashboard() {
               </Select>
             </div>
             
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-wider">Select Examination</label>
+            <div className="space-y-1.5 sm:space-y-2">
+              <label className="text-[10px] sm:text-xs font-extrabold text-slate-400 uppercase tracking-wider">Select Examination</label>
               <Select value={selectedExam} onValueChange={setSelectedExam}>
-                <SelectTrigger className="w-full h-11 rounded-xl">
+                <SelectTrigger className="w-full h-10 sm:h-11 rounded-xl border-slate-200 text-xs sm:text-sm bg-white">
                   <SelectValue placeholder="Choose Exam" />
                 </SelectTrigger>
                 <SelectContent>
@@ -317,14 +314,14 @@ function AdminResultsDashboard() {
 
       {/* FILTER PENDING DEFAULT STATE */}
       {(selectedClass === "all" || selectedExam === "all") && (
-        <Card className="border-dashed border-2 border-slate-200 bg-slate-50/50 py-16 text-center rounded-[2rem]">
-          <CardContent className="flex flex-col items-center gap-4 max-w-sm mx-auto">
-            <div className="h-16 w-16 bg-white border border-slate-100 rounded-3xl flex items-center justify-center text-indigo-600 shadow-sm animate-bounce">
-              <Sparkles size={28} />
+        <Card className="border-2 border-dashed border-slate-200/80 bg-slate-50/60 py-10 sm:py-16 text-center rounded-2xl sm:rounded-[2rem] shadow-xs">
+          <CardContent className="flex flex-col items-center gap-3 sm:gap-4 max-w-sm mx-auto p-4 sm:p-6">
+            <div className="h-12 w-12 sm:h-16 sm:w-16 bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl flex items-center justify-center text-indigo-600 shadow-sm animate-pulse">
+              <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-indigo-600" />
             </div>
-            <div className="space-y-1">
-              <h3 className="text-lg font-black text-slate-800">Review Marks Entries</h3>
-              <p className="text-sm font-medium text-slate-500">
+            <div className="space-y-1.5">
+              <h3 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight">Review Marks Entries</h3>
+              <p className="text-xs sm:text-sm font-medium text-slate-500 leading-relaxed">
                 Select a class and examination above to track marks entry progress, calculate averages, and publish student scorecards.
               </p>
             </div>
@@ -396,7 +393,7 @@ function AdminResultsDashboard() {
                     disabled={actionLoading || !allSubmitted}
                     className="w-full font-semibold rounded-xl py-5 h-auto flex items-center justify-center gap-2"
                   >
-                    {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                    <RefreshCw className="h-4 w-4" />
                     {overallStatus !== "None" ? "Re-Generate Results" : "Generate Results"}
                   </Button>
 
@@ -419,7 +416,7 @@ function AdminResultsDashboard() {
                       disabled={actionLoading}
                       className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl py-5 h-auto flex items-center justify-center gap-2 shadow-sm"
                     >
-                      {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      <Send className="h-4 w-4" />
                       Publish Scorecards
                     </Button>
                   )}
@@ -458,11 +455,7 @@ function AdminResultsDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0 border-t border-slate-50">
-                {loading ? (
-                  <div className="flex justify-center items-center py-16">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : trackingData.length === 0 ? (
+                {loading ? null : trackingData.length === 0 ? (
                   <p className="text-slate-400 text-center py-12 text-sm font-medium">
                     No completed exams found for this class and exam.
                   </p>
@@ -539,11 +532,7 @@ function AdminResultsDashboard() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-auto border rounded-2xl my-4">
-            {previewLoading ? (
-              <div className="flex justify-center items-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-              </div>
-            ) : previewData.length === 0 ? (
+            {previewLoading ? null : previewData.length === 0 ? (
               <p className="text-slate-400 text-center py-16 font-medium">No results generated yet.</p>
             ) : (
               <Table>
@@ -640,11 +629,7 @@ function FacultyResultsDashboard() {
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-        </div>
-      ) : exams.length === 0 ? (
+      {loading ? null : exams.length === 0 ? (
         <Card className="border-dashed border-2 border-slate-200 bg-slate-50/50 py-16 text-center rounded-[2rem]">
           <CardContent className="flex flex-col items-center gap-4 max-w-sm mx-auto">
             <div className="h-16 w-16 bg-white border border-slate-100 rounded-3xl flex items-center justify-center text-slate-300 shadow-sm">
@@ -834,11 +819,7 @@ function StudentParentResultsDashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-      </div>
-    );
+    return <PageSkeleton rows={6} />;
   }
 
   if (data.length === 0) {
@@ -1000,11 +981,7 @@ function StudentParentResultsDashboard() {
                   size="sm"
                   className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl px-4 h-9 flex items-center gap-1.5 shadow-sm"
                 >
-                  {downloadingMarksheet ? (
-                    <Loader2 size={13} className="animate-spin" />
-                  ) : (
-                    <FileDown size={13} />
-                  )}
+                  <FileDown size={13} />
                   Download Marksheet
                 </Button>
               </div>

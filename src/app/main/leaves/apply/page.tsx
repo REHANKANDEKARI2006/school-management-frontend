@@ -275,7 +275,7 @@ export default function ApplyLeavePage() {
           <Button disabled={loading} className="min-w-[140px]">
             {loading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary-foreground" />
                 Submitting...
               </>
             ) : "Submit Application"}

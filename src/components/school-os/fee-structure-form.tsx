@@ -216,12 +216,12 @@ export function FeeStructureForm({ initialStandard, onSubmit }: FeeStructureForm
   );
 
   return (
-    <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="space-y-5">
+    <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Standard Selection */}
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2">
-            <Layers className="h-3 w-3" /> Select Standard
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Layers className="h-3 w-3 text-indigo-500" /> Select Standard
           </label>
           <Select
             value={selectedStandard}
@@ -230,7 +230,7 @@ export function FeeStructureForm({ initialStandard, onSubmit }: FeeStructureForm
               setFormError(null);
             }}
           >
-            <SelectTrigger className="border-2 focus:ring-blue-500 h-11">
+            <SelectTrigger className="border border-slate-200 focus:border-indigo-500 h-11 rounded-xl text-xs font-bold text-slate-900 bg-white">
               <SelectValue placeholder="Which grade level?" />
             </SelectTrigger>
             <SelectContent>
@@ -245,22 +245,22 @@ export function FeeStructureForm({ initialStandard, onSubmit }: FeeStructureForm
 
         {/* Current Structure Preview */}
         {selectedStandard && (
-          <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 space-y-3">
+          <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-black text-blue-800 uppercase tracking-widest flex items-center gap-2">
-                <Info className="h-3 w-3" /> Current Structure
+              <h4 className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Info className="h-3 w-3 text-indigo-500" /> Current Structure
               </h4>
-              <span className="text-[10px] font-bold text-blue-500 bg-white px-2 py-0.5 rounded-full border border-blue-100 shadow-sm">
+              <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 shadow-2xs">
                 Total: ₹{currentStandardStructures.reduce((sum, s) => sum + Number(s.amount), 0).toLocaleString()}
               </span>
             </div>
             
             {currentStandardStructures.length === 0 ? (
-              <p className="text-[10px] text-blue-400 italic">No categories assigned yet.</p>
+              <p className="text-[11px] text-slate-400 italic">No categories assigned yet.</p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {currentStandardStructures.map(s => (
-                  <Badge key={s.fee_struct_id} variant="secondary" className="bg-white border-blue-100 text-blue-700 text-[10px] font-bold py-0.5 shadow-sm">
+                  <Badge key={s.fee_struct_id} variant="secondary" className="bg-white border-slate-200 text-slate-700 text-xs font-bold py-1 px-2.5 rounded-xl shadow-2xs leading-relaxed">
                     {s.category_name}: ₹{Number(s.amount).toLocaleString()}
                   </Badge>
                 ))}
@@ -270,37 +270,37 @@ export function FeeStructureForm({ initialStandard, onSubmit }: FeeStructureForm
         )}
 
         {/* Fee Categories Section */}
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2">
-              <Calculator className="h-3 w-3" /> Fee Categories ({items.length})
+            <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Calculator className="h-3 w-3 text-indigo-500" /> Fee Categories ({items.length})
             </label>
             {selectedStandard && (
               <button
                 type="button"
                 onClick={() => setIsCreatingCategory(!isCreatingCategory)}
-                className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 active:scale-95 transition-all"
               >
-                <Plus className="h-3 w-3" /> {isCreatingCategory ? "Cancel" : "New Category"}
+                <Plus className="h-3.5 w-3.5" /> {isCreatingCategory ? "Cancel" : "New Category"}
               </button>
             )}
           </div>
 
           {/* New Category Inline Creation */}
           {isCreatingCategory && (
-            <div className="flex items-center gap-2 p-2 bg-slate-50 border rounded-lg">
+            <div className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 rounded-xl">
               <Input
                 placeholder="e.g. Activity Fee, Transport Fee"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
-                className="h-9 text-xs"
+                className="h-9 text-xs border-slate-200 rounded-lg bg-white"
               />
               <Button
                 type="button"
                 size="sm"
                 onClick={handleCreateCategory}
                 disabled={isCategoryCreating || !newCategoryName.trim()}
-                className="h-9 px-3 text-xs bg-blue-600 text-white"
+                className="h-9 px-3 text-xs bg-indigo-600 text-white rounded-lg font-bold"
               >
                 {isCategoryCreating ? "Creating..." : "Create"}
               </Button>
@@ -308,9 +308,9 @@ export function FeeStructureForm({ initialStandard, onSubmit }: FeeStructureForm
           )}
 
           {/* Category Item Rows */}
-          <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1 sm:pr-2 scrollbar-thin">
+          <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin">
             {items.map((item, index) => (
-              <div key={index} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 p-3 bg-slate-50/70 border border-slate-200/80 rounded-xl relative group">
+              <div key={index} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 bg-white border border-slate-200/90 rounded-2xl shadow-2xs relative group">
                 {/* Category Dropdown */}
                 <div className="flex-1">
                   <Select
@@ -318,7 +318,7 @@ export function FeeStructureForm({ initialStandard, onSubmit }: FeeStructureForm
                     value={item.fee_cat_id}
                     onValueChange={(val) => handleUpdateItem(index, "fee_cat_id", val)}
                   >
-                    <SelectTrigger className="border-2 focus:ring-blue-500 h-10 bg-white text-xs font-medium">
+                    <SelectTrigger className="border border-slate-200 focus:border-indigo-500 h-11 bg-white text-xs font-bold rounded-xl text-slate-900">
                       <SelectValue placeholder={selectedStandard ? "Select Category" : "Pick standard first"} />
                     </SelectTrigger>
                     <SelectContent>
@@ -332,12 +332,12 @@ export function FeeStructureForm({ initialStandard, onSubmit }: FeeStructureForm
                             key={c.fee_category_id}
                             value={String(c.fee_category_id)}
                             disabled={isDisabled}
-                            className={isDisabled ? "opacity-50 line-through text-gray-400" : ""}
+                            className={isDisabled ? "opacity-50 line-through text-slate-400" : ""}
                           >
                             <div className="flex items-center justify-between w-full gap-2">
                               <span>{c.category_name}</span>
-                              {isAssignedInDb && <Badge variant="outline" className="text-[8px] h-4 font-black uppercase text-gray-300 border-gray-200">Active</Badge>}
-                              {isSelectedInForm && <Badge variant="outline" className="text-[8px] h-4 font-black uppercase text-blue-400 border-blue-200">Selected</Badge>}
+                              {isAssignedInDb && <Badge variant="outline" className="text-[8px] h-4 font-black uppercase text-slate-400 border-slate-200">Active</Badge>}
+                              {isSelectedInForm && <Badge variant="outline" className="text-[8px] h-4 font-black uppercase text-indigo-500 border-indigo-200">Selected</Badge>}
                             </div>
                           </SelectItem>
                         );
@@ -353,10 +353,10 @@ export function FeeStructureForm({ initialStandard, onSubmit }: FeeStructureForm
                     disabled={!selectedStandard}
                     value={item.amount}
                     onChange={(e) => handleUpdateItem(index, "amount", e.target.value)}
-                    className="pl-7 border-2 focus:ring-blue-500 h-10 text-sm font-bold text-gray-800 bg-white"
+                    className="pl-8 border border-slate-200 focus:border-indigo-500 h-11 text-xs font-bold text-slate-900 bg-white rounded-xl"
                     placeholder="Amount"
                   />
-                  <span className="absolute left-2.5 top-2.5 font-bold text-xs text-gray-400">₹</span>
+                  <span className="absolute left-3 top-3.5 font-bold text-xs text-slate-400">₹</span>
                 </div>
 
                 {/* Remove Row Button */}
@@ -366,7 +366,7 @@ export function FeeStructureForm({ initialStandard, onSubmit }: FeeStructureForm
                     variant="ghost"
                     size="icon"
                     onClick={() => handleRemoveItem(index)}
-                    className="h-10 w-10 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg shrink-0 self-end sm:self-auto"
+                    className="h-10 w-10 min-w-[40px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl shrink-0 self-end sm:self-auto"
                     title="Remove row"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -383,9 +383,9 @@ export function FeeStructureForm({ initialStandard, onSubmit }: FeeStructureForm
               variant="outline"
               size="sm"
               onClick={handleAddItem}
-              className="w-full border-dashed border-2 border-blue-200 text-blue-600 hover:bg-blue-50/70 hover:border-blue-300 font-semibold h-10 rounded-xl transition-all"
+              className="w-full border-dashed border-2 border-indigo-200 text-indigo-600 hover:bg-indigo-50/70 hover:border-indigo-300 font-bold h-11 rounded-2xl transition-all flex items-center justify-center gap-1.5"
             >
-              <Plus className="mr-1.5 h-4 w-4" /> Add Another Category
+              <Plus className="h-4 w-4" /> Add Another Category
             </Button>
           )}
         </div>
@@ -400,9 +400,9 @@ export function FeeStructureForm({ initialStandard, onSubmit }: FeeStructureForm
 
         {/* Summary Footer */}
         {newTotal > 0 && selectedStandard && (
-          <div className="flex items-center justify-between bg-slate-100/80 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-700">
+          <div className="flex items-center justify-between bg-slate-100/90 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-700">
             <span>Adding {items.filter(i => i.fee_cat_id && Number(i.amount) > 0).length} Category Component(s)</span>
-            <span className="font-bold text-blue-700 text-sm">Total Added: ₹{newTotal.toLocaleString()}</span>
+            <span className="font-extrabold text-indigo-700 text-xs">Total Added: ₹{newTotal.toLocaleString()}</span>
           </div>
         )}
 
@@ -410,7 +410,7 @@ export function FeeStructureForm({ initialStandard, onSubmit }: FeeStructureForm
         <Button 
           type="submit" 
           disabled={!selectedStandard || isSubmitting} 
-          className="w-full h-12 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 font-bold transition-all hover:translate-y-[-2px] rounded-xl text-base"
+          className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all rounded-2xl text-xs shadow-md flex items-center justify-center gap-2"
         >
           {isSubmitting 
             ? "Processing..." 
@@ -421,7 +421,7 @@ export function FeeStructureForm({ initialStandard, onSubmit }: FeeStructureForm
         </Button>
         
         {!selectedStandard && (
-          <p className="text-[10px] text-center text-gray-400 font-medium animate-pulse flex items-center justify-center gap-1">
+          <p className="text-[10px] text-center text-slate-400 font-medium animate-pulse flex items-center justify-center gap-1">
             <AlertCircle className="h-3 w-3" /> Start by selecting a grade level above
           </p>
         )}

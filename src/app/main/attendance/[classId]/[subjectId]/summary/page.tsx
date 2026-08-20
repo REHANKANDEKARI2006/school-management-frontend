@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { AttendanceStatus } from '@/types';
-import { FileSpreadsheet, FileText, Users, Library, CalendarDays, Download, Check, X, AlertTriangle, Edit3, Home, PlusCircle } from 'lucide-react';
+import { FileSpreadsheet, FileText, Users, Library, CalendarDays, Download, Check, X, AlertTriangle, Edit3, Home, PlusCircle, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format, isValid } from 'date-fns';
 import axios from "@/lib/axios";
+import { PageSkeleton } from "@/components/ui/skeletons";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -303,11 +304,7 @@ export default function AttendanceSummaryPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   if (!currentClass || !currentSubject) {
@@ -322,15 +319,42 @@ export default function AttendanceSummaryPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 flex flex-col items-center min-h-[calc(100vh-80px)]">
-      <div className="w-full max-w-5xl mb-6 flex justify-start">
-        <Button onClick={() => router.push('/main/attendance')} variant="outline" className="rounded-lg h-10 px-4 bg-white/50 border-slate-200">
+    <div className="container mx-auto py-4 px-3.5 sm:py-8 sm:px-4 flex flex-col items-center pb-2 sm:pb-8">
+      
+      {/* Back Button & Top Date Picker Navigation Container */}
+      <div className="w-full max-w-5xl mb-3 sm:mb-6 flex justify-start">
+        {/* Desktop Back Button */}
+        <Button onClick={() => router.push('/main/attendance')} variant="outline" className="hidden sm:inline-flex rounded-lg h-10 px-4 bg-white/50 border-slate-200">
           <Home className="mr-2 h-4 w-4" /> Back to Attendance Dashboard
         </Button>
+        {/* Mobile Header Row: Back Button (Left) + Date Picker (Right inside Green Box) */}
+        <div className="sm:hidden flex items-center justify-between w-full shrink-0">
+          <button
+            onClick={() => router.push('/main/attendance')}
+            className="flex items-center gap-1.5 text-slate-700 font-bold text-xs bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 shadow-xs active:scale-95 transition-all"
+          >
+            <ArrowLeft className="h-4 w-4 text-slate-700" />
+            <span>Attendance</span>
+          </button>
+
+          {/* Date Selector Popover placed in Green Box (Top-Right) */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-9 px-3 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-xs flex items-center gap-1.5 shrink-0">
+                <CalendarDays className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                <span>{format(selectedDate, "PPP")}</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar mode="single" selected={selectedDate} onSelect={(d) => d && setSelectedDate(d)} initialFocus />
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       <div className="w-full max-w-5xl">
-        <Card className="shadow-sm border-slate-200 overflow-hidden">
+        {/* Desktop View Card (Unchanged for Desktop) */}
+        <Card className="hidden sm:block shadow-sm border-slate-200 overflow-hidden">
           <CardHeader className="bg-slate-50/50 border-b pb-6">
             <div className="flex flex-col md:flex-row justify-between items-start gap-4">
               <div>
@@ -438,6 +462,141 @@ export default function AttendanceSummaryPage() {
             )}
           </div>
         </Card>
+
+        {/* Polished Native Mobile Layout (Strictly scoped to mobile sm:hidden) */}
+        <div className="sm:hidden w-full flex flex-col">
+          
+          {/* 1. Header Card with Title and Subtitle (No Date Picker inside card, No Edit Icon) */}
+          <div className="w-full bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-xs mb-3 space-y-1">
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">
+              Attendance Summary
+            </h1>
+            <p className="text-xs font-medium text-slate-500 leading-relaxed">
+              Review the attendance records. Click on a status to edit.
+            </p>
+          </div>
+
+          {/* 2. Info Card (Class, Subject, Date) */}
+          <div className="w-full bg-white rounded-2xl p-3 border border-slate-200/80 shadow-xs mb-3 space-y-1.5 text-xs font-semibold text-slate-700">
+            <div className="flex items-center gap-2">
+              <Users className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+              <span className="truncate">Class: <strong className="text-slate-900">{currentClass.class_name}{currentClass.section_name ? ` - ${currentClass.section_name}` : ''}</strong></span>
+            </div>
+            <div className="flex items-center gap-2 pt-1 border-t border-slate-50">
+              <Library className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+              <span className="truncate">Subject: <strong className="text-slate-900">{currentSubject.subject_name}</strong></span>
+            </div>
+            <div className="flex items-center gap-2 pt-1 border-t border-slate-50">
+              <CalendarDays className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
+              <span className="truncate">Date: <strong className="text-slate-900">{format(selectedDate, "PPP")}</strong></span>
+            </div>
+          </div>
+
+          {/* 3. Present / Absent Count Summary Row */}
+          <div className="flex items-center gap-2.5 w-full mb-3">
+            <div className="flex-1 h-9 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-black text-xs flex items-center justify-center gap-1.5 shadow-2xs">
+              <Check className="h-3.5 w-3.5 stroke-[3] text-emerald-600" />
+              <span>Present: {presentCount}</span>
+            </div>
+            <div className="flex-1 h-9 rounded-xl bg-rose-50 text-rose-700 border border-rose-200/80 font-black text-xs flex items-center justify-center gap-1.5 shadow-2xs">
+              <X className="h-3.5 w-3.5 stroke-[3] text-rose-600" />
+              <span>Absent: {absentCount}</span>
+            </div>
+          </div>
+
+          {/* 4. Student List - Mobile Card Rows */}
+          {attendanceRecords.length === 0 ? (
+            <div className="bg-white rounded-2xl p-8 border border-slate-200/80 text-center text-slate-400 text-xs italic mb-4">
+              No records found for this date.
+            </div>
+          ) : (
+            <div className="w-full bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden mb-4">
+              {attendanceRecords.map((record) => {
+                const isPresent = record.status?.toLowerCase() === 'present';
+                return (
+                  <div
+                    key={record.student_id}
+                    className="py-2.5 px-3.5 flex items-center justify-between border-b border-slate-100/80 last:border-0 odd:bg-slate-50/40 even:bg-white"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-sm font-black text-slate-900 tracking-tight">{record.name}</span>
+                      <span className="text-xs font-bold text-slate-500 mt-0.5">Roll No: {record.roll_number}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleStatusToggle(record.student_id, record.status)}
+                      className={`min-h-[38px] px-3.5 rounded-xl font-extrabold text-xs transition-all active:scale-95 flex items-center gap-1.5 border-2 shadow-2xs ${
+                        isPresent
+                          ? 'bg-white text-[#22c55e] border-emerald-100 hover:bg-emerald-50 active:bg-emerald-100'
+                          : 'bg-white text-[#ef4444] border-rose-100 hover:bg-rose-50 active:bg-rose-100'
+                      }`}
+                    >
+                      {isPresent ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : <X className="h-3.5 w-3.5 stroke-[3]" />}
+                      <span>{record.status}</span>
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 5. Mobile Bottom Action Buttons Group (2x2 Grid + Primary Save and Exit at Bottom) */}
+          <div className="w-full flex flex-col gap-2.5 mb-2">
+            {/* 2x2 Grid for Secondary Action Buttons */}
+            <div className="grid grid-cols-2 gap-2.5 w-full">
+              <Button
+                onClick={() => handleExport('excel')}
+                variant="outline"
+                className="h-11 rounded-2xl border-2 border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-2xs active:scale-95 transition-all flex items-center justify-center gap-1.5 px-2 disabled:opacity-40"
+                disabled={attendanceRecords.length === 0}
+              >
+                <FileSpreadsheet className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span className="truncate">Export Excel</span>
+              </Button>
+
+              <Button
+                onClick={() => handleExport('pdf')}
+                variant="outline"
+                className="h-11 rounded-2xl border-2 border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-2xs active:scale-95 transition-all flex items-center justify-center gap-1.5 px-2 disabled:opacity-40"
+                disabled={attendanceRecords.length === 0}
+              >
+                <FileText className="h-4 w-4 text-rose-600 shrink-0" />
+                <span className="truncate">Export PDF</span>
+              </Button>
+
+              <Button
+                onClick={handleShareToWhatsApp}
+                variant="outline"
+                className="h-11 rounded-2xl border-2 border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-2xs active:scale-95 transition-all flex items-center justify-center gap-1.5 px-2 disabled:opacity-40"
+                disabled={attendanceRecords.length === 0}
+              >
+                <WhatsAppIcon />
+                <span className="truncate">WhatsApp</span>
+              </Button>
+
+              {!isTeacher && (
+                <Button
+                  onClick={() => router.push('/main/attendance/new')}
+                  variant="outline"
+                  className="h-11 rounded-2xl border-2 border-indigo-200/90 bg-indigo-50/50 hover:bg-indigo-100/50 text-indigo-700 font-bold text-xs shadow-2xs active:scale-95 transition-all flex items-center justify-center gap-1.5 px-2"
+                >
+                  <PlusCircle className="h-4 w-4 text-indigo-600 shrink-0" />
+                  <span className="truncate">New Session</span>
+                </Button>
+              )}
+            </div>
+
+            {/* Primary Action Button: Save and Exit */}
+            <Button
+              onClick={() => router.push('/main/attendance')}
+              className="h-11 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md active:scale-95 transition-all w-full flex items-center justify-center gap-2"
+            >
+              <Check className="h-4 w-4 stroke-[3]" /> Save and Exit
+            </Button>
+          </div>
+
+        </div>
       </div>
     </div>
   );

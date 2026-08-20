@@ -6,7 +6,7 @@ import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/c
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, X, Users, Library, CalendarDays, AlertTriangle } from 'lucide-react';
+import { Check, X, Users, Library, CalendarDays, AlertTriangle, Loader2 } from 'lucide-react';
 import { format } from "date-fns";
 import { useRouter } from 'next/navigation';
 import axios from "@/lib/axios";
@@ -87,9 +87,9 @@ export function AttendanceSummaryDialog({ classId, subjectId, date, sessionId }:
 
       <div className="p-6">
         {isLoading ? (
-          <div className="flex flex-col justify-center items-center h-48 space-y-4">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
-            <p className="text-muted-foreground text-sm font-medium">Loading records...</p>
+          <div className="flex flex-col justify-center items-center h-48 space-y-3">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <p className="text-muted-foreground text-xs font-medium">Loading records…</p>
           </div>
         ) : !currentClass || !currentSubject ? (
           <div className="p-8 text-center border rounded-xl bg-slate-50">

@@ -246,44 +246,44 @@ export default function DocumentSettingsPage() {
   if (loading) return <PageSkeleton />;
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-24 overflow-x-hidden">
-      <div className="bg-white border-b mb-8 py-8">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-12">
-          <div className="flex flex-col gap-2">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
-              <SettingsIcon className="h-7 w-7 text-primary" />
-              Document Branding
-              <Badge variant="secondary" className="text-[10px] uppercase font-bold px-2 py-0">v2.1</Badge>
+    <div className="min-h-screen bg-slate-50/50 pb-2 md:pb-24 overflow-x-hidden">
+      <div className="hidden sm:block bg-white border-b border-slate-200/80 mb-4 sm:mb-8 py-4 sm:py-8">
+        <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-12">
+          <div className="flex flex-col gap-1.5 sm:gap-2">
+            <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-2.5 sm:gap-3">
+              <SettingsIcon className="h-6 w-6 sm:h-7 sm:w-7 text-primary shrink-0" />
+              <span className="truncate">Document Branding</span>
+              <Badge variant="secondary" className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border-none shrink-0">v2.1</Badge>
             </h1>
-            <p className="text-slate-500 max-w-2xl text-sm font-medium">
+            <p className="text-slate-500 max-w-2xl text-xs sm:text-sm font-medium leading-relaxed">
               Craft a professional institutional identity that applies across all official documents, certificates, and student credentials.
             </p>
           </div>
         </div>
       </div>
-      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-12">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-12 pt-3 sm:pt-0">
         <Form {...form}>
-          <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
+          <form className="space-y-6 sm:space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
             
             {/* GLOBAL DOCUMENT BRANDING */}
-            <Card className="shadow-sm border-slate-100 rounded-xl overflow-hidden mb-8">
-              <CardHeader className="bg-slate-50/50 border-b p-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-3">
+            <Card className="shadow-sm border-slate-200/80 rounded-2xl overflow-hidden mb-6 sm:mb-8 bg-white">
+              <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3.5 sm:gap-3">
                   <div className="flex items-start gap-3 flex-1">
-                    <div className="p-2 bg-indigo-500/10 rounded-lg shrink-0 mt-1 sm:mt-0">
+                    <div className="p-2 bg-indigo-500/10 rounded-xl shrink-0 mt-0.5 sm:mt-0">
                       <Palette className="h-5 w-5 text-indigo-500" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg font-bold">Global Document Branding</CardTitle>
-                      <CardDescription className="text-sm mt-1 sm:mt-0">Select a single global color theme that instantly applies across all your documents.</CardDescription>
+                      <CardTitle className="text-base sm:text-lg font-bold text-slate-900">Global Document Branding</CardTitle>
+                      <CardDescription className="text-xs sm:text-sm text-slate-500 mt-0.5">Select a single global color theme that instantly applies across all your documents.</CardDescription>
                     </div>
                   </div>
                   <FormField control={form.control} name="is_document_theme_enabled" render={({ field }) => (
                     <FormItem className="flex items-center justify-between w-full sm:w-auto gap-3 space-y-0 pt-3 sm:pt-0 border-t sm:border-0 border-slate-100">
-                      <FormLabel className="text-sm font-bold text-slate-700">Apply Theme To All Documents</FormLabel>
+                      <FormLabel className="text-xs sm:text-sm font-bold text-slate-700">Apply Theme To All Documents</FormLabel>
                       <FormControl>
                         <div 
-                          className={`w-11 h-6 rounded-full cursor-pointer transition-colors relative flex items-center ${field.value ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                          className={`w-11 h-6 rounded-full cursor-pointer transition-colors relative flex items-center shrink-0 ${field.value ? 'bg-emerald-500' : 'bg-slate-300'}`}
                           onClick={() => field.onChange(!field.value)}
                         >
                           <div className={`w-4 h-4 bg-white rounded-full shadow absolute transition-transform ${field.value ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -293,7 +293,7 @@ export default function DocumentSettingsPage() {
                   )} />
                 </div>
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <FormField control={form.control} name="document_theme" render={({ field }) => {
                   const themes = [
                     { id: "THEME_1", name: "Royal Blue", primary: "#001F54", secondary: "#F5C400" },
@@ -309,44 +309,44 @@ export default function DocumentSettingsPage() {
 
                   return (
                     <FormItem>
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                         <div>
-                          <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4 block">Global Theme Selector</FormLabel>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <FormLabel className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-3 block">Global Theme Selector</FormLabel>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                             {themes.map(t => (
                               <div 
                                 key={t.id}
                                 onClick={() => field.onChange(t.id)}
-                                className={`cursor-pointer border-2 rounded-xl p-3 flex items-center gap-3 transition-all ${field.value === t.id ? 'border-indigo-500 bg-indigo-50/30' : 'border-slate-100 hover:border-slate-300'}`}
+                                className={`cursor-pointer border-2 rounded-xl p-3 flex items-center gap-3 transition-all ${field.value === t.id ? 'border-indigo-500 bg-indigo-50/30' : 'border-slate-200/80 bg-white hover:border-slate-300'}`}
                               >
-                                <div className="flex -space-x-2">
-                                  <div className="w-6 h-6 rounded-full border-2 border-white shadow-sm" style={{ background: t.primary }} />
-                                  <div className="w-6 h-6 rounded-full border-2 border-white shadow-sm" style={{ background: t.secondary }} />
+                                <div className="flex -space-x-2 shrink-0">
+                                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-white shadow-xs" style={{ background: t.primary }} />
+                                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-white shadow-xs" style={{ background: t.secondary }} />
                                 </div>
-                                <span className="text-sm font-bold text-slate-700">{t.name}</span>
-                                {field.value === t.id && <CheckCircle2 className="h-4 w-4 text-indigo-500 ml-auto" />}
+                                <span className="text-xs sm:text-sm font-bold text-slate-700 truncate">{t.name}</span>
+                                {field.value === t.id && <CheckCircle2 className="h-4 w-4 text-indigo-500 ml-auto shrink-0" />}
                               </div>
                             ))}
                           </div>
                         </div>
-                        <div className="bg-slate-50 rounded-xl p-6 border flex flex-col items-center justify-center">
-                          <span className="text-xs font-bold uppercase text-slate-400 mb-6 tracking-widest">Live Theme Preview</span>
-                          <div className="w-full max-w-[280px] bg-white rounded-lg shadow-sm border overflow-hidden">
+                        <div className="bg-slate-50/80 rounded-2xl p-4 sm:p-6 border border-slate-200/80 flex flex-col items-center justify-center">
+                          <span className="text-[10px] sm:text-xs font-extrabold uppercase text-slate-400 mb-4 sm:mb-6 tracking-widest">Live Theme Preview</span>
+                          <div className="w-full max-w-[260px] sm:max-w-[280px] bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
                             {/* Mock Header */}
-                            <div className="h-16 flex items-center px-4" style={{ backgroundColor: activeTheme.primary, opacity: form.watch('is_document_theme_enabled') ? 1 : 0.5 }}>
-                              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
-                                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: activeTheme.primary }} />
+                            <div className="h-14 sm:h-16 flex items-center px-4" style={{ backgroundColor: activeTheme.primary, opacity: form.watch('is_document_theme_enabled') ? 1 : 0.5 }}>
+                              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white flex items-center justify-center shrink-0">
+                                <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full" style={{ backgroundColor: activeTheme.primary }} />
                               </div>
                               <div className="ml-3">
-                                <div className="w-24 h-2 rounded bg-white/20 mb-1" />
-                                <div className="w-32 h-1.5 rounded" style={{ backgroundColor: activeTheme.secondary }} />
+                                <div className="w-20 sm:w-24 h-2 rounded bg-white/20 mb-1" />
+                                <div className="w-28 sm:w-32 h-1.5 rounded" style={{ backgroundColor: activeTheme.secondary }} />
                               </div>
                             </div>
                             {/* Mock Body */}
-                            <div className="p-4 space-y-3">
+                            <div className="p-3.5 sm:p-4 space-y-2.5 sm:space-y-3">
                               <div className="w-full h-2 rounded bg-slate-100" />
                               <div className="w-3/4 h-2 rounded bg-slate-100" />
-                              <div className="w-full h-12 rounded border-l-4 mt-4" style={{ borderColor: activeTheme.primary, backgroundColor: activeTheme.primary + '10' }} />
+                              <div className="w-full h-10 sm:h-12 rounded border-l-4 mt-3 sm:mt-4" style={{ borderColor: activeTheme.primary, backgroundColor: activeTheme.primary + '10' }} />
                             </div>
                             {/* Mock Footer */}
                             <div className="h-6 flex items-center justify-between px-4" style={{ backgroundColor: activeTheme.primary + '20' }}>
@@ -357,10 +357,10 @@ export default function DocumentSettingsPage() {
                           <Button
                             type="button"
                             onClick={() => form.handleSubmit(onSubmit)()}
-                            className="mt-6 w-full max-w-[280px] bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20"
+                            className="mt-4 sm:mt-6 w-full sm:max-w-[280px] h-11 font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20 flex items-center justify-center gap-2"
                             disabled={saving}
                           >
-                            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                            <Save className="h-4 w-4" />
                             Set As Active Theme
                           </Button>
                         </div>
@@ -372,15 +372,15 @@ export default function DocumentSettingsPage() {
             </Card>
 
             {/* Asset Library Section */}
-            <Card className="shadow-sm border-slate-100 rounded-xl overflow-hidden">
-              <CardHeader className="bg-slate-50/50 border-b p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <Card className="shadow-sm border-slate-200/80 rounded-2xl overflow-hidden bg-white">
+              <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
+                  <div className="p-2 bg-primary/10 rounded-xl shrink-0">
                     <UploadCloud className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg font-bold">Asset Library</CardTitle>
-                    <CardDescription className="text-sm">Manage institutional imagery used across generated documents.</CardDescription>
+                    <CardTitle className="text-base sm:text-lg font-bold text-slate-900">Asset Library</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm text-slate-500">Manage institutional imagery used across generated documents.</CardDescription>
                   </div>
                 </div>
                 
@@ -388,15 +388,15 @@ export default function DocumentSettingsPage() {
                   type="button" 
                   onClick={form.handleSubmit(onSubmit)} 
                   disabled={saving}
-                  className="h-10 px-6 rounded-lg font-bold gap-2 transition-all active:scale-95"
+                  className="w-full sm:w-auto h-10 px-6 rounded-xl font-bold gap-2 transition-all active:scale-95 flex items-center justify-center"
                 >
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" /> }
+                  <Save className="h-4 w-4" />
                   Save Changes
                 </Button>
               </CardHeader>
                
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <CardContent className="p-4 sm:p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
                   <AssetUploader label="Primary Logo" field="logo_url" uploading={logoUploading} inputRef={logoInputRef} onUpload={(e: any) => handleFileUpload(e, 'logo')} currentUrl={form.watch("logo_url")} description="Main header logo" />
                   <AssetUploader label="Head Signature" field="signature_url" uploading={signatureUploading} inputRef={signatureInputRef} onUpload={(e: any) => handleFileUpload(e, 'signature')} currentUrl={form.watch("signature_url")} description="Principal's sign" />
                   <AssetUploader label="Official Stamp" field="stamp_url" uploading={stampUploading} inputRef={stampInputRef} onUpload={(e: any) => handleFileUpload(e, 'stamp')} currentUrl={form.watch("stamp_url")} description="Digital institution seal" />
@@ -404,46 +404,43 @@ export default function DocumentSettingsPage() {
               </CardContent>
             </Card>
 
-
-
-            <div className="space-y-6 pt-10 border-t border-slate-100">
+            <div className="space-y-4 sm:space-y-6 pt-6 sm:pt-10 border-t border-slate-100">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
+                <div className="p-2 bg-primary/10 rounded-xl shrink-0">
                   <Layout className="h-5 w-5 text-primary" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 tracking-tight">Document Templates</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">Document Templates</h2>
               </div>
-              <p className="text-sm text-slate-500 font-medium -mt-4">Select a pre-built template to generate professional documents using your school branding.</p>
+              <p className="text-xs sm:text-sm text-slate-500 font-medium -mt-2 sm:-mt-4">Select a pre-built template to generate professional documents using your school branding.</p>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-6">
                 {[
-                  { id: "ID_CARD" as DocType, label: "Student ID Card", desc: "PVC / Digital Identity Card", icon: <CreditCard className="h-6 w-6" />, color: "bg-blue-600/10 text-blue-600 hoverColor:text-blue-600", templates: 2 },
-                  { id: "BONAFIDE" as DocType, label: "Bonafide Certificate", desc: "Institutional Verification", icon: <FileCheck className="h-6 w-6" />, color: "bg-emerald-600/10 text-emerald-600 hoverColor:text-emerald-600", templates: 2 + (customTemplateCounts.BONAFIDE || 0) },
-                  { id: "ACHIEVEMENT" as DocType, label: "Achievement Certificate", desc: "Merit & Recognition Award", icon: <GraduationCap className="h-6 w-6" />, color: "bg-amber-600/10 text-amber-600 hoverColor:text-amber-600", templates: 1 + (customTemplateCounts.ACHIEVEMENT || 0) },
-                  // { id: "LEAVING_CERTIFICATE" as DocType, label: "Leaving Certificate", desc: "Official School Transfer", icon: <FileCheck className="h-6 w-6" />, color: "bg-rose-600/10 text-rose-600 hoverColor:text-rose-600", templates: 1 },
-                  { id: "MARK_SHEET" as DocType, label: "Marksheet", desc: "Academic Progress Report", icon: <FileCheck className="h-6 w-6" />, color: "bg-indigo-600/10 text-indigo-600 hoverColor:text-indigo-600", templates: 2 },
-                  { id: "FEE_RECEIPT" as DocType, label: "Fee Receipt", desc: "Payment Acknowledgment", icon: <CreditCard className="h-6 w-6" />, color: "bg-teal-600/10 text-teal-600 hoverColor:text-teal-600", templates: 1 }
+                  { id: "ID_CARD" as DocType, label: "Student ID Card", desc: "PVC / Digital Identity Card", icon: <CreditCard className="h-5 w-5 sm:h-6 sm:w-6" />, color: "bg-blue-600/10 text-blue-600", templates: 2 },
+                  { id: "BONAFIDE" as DocType, label: "Bonafide Certificate", desc: "Institutional Verification", icon: <FileCheck className="h-5 w-5 sm:h-6 sm:w-6" />, color: "bg-emerald-600/10 text-emerald-600", templates: 2 + (customTemplateCounts.BONAFIDE || 0) },
+                  { id: "ACHIEVEMENT" as DocType, label: "Achievement Certificate", desc: "Merit & Recognition Award", icon: <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6" />, color: "bg-amber-600/10 text-amber-600", templates: 1 + (customTemplateCounts.ACHIEVEMENT || 0) },
+                  { id: "MARK_SHEET" as DocType, label: "Marksheet", desc: "Academic Progress Report", icon: <FileCheck className="h-5 w-5 sm:h-6 sm:w-6" />, color: "bg-indigo-600/10 text-indigo-600", templates: 2 },
+                  { id: "FEE_RECEIPT" as DocType, label: "Fee Receipt", desc: "Payment Acknowledgment", icon: <CreditCard className="h-5 w-5 sm:h-6 sm:w-6" />, color: "bg-teal-600/10 text-teal-600", templates: 1 }
                 ].map((doc) => (
                   <div 
                     key={doc.id} 
-                    className="border border-slate-200 shadow-sm rounded-xl p-6 bg-white hover:border-primary/50 transition-all cursor-pointer group flex flex-col justify-between h-full"
+                    className="border border-slate-200/80 shadow-sm rounded-2xl p-4 sm:p-6 bg-white hover:border-primary/50 transition-all cursor-pointer group flex flex-col justify-between h-full"
                     onClick={() => setActiveSelector(doc.id)}
                   >
                     <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <div className={`h-12 w-12 rounded-lg flex items-center justify-center ${doc.color.split(' ')[0]} ${doc.color.split(' ')[1]}`}>
+                      <div className="flex items-center justify-between mb-3 sm:mb-4">
+                        <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center ${doc.color}`}>
                           {doc.icon}
                         </div>
-                        <Badge variant="secondary" className="bg-slate-100 text-slate-700 font-bold border-none px-2.5 py-0.5">
+                        <Badge variant="secondary" className="bg-slate-100 text-slate-700 font-bold border-none px-2.5 py-0.5 rounded-lg text-xs">
                           {doc.templates} {doc.templates === 1 ? 'Template' : 'Templates'}
                         </Badge>
                       </div>
-                      <h4 className={`font-bold text-lg text-slate-800 leading-tight mb-1 transition-colors group-hover:text-primary`}>
+                      <h4 className="font-bold text-base sm:text-lg text-slate-800 leading-tight mb-1 transition-colors group-hover:text-primary">
                         {doc.label}
                       </h4>
-                      <p className="text-sm font-medium text-slate-500">{doc.desc}</p>
+                      <p className="text-xs sm:text-sm font-medium text-slate-500">{doc.desc}</p>
                     </div>
-                    <div className="mt-6 flex items-center text-sm font-bold text-slate-400 group-hover:text-primary transition-colors">
+                    <div className="mt-4 sm:mt-6 flex items-center text-xs sm:text-sm font-bold text-slate-400 group-hover:text-primary transition-colors">
                       Select Template
                       <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-all" />
                     </div>
@@ -467,7 +464,7 @@ export default function DocumentSettingsPage() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                     transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                    className="relative w-full h-full max-w-6xl max-h-[95vh] bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col m-4 md:m-8"
+                    className="relative w-full h-full max-w-6xl max-h-[95vh] bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col m-2 sm:m-4 md:m-8"
                   >
                     <TemplateSelector
                       documentType={activeSelector}
@@ -526,7 +523,7 @@ export default function DocumentSettingsPage() {
 
 function FooterHelperComponents() {
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-12 mt-20 border-t pt-10 text-center text-slate-400 text-[10px]">
+    <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-12 mt-4 sm:mt-20 border-t border-slate-100/80 pt-4 sm:pt-10 pb-2 md:pb-0 text-center text-slate-400 text-[10px]">
       <p className="font-bold uppercase tracking-widest">&copy; 2026 SchoolOS Educational Systems</p>
     </div>
   );
@@ -562,17 +559,25 @@ function AssetUploader({
         <p className="text-[10px] text-slate-400 font-medium mt-0.5">{description}</p>
       </div>
       <div 
-        onClick={() => inputRef.current?.click()}
+        onClick={() => !uploading && inputRef.current?.click()}
         className={`
           relative h-48 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 
           flex flex-col items-center justify-center cursor-pointer overflow-hidden
           hover:bg-white hover:border-primary/30 transition-all duration-300
+          ${uploading ? 'pointer-events-none opacity-60' : ''}
           ${currentUrl ? 'border-none ring-1 ring-slate-100 shadow-sm' : ''}
         `}
       >
         <input type="file" ref={inputRef} onChange={onUpload} className="hidden" accept="image/*" />
         
-        {currentUrl ? (
+        {uploading ? (
+          <div className="text-center space-y-2 relative z-10 p-4">
+            <div className="mx-auto w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center text-primary transition-all">
+               <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+            <p className="text-xs font-bold text-muted-foreground">Uploading…</p>
+          </div>
+        ) : currentUrl ? (
           <div className="relative w-full h-full group/img">
             <Image src={currentUrl} alt={label} fill className="object-contain p-4 transition-transform group-hover/img:scale-105 duration-300" />
             <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/img:opacity-100 flex flex-col items-center justify-center transition-all duration-300">
@@ -583,7 +588,7 @@ function AssetUploader({
         ) : (
           <div className="text-center space-y-2 relative z-10 p-4">
             <div className="mx-auto w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:text-primary transition-all">
-               {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <UploadCloud className="h-5 w-5" />}
+               <UploadCloud className="h-5 w-5" />
             </div>
             <p className="text-xs font-bold text-slate-900">Choose File</p>
           </div>

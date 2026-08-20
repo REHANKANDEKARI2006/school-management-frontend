@@ -119,7 +119,7 @@ export function NotificationBell() {
               className="h-6 w-6 text-slate-400 hover:text-slate-600"
               title="Refresh notifications"
             >
-              <RefreshCw className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`} />
+              <RefreshCw className="h-3 w-3" />
             </Button>
             {unreadCount > 0 && (
               <Button variant="ghost" size="sm" onClick={markAllAsRead} className="h-6 text-xs text-blue-600 px-2">

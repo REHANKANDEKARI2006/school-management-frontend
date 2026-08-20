@@ -158,21 +158,24 @@ export default function SchedulePage() {
     const periods = Array.from(new Set(classSchedules.map(s => s.period_number))).sort((a, b) => a - b);
 
     if (loading) {
-      return (
-        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-          <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary/50" />
-          <p className="text-sm">Fetching timetable...</p>
-        </div>
-      );
+      return null;
     }
 
     if (periods.length === 0) {
       return (
-        <div className="text-center py-10 text-muted-foreground border-t mt-4 font-medium italic">
-          {isStudent 
-            ? "No schedule has been posted for your class yet."
-            : 'No schedule found for this class. Go to the "Manage Schedule" tab to create one.'
-          }
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center border-t border-slate-100 mt-4 select-none">
+          <div className="bg-slate-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 border border-slate-100 shadow-sm">
+            <CalendarDays className="h-6 w-6 text-slate-400" />
+          </div>
+          <p className="text-sm font-bold text-slate-800">
+            {isStudent ? "No schedule posted yet" : "No schedule found for this class"}
+          </p>
+          <p className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
+            {isStudent 
+              ? "No schedule has been posted for your class yet."
+              : 'Go to the "Manage Schedule" tab to create one.'
+            }
+          </p>
         </div>
       );
     }
@@ -293,21 +296,28 @@ export default function SchedulePage() {
   };
 
   return (
-    <div className="space-y-6 pb-10">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-3xl font-bold tracking-tight">Schedule</h2>
+    <div className="space-y-4 sm:space-y-6 pb-3 sm:pb-10">
+      <div className="space-y-0.5 hidden md:block">
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Schedule</h2>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Manage and view class timetables</p>
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         {canManage && (
-          <div className="flex items-center">
-            <TabsList>
-              <TabsTrigger value="view">
-                <CalendarDays className="h-4 w-4 mr-2" />
+          <div className="w-full">
+            <TabsList className="w-full sm:w-auto h-12 p-1 bg-slate-100/80 dark:bg-slate-800/80 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 flex items-center">
+              <TabsTrigger
+                value="view"
+                className="flex-1 sm:flex-initial h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm data-[state=active]:font-bold text-slate-600 dark:data-[state=active]:bg-slate-900 dark:data-[state=active]:text-slate-100 dark:text-slate-400 flex items-center justify-center"
+              >
+                <CalendarDays className="h-4 w-4 mr-2 shrink-0" />
                 View Schedule
               </TabsTrigger>
-              <TabsTrigger value="manage">
-                <Settings className="h-4 w-4 mr-2" />
+              <TabsTrigger
+                value="manage"
+                className="flex-1 sm:flex-initial h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm data-[state=active]:font-bold text-slate-600 dark:data-[state=active]:bg-slate-900 dark:data-[state=active]:text-slate-100 dark:text-slate-400 flex items-center justify-center"
+              >
+                <Settings className="h-4 w-4 mr-2 shrink-0" />
                 Manage Schedule
               </TabsTrigger>
             </TabsList>
@@ -315,22 +325,23 @@ export default function SchedulePage() {
         )}
 
         <TabsContent value="view">
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-transparent">
-                <div>
-                  <CardTitle className="font-headline">
+          <Card className="border-none shadow-sm overflow-hidden bg-white dark:bg-slate-900 rounded-2xl">
+            <CardHeader className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3.5 bg-transparent">
+                <div className="space-y-0.5">
+                  <CardTitle className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
                     {isStudent ? "Your Class Schedule" : "Class Schedules"}
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                     {isStudent ? "Weekly timetable for your current grade" : "Select a class to view its schedule."}
                   </CardDescription>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+                {/* Mobile View Controls (< sm: side-by-side 2-col grid) */}
+                <div className="grid sm:hidden grid-cols-2 gap-2.5 w-full mt-1">
                   {!isStudent && classes.length > 0 && (
                     <Select onValueChange={(val) => setSelectedClass(val)} value={selectedClass}>
-                      <SelectTrigger className="w-full sm:w-[200px]">
+                      <SelectTrigger className="w-full h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm truncate">
                         <SelectValue placeholder="Select a class" />
                       </SelectTrigger>
                       <SelectContent>
@@ -343,8 +354,44 @@ export default function SchedulePage() {
                     </Select>
                   )}
                   {selectedClass && (
-                    <Button variant="outline" size="sm" onClick={handleDownloadPDF} disabled={loading}>
-                      <Download className="mr-2 h-4 w-4" />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDownloadPDF}
+                      disabled={loading}
+                      className="w-full h-11 font-semibold rounded-xl text-xs border-slate-200 shadow-sm hover:bg-slate-50 active:scale-95 transition-all truncate px-2"
+                    >
+                      <Download className="mr-1.5 h-3.5 w-3.5 text-slate-600 shrink-0" />
+                      <span className="truncate">Download PDF</span>
+                    </Button>
+                  )}
+                </div>
+
+                {/* Desktop View Controls (>= sm: flex row) */}
+                <div className="hidden sm:flex flex-row items-center gap-2.5 w-auto">
+                  {!isStudent && classes.length > 0 && (
+                    <Select onValueChange={(val) => setSelectedClass(val)} value={selectedClass}>
+                      <SelectTrigger className="w-[200px] h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm">
+                        <SelectValue placeholder="Select a class" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {classes.map((c) => (
+                          <SelectItem key={c.class_id} value={c.class_id.toString()}>
+                            {c.class_name}{c.section_name ? ` - ${c.section_name}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {selectedClass && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDownloadPDF}
+                      disabled={loading}
+                      className="h-11 font-semibold rounded-xl text-xs sm:text-sm border-slate-200 shadow-sm hover:bg-slate-50 active:scale-95 transition-all"
+                    >
+                      <Download className="mr-2 h-4 w-4 text-slate-600" />
                       Download PDF
                     </Button>
                   )}
@@ -357,11 +404,19 @@ export default function SchedulePage() {
               ) : selectedClass ? (
                 renderScheduleTable(selectedClass)
               ) : (
-                <div className="text-center py-10 text-muted-foreground border rounded-md bg-muted/20">
-                  {isStudent 
-                    ? "Your class schedule is not available."
-                    : "No classes with schedules found. Go to 'Manage Schedule' to create one."
-                  }
+                <div className="flex flex-col items-center justify-center py-12 px-4 text-center border-t border-slate-100 select-none">
+                  <div className="bg-slate-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 border border-slate-100 shadow-sm">
+                    <CalendarDays className="h-6 w-6 text-slate-400" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-800">
+                    {isStudent ? "No class schedule" : "No class selected"}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
+                    {isStudent 
+                      ? "Your class schedule is not available."
+                      : "No classes with schedules found. Go to 'Manage Schedule' to create one."
+                    }
+                  </p>
                 </div>
               )}
             </CardContent>

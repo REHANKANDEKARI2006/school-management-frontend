@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import axios from "@/lib/axios";
-import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, User } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, User, Bell } from "lucide-react";
 import { PageSkeleton, TableSkeleton } from "@/components/ui/skeletons";
 import { useFeedback } from "@/components/school-os/feedback-provider";
 import { Button } from "@/components/ui/button";
@@ -154,8 +154,102 @@ export default function NoticesPage() {
   }
 
   return (
-    <>
-      <Card>
+    <div className="space-y-4 animate-in fade-in duration-500 pb-6">
+      {/* ── Mobile Layout (< md) ── */}
+      <div className="block md:hidden space-y-4">
+        {/* Header */}
+        <div className="space-y-1 hidden">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+            E-Notice Board
+          </h1>
+          <p className="text-xs font-medium text-slate-500">
+            Post and manage digital notices for all users.
+          </p>
+        </div>
+
+        {/* Action Button */}
+        {!isStudent && (
+          <Button
+            onClick={openNewDialog}
+            className="w-full h-11 font-bold rounded-xl shadow-sm text-xs justify-center flex items-center gap-2 active:scale-95 transition-all"
+          >
+            <PlusCircle className="h-4 w-4" />
+            Post Notice
+          </Button>
+        )}
+
+        {/* Content Area */}
+        {loading ? (
+          <PageSkeleton rows={3} />
+        ) : filteredNotices.length === 0 ? (
+          <Card className="border border-slate-100 shadow-sm rounded-2xl bg-white p-8 text-center flex flex-col items-center justify-center gap-3">
+            <div className="h-12 w-12 rounded-2xl bg-slate-100/80 text-slate-400 flex items-center justify-center">
+              <Bell className="h-6 w-6 text-slate-400" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-slate-700">No notices found.</p>
+              <p className="text-xs text-slate-400">Published notices will appear here.</p>
+            </div>
+          </Card>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {filteredNotices.map((notice) => (
+              <div
+                key={notice.notice_id}
+                className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
+              >
+                <div className="flex justify-between items-start gap-3">
+                  <div className="flex-1 space-y-1">
+                    <h3 className="font-bold text-sm text-slate-900 leading-snug">{notice.title}</h3>
+                    <Badge
+                      variant="outline"
+                      className="rounded-md px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-slate-50 text-slate-700 border-slate-200"
+                    >
+                      {notice.audience_name || "General"}
+                    </Badge>
+                  </div>
+                  {!isStudent && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEditDialog(notice)}>Edit Notice</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => confirmDelete(notice)}>Delete Notice</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+
+                <p className="text-xs font-medium text-slate-600 bg-slate-50 border border-slate-100 p-2.5 rounded-xl line-clamp-3 leading-relaxed">
+                  {notice.content}
+                </p>
+
+                <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs text-slate-500 font-medium">
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-6 w-6 border border-slate-200">
+                      <AvatarImage src={notice.author_img || ""} alt={notice.author_name} />
+                      <AvatarFallback className="text-[8px] font-black bg-slate-100 text-slate-700">
+                        {getFallback(notice.author_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs font-semibold text-slate-700">{notice.author_name}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                    <CalendarIcon className="h-3 w-3" />
+                    {notice.post_date ? format(new Date(notice.post_date), "MMM d, yyyy") : "N/A"}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Desktop Layout (>= md) ── */}
+      <Card className="hidden md:block">
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
@@ -253,68 +347,16 @@ export default function NoticesPage() {
               </TableBody>
             </Table>
           </div>
-
-          {/* MOBILE CARD VIEW */}
-          <div className="md:hidden flex flex-col divide-y divide-border">
-            {loading ? (
-              <div className="p-4"><PageSkeleton rows={3} /></div>
-            ) : filteredNotices.length === 0 ? (
-              <div className="p-12 text-center text-muted-foreground">No notices found.</div>
-            ) : (
-              filteredNotices.map((notice) => (
-                <div key={notice.notice_id} className="p-4 bg-background hover:bg-muted/10 transition-colors">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                      <div className="font-bold text-lg leading-tight mb-1">{notice.title}</div>
-                      <Badge variant="outline" className="text-[10px] h-5 mb-2">
-                        {notice.audience_name || "General"}
-                      </Badge>
-                    </div>
-                    {!isStudent && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-slate-100">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEditDialog(notice)}>Edit</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive" onClick={() => confirmDelete(notice)}>Delete</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </div>
-                  
-                  <div className="text-sm text-muted-foreground mb-4 leading-relaxed line-clamp-3">
-                    {notice.content}
-                  </div>
-
-                  <div className="flex items-center justify-between mt-auto">
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-6 w-6 border">
-                        <AvatarFallback className="text-[8px] font-black bg-muted">
-                          {getFallback(notice.author_name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs font-medium text-slate-600">{notice.author_name}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                      <CalendarIcon className="h-3 w-3" />
-                      {notice.post_date ? format(new Date(notice.post_date), "MMM d, yyyy") : "N/A"}
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
         </CardContent>
       </Card>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="w-[94vw] sm:max-w-[450px] rounded-2xl left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%]">
-          <DialogHeader>
-            <DialogTitle>{selectedNotice ? "Edit Notice" : "Post New Notice"}</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="w-[92vw] sm:max-w-lg max-h-[90vh] p-0 border shadow-2xl rounded-2xl flex flex-col overflow-hidden left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%]">
+          <DialogHeader className="p-5 pb-4 sm:p-6 sm:pb-4 bg-slate-50/50 border-b shrink-0">
+            <DialogTitle className="text-lg sm:text-xl font-bold text-slate-900">
+              {selectedNotice ? "Edit Notice" : "Post New Notice"}
+            </DialogTitle>
+            <DialogDescription className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-0.5">
               {selectedNotice ? "Update the details of the notice." : "Fill in the details to post a new notice."}
             </DialogDescription>
           </DialogHeader>
@@ -326,8 +368,7 @@ export default function NoticesPage() {
           />
         </DialogContent>
       </Dialog>
-
       {/* Feedback modals handled by global FeedbackProvider */}
-    </>
+    </div>
   );
 }

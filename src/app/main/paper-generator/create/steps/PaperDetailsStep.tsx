@@ -132,29 +132,29 @@ export default function PaperDetailsStep({ paper, onChange }: Props) {
   const selectClass = `${inputClass} cursor-pointer`;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300">
+    <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300">
       {/* Step Header */}
       <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Paper Details</h1>
-        <p className="text-sm text-slate-500 mt-1">Configure class, subject, exam type, duration, and general paper guidelines.</p>
+        <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Paper Details</h1>
+        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Configure class, subject, exam type, duration, and general paper guidelines.</p>
       </div>
 
       {/* Main Form Card */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-8 space-y-6">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-8 space-y-5 sm:space-y-6">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3.5 sm:pb-4">
           <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
             <FileText className="h-4 w-4 text-[#3335e3]" /> General Configuration
           </h2>
           {linkedExam && (
-            <span className="flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
+            <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5">
               <CheckCircle2 size={12} /> Auto-filled from Exam
             </span>
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Standard / Class */}
-          <div className="space-y-2">
+          <div className="space-y-1.5 sm:space-y-2">
             <div className="flex items-center justify-between">
               {fieldLabel("Standard / Class", true)}
             </div>
@@ -176,7 +176,7 @@ export default function PaperDetailsStep({ paper, onChange }: Props) {
           </div>
 
           {/* Subject */}
-          <div className="space-y-2">
+          <div className="space-y-1.5 sm:space-y-2">
             <div className="flex items-center justify-between">
               {fieldLabel("Subject", true)}
             </div>
@@ -198,9 +198,9 @@ export default function PaperDetailsStep({ paper, onChange }: Props) {
           </div>
 
           {/* Exam Type / Linked Exam */}
-          <div className="space-y-2">
+          <div className="space-y-1.5 sm:space-y-2">
             {fieldLabel("Exam Type")}
-            <div className="relative">
+            <div className="relative w-full max-w-full min-w-0">
               <select
                 value={paper.exam_id?.toString() || paper.exam_type || ""}
                 onChange={(e) => {
@@ -226,7 +226,7 @@ export default function PaperDetailsStep({ paper, onChange }: Props) {
                     onChange({ exam_type: val, exam_id: undefined });
                   }
                 }}
-                className={`${selectClass} ${linkedExam ? "pr-8 border-[#3335e3]/40 ring-2 ring-[#3335e3]/10 font-semibold" : ""}`}
+                className={`${selectClass} max-w-full truncate ${linkedExam ? "pr-8 border-[#3335e3]/40 ring-2 ring-[#3335e3]/10 font-semibold" : ""}`}
               >
                 <option value="">Select Exam Type</option>
                 <optgroup label="Upcoming Scheduled Exams">
@@ -256,7 +256,7 @@ export default function PaperDetailsStep({ paper, onChange }: Props) {
           </div>
 
           {/* Total Marks */}
-          <div className="space-y-2">
+          <div className="space-y-1.5 sm:space-y-2">
             {fieldLabel("Total Marks", true)}
             <div className="relative">
               <input
@@ -275,7 +275,7 @@ export default function PaperDetailsStep({ paper, onChange }: Props) {
           </div>
 
           {/* Duration */}
-          <div className="space-y-2">
+          <div className="space-y-1.5 sm:space-y-2">
             {fieldLabel("Duration")}
             <select
               value={paper.duration_mins}
@@ -289,7 +289,7 @@ export default function PaperDetailsStep({ paper, onChange }: Props) {
           </div>
 
           {/* Academic Year */}
-          <div className="space-y-2">
+          <div className="space-y-1.5 sm:space-y-2">
             {fieldLabel("Academic Year")}
             <select
               value={paper.academic_year || "2025–26"}
@@ -304,13 +304,13 @@ export default function PaperDetailsStep({ paper, onChange }: Props) {
         </div>
 
         {/* Paper Instructions */}
-        <div className="space-y-2 pt-2">
+        <div className="space-y-1.5 sm:space-y-2 pt-1 sm:pt-2">
           {fieldLabel("Paper Instructions")}
           <textarea
             value={paper.instructions || ""}
             onChange={(e) => onChange({ instructions: e.target.value })}
             rows={4}
-            className="w-full p-3.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3] bg-white resize-y min-h-[100px] leading-relaxed shadow-sm font-sans"
+            className="w-full p-3.5 text-xs sm:text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3] bg-white resize-y min-h-[90px] leading-relaxed shadow-2xs font-sans"
             placeholder="Enter line-separated instructions for students, e.g.:&#10;1. All questions are compulsory.&#10;2. Write neatly and legibly.&#10;3. Show working where required."
           />
         </div>
@@ -318,19 +318,19 @@ export default function PaperDetailsStep({ paper, onChange }: Props) {
 
       {/* Summary Footer Chip */}
       {paper.class_name && paper.subject && (
-        <div className="bg-slate-900 text-white rounded-xl p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in">
+        <div className="bg-slate-900 text-white rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-lg bg-[#3335e3] flex items-center justify-center font-bold text-white shrink-0">
               ✓
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Paper Draft</p>
-              <p className="text-sm font-black text-white mt-0.5">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Paper Draft</p>
+              <p className="text-xs sm:text-sm font-black text-white mt-0.5">
                 {paper.class_name} • {paper.subject} • {paper.total_marks} Marks
               </p>
             </div>
           </div>
-          <div className="text-xs font-semibold text-slate-300 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700">
+          <div className="text-[11px] font-semibold text-slate-300 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 w-full sm:w-auto text-center sm:text-left">
             Duration: {DURATIONS.find((d) => d.value === paper.duration_mins)?.label || `${paper.duration_mins} min`}
           </div>
         </div>

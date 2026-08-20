@@ -7,7 +7,7 @@ import axios from "@/lib/axios";
 import { PageSkeleton } from "@/components/ui/skeletons";
 import { format } from "date-fns";
 
-import { MoreHorizontal, PlusCircle, Download, Eye } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Download, Eye, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -42,6 +42,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MaterialForm, type Material } from "@/components/school-os/material-form";
 import { Badge } from "@/components/ui/badge";
 import { useSearch } from "@/components/school-os/search-provider";
+import { ROLE, RoleId, ADMIN_GROUP } from "@/config/roles";
 
 const initialMaterials: Material[] = [
   {
@@ -63,8 +64,6 @@ const getFileTypeVariant = (fileType: string): "outline" | "default" | "secondar
     default: return "secondary";
   }
 };
-
-import { ROLE, RoleId, ADMIN_GROUP } from "@/config/roles";
 
 export default function MaterialsPage() {
   const { toast } = useToast();
@@ -343,8 +342,113 @@ export default function MaterialsPage() {
 
   return (
     <RouteGuard allowedRoles={[...ADMIN_GROUP, ROLE.TEACHER, ROLE.CLASS_TEACHER, ROLE.STUDENT]}>
-      <>
-        <Card>
+      <div className="space-y-4 animate-in fade-in duration-500 pb-6">
+        {/* ── Mobile Layout (< md) ── */}
+        <div className="block md:hidden space-y-4">
+          {/* Header */}
+          <div className="space-y-1 hidden">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+              Materials
+            </h1>
+            <p className="text-xs font-medium text-slate-500">
+              Study materials
+            </p>
+          </div>
+
+          {/* Action Button */}
+          {!isStudent && (
+            <Button
+              onClick={() => setIsFormOpen(true)}
+              className="w-full h-11 font-bold rounded-xl shadow-sm text-xs justify-center flex items-center gap-2 active:scale-95 transition-all"
+            >
+              <PlusCircle className="h-4 w-4" />
+              Upload Material
+            </Button>
+          )}
+
+          {/* Content Area */}
+          {loading ? (
+            <PageSkeleton rows={3} />
+          ) : filteredMaterials.length === 0 ? (
+            <Card className="border border-slate-100 shadow-sm rounded-2xl bg-white p-8 text-center flex flex-col items-center justify-center gap-3">
+              <div className="h-12 w-12 rounded-2xl bg-slate-100/80 text-slate-400 flex items-center justify-center">
+                <FileText className="h-6 w-6 text-slate-400" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-slate-700">No materials found.</p>
+                <p className="text-xs text-slate-400">Uploaded study materials will appear here.</p>
+              </div>
+            </Card>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {filteredMaterials.map((material) => (
+                <div
+                  key={material.material_id}
+                  className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
+                >
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex-1 space-y-1">
+                      <h3 className="font-bold text-sm text-slate-900 leading-snug">{material.material_name}</h3>
+                      <p className="text-xs font-medium text-slate-500">
+                        {material.class_name}{material.section_name ? ` - ${material.section_name}` : ""} • {material.subject_name}
+                      </p>
+                    </div>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setActiveMaterial(material);
+                            setIsViewOpen(true);
+                          }}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          View
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDownload(material)}
+                          disabled={downloadingId === material.material_id}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          {downloadingId === material.material_id ? "Downloading..." : "Download"}
+                        </DropdownMenuItem>
+                        {!isStudent && (
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                            onClick={() => handleDelete(material.material_id)}
+                            disabled={deletingId === material.material_id}
+                          >
+                            {deletingId === material.material_id ? "Deleting..." : "Delete"}
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500 font-medium">
+                    <Badge
+                      variant="outline"
+                      className="rounded-md px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-slate-50 text-slate-700 border-slate-200"
+                    >
+                      Document
+                    </Badge>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      {format(new Date(material.upload_date), "MMM d, yyyy")}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── Desktop Layout (>= md) ── */}
+        <Card className="hidden md:block">
           <CardHeader>
             <div className="flex justify-between">
               <div>
@@ -445,10 +549,10 @@ export default function MaterialsPage() {
         </Card>
 
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <DialogContent className="w-[94vw] sm:max-w-[425px] rounded-2xl left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%]">
-            <DialogHeader>
-              <DialogTitle>Upload Material</DialogTitle>
-              <DialogDescription>Add study material</DialogDescription>
+          <DialogContent className="w-[92vw] sm:max-w-lg max-h-[90vh] p-0 border shadow-2xl rounded-2xl flex flex-col overflow-hidden left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%]">
+            <DialogHeader className="p-5 pb-4 sm:p-6 sm:pb-4 bg-slate-50/50 border-b shrink-0">
+              <DialogTitle className="text-lg sm:text-xl font-bold text-slate-900">Upload Material</DialogTitle>
+              <DialogDescription className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-0.5">Add study material</DialogDescription>
             </DialogHeader>
             <MaterialForm 
               onSubmit={handleCreateMaterial} 
@@ -500,7 +604,7 @@ export default function MaterialsPage() {
             </div>
           </DialogContent>
         </Dialog>
-      </>
+      </div>
     </RouteGuard>
   );
 }

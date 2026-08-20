@@ -240,6 +240,114 @@ function SubjectColumnHeaders() {
   );
 }
 
+/* ===================================================================
+   MOBILE SUBJECT CARD (No horizontal overflow)
+=================================================================== */
+function MobileSubjectCard({ row, subjects, onChange, onDelete, isOnly, idx }: RowProps) {
+  const dur = calcDuration(row.start_time, row.end_time);
+  const day = getDayShort(row.date);
+  const filled = !!(row.subject_id && row.date && row.start_time && row.end_time);
+
+  return (
+    <div className={cn(
+      "bg-white rounded-2xl border p-4 space-y-3.5 relative shadow-sm transition-all hover:border-slate-300",
+      filled ? "border-slate-200" : "border-slate-100"
+    )}>
+      {/* Header: Index badge, Subject name dropdown & Delete */}
+      <div className="flex items-center justify-between gap-2.5 border-b border-slate-100 pb-3.5">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <span className={cn(
+            "h-6 w-6 rounded-full text-xs font-bold flex items-center justify-center shrink-0 shadow-xs",
+            filled ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-500"
+          )}>
+            {idx + 1}
+          </span>
+          <div className="min-w-0 flex-1">
+            <Select
+              value={row.subject_id || ""}
+              onValueChange={(val) => {
+                const s = subjects.find((x) => String(x.subject_id) === val);
+                onChange(row.id, "subject_id", val);
+                onChange(row.id, "subject_name", s?.subject_name || "");
+              }}
+            >
+              <SelectTrigger className="h-11 text-xs font-semibold w-full bg-white border-slate-200 rounded-xl shadow-sm">
+                <SelectValue placeholder="Select subject…" />
+              </SelectTrigger>
+              <SelectContent>
+                {subjects.map((s) => (
+                  <SelectItem key={s.subject_id} value={String(s.subject_id)}>
+                    {s.subject_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all shrink-0 rounded-xl active:scale-95"
+          onClick={() => onDelete(row.id)}
+          disabled={isOnly}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Date & Day row */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Exam Date</Label>
+          <Input
+            type="date"
+            value={row.date}
+            onChange={(e) => onChange(row.id, "date", e.target.value)}
+            className="h-11 text-xs font-semibold px-3 bg-white border-slate-200 rounded-xl shadow-sm cursor-pointer"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Day</Label>
+          <div className="h-11 px-3 rounded-xl border border-slate-200/60 bg-slate-100/70 flex items-center justify-center">
+            <span className="text-xs font-bold text-slate-700">{day || "—"}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Start Time & End Time row */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Start Time</Label>
+          <Input
+            type="time"
+            value={row.start_time}
+            onChange={(e) => onChange(row.id, "start_time", e.target.value)}
+            className="h-11 text-xs font-semibold px-3 bg-white border-slate-200 rounded-xl shadow-sm cursor-pointer"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">End Time</Label>
+          <Input
+            type="time"
+            value={row.end_time}
+            onChange={(e) => onChange(row.id, "end_time", e.target.value)}
+            className="h-11 text-xs font-semibold px-3 bg-white border-slate-200 rounded-xl shadow-sm cursor-pointer"
+          />
+        </div>
+      </div>
+
+      {dur ? (
+        <div className="flex items-center justify-between text-xs bg-emerald-50/90 border border-emerald-200/80 px-3.5 py-2.5 rounded-xl text-emerald-800 font-semibold shadow-xs">
+          <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Duration</span>
+          <span className="font-extrabold text-xs text-emerald-900 bg-emerald-100/80 px-2.5 py-0.5 rounded-lg border border-emerald-200/50">{dur}</span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 
 /* ===================================================================
    MAIN PAGE
@@ -501,14 +609,14 @@ export default function CreateExamPage() {
 
   /* ── RENDER ── */
   return (
-    <div className="flex flex-col gap-4 pb-12">
+    <div className="flex flex-col gap-4 pb-3 sm:pb-12">
 
       {/* ── Page header ── */}
       <div className="flex flex-col gap-2">
         <button
           type="button"
           onClick={() => router.push("/main/exams")}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors group w-fit"
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors group w-fit"
         >
           <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform" />
           Back to Exams
@@ -516,20 +624,22 @@ export default function CreateExamPage() {
 
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-xl font-bold text-foreground">Create Exam Timetable</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+              {isEdit ? "Edit Schedule" : "Create Exam Timetable"}
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
               Fill exam details, add subjects with dates, then publish.
             </p>
           </div>
           {/* Step indicators */}
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full bg-primary text-primary-foreground shadow-sm">
-              <ClipboardList className="h-3 w-3" />
+          <div className="hidden sm:flex items-center gap-2 shrink-0">
+            <span className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-900 text-white shadow-sm">
+              <ClipboardList className="h-3.5 w-3.5" />
               1 · Details
             </span>
-            <span className="w-5 h-px bg-border" />
-            <span className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full bg-background border border-primary/30 text-primary">
-              <BookOpen className="h-3 w-3" />
+            <span className="w-4 h-px bg-slate-200" />
+            <span className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 shadow-sm">
+              <BookOpen className="h-3.5 w-3.5" />
               2 · Subjects
             </span>
           </div>
@@ -537,52 +647,48 @@ export default function CreateExamPage() {
       </div>
 
       {/* ── Step 1: Exam Details (Full Width at Top) ── */}
-      <Card className="shadow-sm border-border bg-card">
-        <CardHeader className="pt-4 pb-3 px-5">
+      <Card className="border-none shadow-sm overflow-hidden bg-white dark:bg-slate-900 rounded-2xl">
+        <CardHeader className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
-            <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <FileText className="h-4 w-4 text-primary" />
+            <div className="h-8 w-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+              <FileText className="h-4 w-4 text-slate-700 dark:text-slate-300" />
             </div>
             <div>
-              <CardTitle className="text-sm font-bold">Exam Details</CardTitle>
-              <CardDescription className="text-[11px] mt-0">Basic info about this exam</CardDescription>
+              <CardTitle className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">Exam Details</CardTitle>
+              <CardDescription className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Basic info about this exam</CardDescription>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="px-5 pb-5">
-          {dropdownLoading ? (
-            <div className="flex items-center justify-center py-6 gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Loading…</span>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <CardContent className="p-4 sm:p-5">
+          {dropdownLoading ? null : (
+            <div className="space-y-3.5">
+              {/* Row 1: Exam Name (left) & Class (right) */}
+              <div className="grid grid-cols-2 gap-3.5">
                 {/* Exam Name */}
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label htmlFor="exam-name" className="text-xs font-semibold text-foreground/80">
-                    Exam Name <span className="text-destructive">*</span>
+                <div className="space-y-1.5 col-span-1">
+                  <Label htmlFor="exam-name" className="text-xs font-semibold text-slate-700">
+                    Exam Name <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="exam-name"
                     placeholder="e.g. Unit Test 1, Mid-Term Examination"
                     value={examName}
                     onChange={(e) => setExamName(e.target.value)}
-                    className="h-9 text-sm bg-background border-input hover:border-primary/20 focus-visible:ring-primary/25"
+                    className="h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm truncate"
                   />
                 </div>
 
                 {/* Class */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="class-sel" className="text-xs font-semibold text-foreground/80">
-                    Class <span className="text-destructive">*</span>
+                <div className="space-y-1.5 col-span-1">
+                  <Label htmlFor="class-sel" className="text-xs font-semibold text-slate-700">
+                    Class <span className="text-red-500">*</span>
                   </Label>
                   <Select value={selectedClassId} onValueChange={(v) => {
                     setSelectedClassId(v);
                     setSelectedClassName(uniqueStandards.find((s) => String(s.id) === v)?.name || v);
                   }}>
-                    <SelectTrigger id="class-sel" className="h-9 text-sm bg-background border-input hover:border-primary/20">
+                    <SelectTrigger id="class-sel" className="h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm truncate">
                       <SelectValue placeholder="Select class" />
                     </SelectTrigger>
                     <SelectContent>
@@ -592,17 +698,20 @@ export default function CreateExamPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
 
+              {/* Row 2: Exam Type (left) & Academic Year (right) */}
+              <div className="grid grid-cols-2 gap-3.5">
                 {/* Exam Type */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="exam-type" className="text-xs font-semibold text-foreground/80">
-                    Exam Type <span className="text-destructive">*</span>
+                <div className="space-y-1.5 col-span-1">
+                  <Label htmlFor="exam-type" className="text-xs font-semibold text-slate-700">
+                    Exam Type <span className="text-red-500">*</span>
                   </Label>
                   <Select value={selectedExamTypeId} onValueChange={(v) => {
                     setSelectedExamTypeId(v);
                     setSelectedExamTypeName(examTypes.find((t) => String(t.exam_type_id) === v)?.exam_type_name || "");
                   }}>
-                    <SelectTrigger id="exam-type" className="h-9 text-sm bg-background border-input hover:border-primary/20">
+                    <SelectTrigger id="exam-type" className="h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm truncate">
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -614,34 +723,32 @@ export default function CreateExamPage() {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {/* Academic Year */}
-                <div className="space-y-1.5 md:col-span-1">
-                  <Label htmlFor="acad-year" className="text-xs font-semibold text-foreground/80">Academic Year</Label>
+                <div className="space-y-1.5 col-span-1">
+                  <Label htmlFor="acad-year" className="text-xs font-semibold text-slate-700">Academic Year</Label>
                   <Input
                     id="acad-year"
                     placeholder="2025-26"
                     value={academicYear}
                     onChange={(e) => setAcademicYear(e.target.value)}
-                    className="h-9 text-sm bg-background border-input hover:border-primary/20 focus-visible:ring-primary/25"
+                    className="h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm truncate"
                   />
                 </div>
+              </div>
 
-                {/* Instructions */}
-                <div className="space-y-1.5 md:col-span-3">
-                  <Label htmlFor="instructions" className="text-xs font-semibold text-foreground/80">
-                    Instructions <span className="font-normal text-muted-foreground">(optional)</span>
-                  </Label>
-                  <Input
-                    id="instructions"
-                    placeholder="e.g. All questions are compulsory"
-                    value={instructions}
-                    onChange={(e) => setInstructions(e.target.value)}
-                    className="h-9 text-sm bg-background border-input hover:border-primary/20 focus-visible:ring-primary/25"
-                  />
-                </div>
+              {/* Row 3: Instructions (full-width) */}
+              <div className="space-y-1.5 w-full">
+                <Label htmlFor="instructions" className="text-xs font-semibold text-slate-700">
+                  Instructions <span className="font-normal text-slate-400">(optional)</span>
+                </Label>
+                <Input
+                  id="instructions"
+                  placeholder="e.g. All questions are compulsory"
+                  value={instructions}
+                  onChange={(e) => setInstructions(e.target.value)}
+                  className="h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm"
+                />
               </div>
             </div>
           )}
@@ -655,37 +762,34 @@ export default function CreateExamPage() {
         <div className="lg:col-span-7 flex flex-col gap-4">
 
           {/* ── Step 2: Subject Schedule ── */}
-          <Card className="shadow-sm border-border bg-card">
-            <CardHeader className="pt-4 pb-3 px-5">
-              <div className="flex items-start justify-between gap-3">
+          <Card className="border-none shadow-sm overflow-hidden bg-white dark:bg-slate-900 rounded-2xl">
+            <CardHeader className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <BookOpen className="h-4 w-4 text-primary" />
+                  <div className="h-8 w-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                    <BookOpen className="h-4 w-4 text-slate-700 dark:text-slate-300" />
                   </div>
                   <div>
-                    <CardTitle className="text-sm font-bold">Subject Schedule</CardTitle>
-                    <CardDescription className="text-[11px] mt-0">
+                    <CardTitle className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">Subject Schedule</CardTitle>
+                    <CardDescription className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       Dates &amp; duration fill automatically
                     </CardDescription>
                   </div>
                 </div>
                 <Badge
                   variant={filledCount > 0 ? "default" : "secondary"}
-                  className="text-[10px] font-mono shrink-0 mt-0.5"
+                  className="text-[10px] font-semibold shrink-0"
                 >
                   {filledCount}/{rows.length} filled
                 </Badge>
               </div>
             </CardHeader>
 
-            <CardContent className="px-5 pb-5 space-y-2">
-              {/* Horizontal Scroll wrapper for responsive viewports */}
-              <div className="overflow-x-auto pb-2 -mx-2 px-2">
+            <CardContent className="p-4 sm:p-5 space-y-3">
+              {/* Desktop Table View (>= sm) */}
+              <div className="hidden sm:block overflow-x-auto pb-2 -mx-2 px-2">
                 <div className="min-w-[820px] space-y-2">
-                  {/* Column labels */}
                   <SubjectColumnHeaders />
-
-                  {/* Subject rows — single line layout */}
                   <div className="space-y-2">
                     {rows.map((row, idx) => (
                       <SubjectRow
@@ -702,6 +806,21 @@ export default function CreateExamPage() {
                 </div>
               </div>
 
+              {/* Mobile Card View (< sm: zero overflow) */}
+              <div className="block sm:hidden space-y-3">
+                {rows.map((row, idx) => (
+                  <MobileSubjectCard
+                    key={row.id}
+                    row={row}
+                    subjects={subjects}
+                    onChange={handleRowChange}
+                    onDelete={handleDeleteRow}
+                    isOnly={rows.length === 1}
+                    idx={idx}
+                  />
+                ))}
+              </div>
+
               {/* Add Subject */}
               <Button
                 type="button"
@@ -709,26 +828,25 @@ export default function CreateExamPage() {
                 size="sm"
                 onClick={handleAddRow}
                 disabled={isBusy}
-                className="w-full gap-2 mt-2 border-dashed border-primary/40 text-primary text-xs font-semibold hover:bg-primary/5 hover:border-primary/60"
+                className="w-full h-11 gap-2 mt-2 border-dashed border-slate-300 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-50 active:scale-95 transition-all"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-4 w-4 text-slate-500" />
                 Add Subject
               </Button>
             </CardContent>
           </Card>
 
           {/* ── Action bar ── */}
-          <Card className="shadow-sm border-border bg-card">
-            <CardContent className="px-5 py-4">
+          <Card className="border-none shadow-sm overflow-hidden bg-white dark:bg-slate-900 rounded-2xl">
+            <CardContent className="p-4">
               {/* Saving progress */}
               {isBusy && totalToSave > 0 && (
-                <div className="mb-3 px-3 py-2.5 rounded-lg bg-primary/5 border border-primary/15 flex items-center gap-3">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+                <div className="mb-3 px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-3">
                   <div className="flex-1">
-                    <p className="text-xs font-semibold">Saving {savedCount} of {totalToSave} subjects…</p>
-                    <div className="mt-1 h-1 rounded-full bg-primary/10 overflow-hidden">
+                    <p className="text-xs font-semibold text-slate-800">Saving {savedCount} of {totalToSave} subjects…</p>
+                    <div className="mt-1 h-1 rounded-full bg-slate-200 overflow-hidden">
                       <div
-                        className="h-full bg-primary rounded-full transition-all"
+                        className="h-full bg-slate-900 rounded-full transition-all"
                         style={{ width: `${totalToSave > 0 ? (savedCount / totalToSave) * 100 : 0}%` }}
                       />
                     </div>
@@ -736,30 +854,28 @@ export default function CreateExamPage() {
                 </div>
               )}
 
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-muted-foreground">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <p className="text-xs font-medium text-slate-500">
                   {filledCount} subject{filledCount !== 1 ? "s" : ""} ready
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="grid grid-cols-2 gap-2.5 w-full sm:w-auto">
                   <Button
                     type="button"
                     variant="outline"
-                    size="sm"
                     onClick={() => handleSave(true)}
                     disabled={isBusy}
-                    className="gap-1.5 text-xs"
+                    className="w-full h-11 text-xs font-bold rounded-xl border-slate-200 shadow-sm hover:bg-slate-50 active:scale-95 transition-all"
                   >
-                    {savingDraft ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                    <Save className="h-4 w-4 mr-1.5" />
                     Save Draft
                   </Button>
                   <Button
                     type="button"
-                    size="sm"
                     onClick={() => handleSave(false)}
                     disabled={isBusy}
-                    className="gap-1.5 text-xs font-semibold"
+                    className="w-full h-11 text-xs font-bold rounded-xl shadow-sm active:scale-95 transition-all"
                   >
-                    {publishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                    <Send className="h-4 w-4 mr-1.5" />
                     Publish Timetable
                   </Button>
                 </div>

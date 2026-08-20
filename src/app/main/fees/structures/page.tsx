@@ -2,7 +2,7 @@
 
 import { PageSkeleton } from "@/components/ui/skeletons";
 import * as React from "react";
-import { PlusCircle, Download, BookOpen, Calculator, Calendar, Layers, Edit, Trash2 } from "lucide-react";
+import { PlusCircle, Download, BookOpen, Calculator, Calendar, Layers, Edit, Trash2, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -37,6 +37,8 @@ import { UpdateFeeAmountDialog } from "@/components/school-os/update-fee-amount-
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+import { useFeedback } from "@/components/school-os/feedback-provider";
+
 interface ClassWithFeeStructures {
   id: string;
   name: string;
@@ -46,6 +48,7 @@ interface ClassWithFeeStructures {
 
 export default function FeeStructuresPage() {
   const { toast } = useToast();
+  const { showWarning } = useFeedback();
   const router = useRouter();
 
   const [feeStructures, setFeeStructures] = React.useState<any[]>([]);
@@ -53,6 +56,7 @@ export default function FeeStructuresPage() {
   const [classes, setClasses] = React.useState<ClassItem[]>([]);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
+  const [selectedMobileStandard, setSelectedMobileStandard] = React.useState<string>("all");
 
   // Edit State
   const [editDialog, setEditDialog] = React.useState<{
@@ -111,16 +115,22 @@ export default function FeeStructuresPage() {
     loadData();
   };
 
-  const handleDelete = async (standardName: string, feeCatId: number) => {
-    if (!confirm(`Are you sure you want to remove this category from Standard ${standardName}?`)) return;
-    try {
-        await deleteFeeStructure(standardName, feeCatId);
-        toast({ title: "Category removed from structure" });
-        loadData();
-    } catch (e) {
-        console.error(e);
-        toast({ title: "Failed to delete", variant: "destructive" });
-    }
+  const handleDelete = (standardName: string, feeCatId: number) => {
+    showWarning(
+      `Remove category from Standard ${standardName}?`,
+      "This action cannot be undone. The category will be removed from this fee structure.",
+      async () => {
+        try {
+          await deleteFeeStructure(standardName, feeCatId);
+          toast({ title: "Category removed from structure" });
+          loadData();
+        } catch (e) {
+          console.error(e);
+          toast({ title: "Failed to delete", variant: "destructive" });
+        }
+      },
+      "Yes, Remove"
+    );
   };
 
   const handleEditAmount = (standardName: string, categoryName: string, feeCatId: number, currentAmount: number) => {
@@ -170,8 +180,9 @@ export default function FeeStructuresPage() {
   if (loading) return <PageSkeleton rows={5} />;
 
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="space-y-4 sm:space-y-6 pb-2 sm:pb-8">
+      {/* Desktop Header Card (100% Untouched for Desktop) */}
+      <Card className="hidden sm:block">
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -193,7 +204,35 @@ export default function FeeStructuresPage() {
         </CardHeader>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      {/* Mobile Header & Action (Strictly sm:hidden) */}
+      <div className="sm:hidden w-full flex flex-col gap-3">
+        {/* Mobile Back Button */}
+        <button
+          onClick={() => router.push('/main/fees')}
+          className="flex items-center gap-1.5 text-slate-700 font-bold text-xs bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 shadow-xs active:scale-95 transition-all w-fit"
+        >
+          <ArrowLeft className="h-4 w-4 text-slate-700" />
+          <span>Back to Fees</span>
+        </button>
+
+        {/* Mobile Header Title Card */}
+        <div className="w-full bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-xs space-y-1 hidden">
+          <h1 className="text-xl font-black text-slate-900 tracking-tight">Fee Structures</h1>
+          <p className="text-xs font-medium text-slate-500">Configuration & Class Structures</p>
+        </div>
+
+        {/* Mobile Primary Action Button */}
+        <Button
+          onClick={() => setIsFormOpen(true)}
+          className="w-full flex items-center justify-center gap-2"
+        >
+          <PlusCircle className="h-4 w-4" />
+          <span>Create Structure</span>
+        </Button>
+      </div>
+
+      {/* Desktop Grid Layout (100% Untouched for Desktop) */}
+      <div className="hidden sm:grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {structuresByClass.map((cls) => (
             <Card key={cls.id} className="flex flex-col border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
               <CardHeader className="bg-muted/30 border-b pb-4">
@@ -271,24 +310,128 @@ export default function FeeStructuresPage() {
         ))}
       </div>
 
+      {/* Polished Native Mobile Layout (Strictly sm:hidden) */}
+      <div className="sm:hidden w-full flex flex-col gap-3.5">
+        {/* Mobile Standard Filter Dropdown */}
+        <div className="w-full bg-white rounded-2xl px-3.5 py-2.5 border border-slate-200/80 shadow-xs flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-slate-700 font-bold text-xs">
+            <Filter className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+            <span>Filter Standard:</span>
+          </div>
+          <select
+            value={selectedMobileStandard}
+            onChange={(e) => setSelectedMobileStandard(e.target.value)}
+            className="h-8 rounded-xl border border-slate-200 bg-slate-50/90 px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer text-center w-auto min-w-[120px]"
+          >
+            <option value="all">All Standards ({structuresByClass.length})</option>
+            {structuresByClass.map((cls) => (
+              <option key={cls.id} value={cls.id}>
+                {cls.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Mobile Stacked Cards */}
+        {structuresByClass
+          .filter((cls) => selectedMobileStandard === "all" || cls.id === selectedMobileStandard)
+          .map((cls) => (
+            <div
+              key={cls.id}
+              className="w-full bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col gap-3"
+            >
+              {/* Standard Section Header Row */}
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                <h2 className="text-base font-black text-slate-900 tracking-tight">{cls.name}</h2>
+                <Badge variant="secondary" className="font-bold text-[11px] px-2.5 py-0.5 rounded-xl">
+                  {cls.structures.length} Components
+                </Badge>
+              </div>
+
+              {/* Fee Category List Items */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">
+                  <span>Fee Category</span>
+                  <span>Amount & Actions</span>
+                </div>
+
+                {cls.structures.map((s) => (
+                  <div
+                    key={s.fee_struct_id}
+                    className="py-2 px-3 rounded-xl border border-slate-100 bg-slate-50/40 flex items-center justify-between gap-2"
+                  >
+                    <span className="text-xs font-bold text-slate-800 break-words flex-1">
+                      {s.categoryName}
+                    </span>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-xs font-black text-slate-900 mr-1">
+                        ₹{Number(s.amount).toLocaleString()}
+                      </span>
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 min-w-[32px] rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 active:scale-95 transition-all"
+                        onClick={() => handleEditAmount(cls.id, s.categoryName, s.fee_cat_id, s.amount)}
+                        title="Edit Amount"
+                      >
+                        <Edit className="h-3.5 w-3.5" />
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 min-w-[32px] rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 active:scale-95 transition-all"
+                        onClick={() => handleDelete(cls.id, s.fee_cat_id)}
+                        title="Remove Category"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Total Annual Fee & Add/Edit Category Row */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Annual Fee</span>
+                  <strong className="text-base font-black text-slate-900">₹{cls.totalAmount.toLocaleString()}</strong>
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-3 rounded-xl border-blue-200 text-blue-700 bg-blue-50/50 hover:bg-blue-100/50 text-xs font-bold active:scale-95 transition-all flex items-center gap-1.5 shrink-0"
+                  onClick={() => handleOpenCreateForm(cls.id)}
+                >
+                  <PlusCircle className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                  <span>Edit / Add</span>
+                </Button>
+              </div>
+            </div>
+          ))}
+      </div>
+
       <Dialog open={isFormOpen} onOpenChange={(open) => {
         setIsFormOpen(open);
         if (!open) setSelectedEditStandard(null);
       }}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-black">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] w-[calc(100vw-32px)] max-w-lg rounded-2xl overflow-y-auto p-5 border border-slate-200/90 shadow-xl bg-white space-y-0">
+          <DialogHeader className="pb-3">
+            <DialogTitle className="text-xl font-black text-slate-900 tracking-tight">
               {selectedEditStandard ? `Edit Structure: Standard ${selectedEditStandard}` : "Define Fee Structure"}
             </DialogTitle>
-            <DialogDescription className="text-sm font-medium">
+            <DialogDescription className="text-xs font-medium text-slate-500 leading-relaxed">
               {selectedEditStandard 
                 ? `Add new fee categories or update fee components for Standard ${selectedEditStandard}.`
                 : "Create a new mapping between a fee category and an academic standard. This will apply to all students in that standard."
               }
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-              <FeeStructureForm initialStandard={selectedEditStandard || undefined} onSubmit={handleFormSubmit} />
+          <div className="pt-2">
+            <FeeStructureForm initialStandard={selectedEditStandard || undefined} onSubmit={handleFormSubmit} />
           </div>
         </DialogContent>
       </Dialog>

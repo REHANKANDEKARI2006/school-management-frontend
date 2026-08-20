@@ -29,7 +29,7 @@ export default function PreviewStep({ paper }: Props) {
   const [published, setPublished]         = useState(paper.status === "Published");
  
   useEffect(() => {
-    if (window.innerWidth < 768) setZoom(0.45);
+    if (window.innerWidth < 768) setZoom(0.3);
     const id = setInterval(() => {
       if (contentRef.current) setContentH(contentRef.current.scrollHeight);
     }, 400);
@@ -620,32 +620,34 @@ export default function PreviewStep({ paper }: Props) {
  
   return (
     <>
-      <div className="flex flex-col lg:flex-row gap-6">
+      <div className="flex flex-col lg:flex-row gap-6 animate-in fade-in duration-300">
    
         {/* ── Paper Preview ── */}
-        <div className="flex-1 bg-slate-100 rounded-2xl border border-slate-200 relative min-h-[500px] lg:h-[780px] overflow-hidden">
+        <div className="flex-1 bg-slate-100 rounded-2xl border border-slate-200 relative h-auto min-h-[260px] max-h-[480px] lg:max-h-none lg:h-[780px] overflow-hidden">
    
-          {/* Zoom controls */}
-          <div className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-white rounded-xl border border-slate-200 shadow-sm p-1">
+          {/* Floating Zoom controls bar matching native PDF viewers */}
+          <div className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-white/95 backdrop-blur-md rounded-xl border border-slate-200/90 shadow-md p-1">
             <button
               onClick={() => setZoom(z => Math.max(0.3, +(z - 0.1).toFixed(1)))}
-              className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 active:scale-95 transition-all"
+              title="Zoom out"
             >
-              <ZoomOut className="h-3.5 w-3.5" />
+              <ZoomOut className="h-4 w-4" />
             </button>
-            <span className="text-[11px] font-bold text-slate-600 w-10 text-center">{Math.round(zoom * 100)}%</span>
+            <span className="text-xs font-black text-slate-700 w-12 text-center select-none">{Math.round(zoom * 100)}%</span>
             <button
               onClick={() => setZoom(z => Math.min(1.5, +(z + 0.1).toFixed(1)))}
-              className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 active:scale-95 transition-all"
+              title="Zoom in"
             >
-              <ZoomIn className="h-3.5 w-3.5" />
+              <ZoomIn className="h-4 w-4" />
             </button>
           </div>
    
           {/* Scrollable preview area */}
-          <div className="w-full h-full overflow-auto p-6">
+          <div className="w-full h-full overflow-auto p-3 sm:p-6 flex items-start justify-center max-h-[460px] lg:max-h-none">
             <div
-              className="relative transition-all duration-200"
+              className="relative transition-all duration-200 max-w-full"
               style={{
                 width:  `calc(210mm * ${zoom})`,
                 height: contentH > 0 ? `calc(${contentH}px * ${zoom})` : "auto",
@@ -667,84 +669,90 @@ export default function PreviewStep({ paper }: Props) {
         <div className="w-full lg:w-72 shrink-0 space-y-4">
    
           {/* Status Card */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-            <div className="flex items-center gap-2 mb-1">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-              <h2 className="text-base font-black text-slate-900">Paper Ready</h2>
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-4">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-black text-slate-900 leading-tight">Paper Ready</h2>
+                <p className="text-xs text-slate-500">Formatted and ready for download.</p>
+              </div>
             </div>
-            <p className="text-xs text-slate-500 mb-5">Your question paper is formatted and ready to download.</p>
    
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-3 mb-5">
+            {/* 2x2 Stats Grid */}
+            <div className="grid grid-cols-2 gap-2.5">
               {[
                 { label: "Questions", value: totalQ },
                 { label: "Total Marks", value: paper.total_marks },
                 { label: "Assigned", value: totalMarks },
                 { label: "Class", value: paper.class_name || "—" },
               ].map(stat => (
-                <div key={stat.label} className="bg-slate-50 rounded-xl p-3 text-center">
-                  <p className="text-lg font-black text-slate-900">{stat.value}</p>
-                  <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">{stat.label}</p>
+                <div key={stat.label} className="bg-slate-50/80 rounded-xl p-3 text-center border border-slate-100">
+                  <p className="text-base sm:text-lg font-black text-slate-900">{stat.value}</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">{stat.label}</p>
                 </div>
               ))}
             </div>
    
-            {/* PDF Options */}
-            <div className="bg-slate-50 rounded-xl p-4 mb-5 space-y-3">
+            {/* PDF Export Options Card */}
+            <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-100 space-y-2.5">
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Export Options</p>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <div>
-                  <Label className="text-xs font-bold">Generate Answer Key</Label>
+                  <Label className="text-xs font-bold text-slate-800">Generate Answer Key</Label>
                   <p className="text-[10px] text-slate-400">Downloads additional Answer PDF</p>
                 </div>
                 <Switch checked={includeKey} onCheckedChange={setIncludeKey} />
               </div>
             </div>
    
-            {/* Action Buttons */}
-            <div className="space-y-3">
+            {/* Full Width Action Buttons */}
+            <div className="space-y-2.5 pt-1">
               <button
+                type="button"
                 onClick={handleDownload}
                 disabled={isDownloading || !paper.paper_id}
-                className="w-full flex items-center justify-center gap-2 h-11 bg-[#3335e3] hover:bg-[#3335e3]/90 text-white text-sm font-bold rounded-xl transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 h-11 bg-[#3335e3] hover:bg-[#3335e3]/90 text-white text-xs font-bold rounded-xl shadow-2xs transition-all active:scale-[0.99] disabled:opacity-50"
               >
-                {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                <Download className="h-4 w-4" />
                 Download PDF
               </button>
    
               {!published ? (
                 <button
+                  type="button"
                   onClick={handlePublish}
                   disabled={isPublishing || !paper.paper_id}
-                  className="w-full flex items-center justify-center gap-2 h-11 border border-green-200 bg-green-50 hover:bg-green-100 text-green-700 text-sm font-bold rounded-xl transition-all disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 h-11 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-xl transition-all active:scale-[0.99] disabled:opacity-50"
                 >
-                  {isPublishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                  <FileText className="h-4 w-4" />
                   Publish to Portal
                 </button>
               ) : (
-                <div className="flex items-center justify-center gap-2 h-11 bg-green-50 border border-green-100 rounded-xl">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <span className="text-xs font-black text-green-700 uppercase tracking-wider">Published!</span>
+                <div className="flex items-center justify-center gap-2 h-11 bg-emerald-50 border border-emerald-200 rounded-xl">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <span className="text-xs font-black text-emerald-700 uppercase tracking-wider">Published!</span>
                 </div>
               )}
             </div>
           </div>
    
-          {/* Paper ID Card */}
+          {/* Paper Details Card */}
           {paper.paper_id && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Paper Details</p>
-              <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Paper ID</span>
-                  <span className="font-bold text-slate-800">#QP-{paper.paper_id}</span>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Paper Details</p>
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between items-center py-1 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Paper ID</span>
+                  <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">#QP-{paper.paper_id}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Subject</span>
-                  <span className="font-bold text-slate-800 truncate max-w-[120px]">{paper.subject}</span>
+                <div className="flex justify-between items-center py-1 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Subject</span>
+                  <span className="font-bold text-slate-800 truncate max-w-[140px] text-right">{paper.subject}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Class</span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-slate-500 font-medium">Class</span>
                   <span className="font-bold text-slate-800">{paper.class_name}</span>
                 </div>
               </div>
@@ -752,8 +760,9 @@ export default function PreviewStep({ paper }: Props) {
           )}
    
           <button
+            type="button"
             onClick={() => router.push("/main/paper-generator")}
-            className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+            className="w-full flex items-center justify-center gap-2 h-10 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Library

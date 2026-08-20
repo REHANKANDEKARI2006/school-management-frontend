@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { cn, formatDate } from "@/lib/utils";
 import axios from "@/lib/axios";
@@ -70,7 +70,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StudentForm } from "@/components/school-os/student-form";
+import { ClassForm, type ClassFormData } from "@/components/school-os/class-form";
 import { PageSkeleton } from "@/components/ui/skeletons";
+import { useFeedback } from "@/components/school-os/feedback-provider";
 import { ADMIN_GROUP, TEACHING_STAFF_GROUP } from "@/config/roles";
 import { useToast } from "@/hooks/use-toast";
 import { getMySchedule } from "@/lib/api/schedule";
@@ -109,6 +111,7 @@ interface ClassManagementViewProps {
 export function ClassManagementView({ classId, hideBackButton = false }: ClassManagementViewProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const { showWarning } = useFeedback();
   const [loading, setLoading] = useState(true);
   const [classInfo, setClassInfo] = useState<any>(null);
   const [students, setStudents] = useState<any[]>([]);
@@ -119,6 +122,44 @@ export function ClassManagementView({ classId, hideBackButton = false }: ClassMa
   const [isTimetableOpen, setIsTimetableOpen] = useState(false);
   const [timetableData, setTimetableData] = useState<any[]>([]);
   const [isTimetableLoading, setIsTimetableLoading] = useState(false);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
+
+  const [isMobile, setIsMobile] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const handleConfigSubmit = async (formData: ClassFormData) => {
+    try {
+      await axios.patch(`/api/classes/${classId}`, {
+        class_name: formData.class_name,
+        section_id: Number(formData.section_id),
+        staff_id: formData.staff_id ? Number(formData.staff_id) : null,
+        room_number: formData.room_number || null,
+      });
+
+      toast({ title: "Success", description: "Class configuration updated successfully" });
+      setIsConfigOpen(false);
+      fetchData();
+    } catch (err: any) {
+      toast({
+        title: "Update Failed",
+        description: err?.response?.data?.message || "Failed to update configuration",
+        variant: "destructive"
+      });
+    }
+  };
 
   // ─── Promotion State ───
   const [isPromoteOpen, setIsPromoteOpen] = useState(false);
@@ -214,20 +255,36 @@ export function ClassManagementView({ classId, hideBackButton = false }: ClassMa
   };
 
   const handleDelete = async (studentId: string) => {
-    if (!confirm("Are you sure you want to remove this student? This action is reversible by Admin.")) return;
-    try {
-      await axios.delete(`/api/students/${studentId}`);
-      toast({ title: "Success", description: "Student removed successfully" });
-      fetchData();
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to remove student", variant: "destructive" });
-    }
+    showWarning(
+      "Remove Student?",
+      "Are you sure you want to remove this student? This action is reversible by Admin.",
+      async () => {
+        try {
+          await axios.delete(`/api/students/${studentId}`);
+          toast({ title: "Success", description: "Student removed successfully" });
+          fetchData();
+        } catch (error) {
+          toast({ title: "Error", description: "Failed to remove student", variant: "destructive" });
+        }
+      },
+      "Yes, Remove"
+    );
   };
 
-  const filteredStudents = students.filter(s => 
-    `${s.stu_first_name} ${s.stu_last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.admission_number?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredStudents = useMemo(() => {
+    return students.filter(s => 
+      `${s.stu_first_name} ${s.stu_last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.admission_number?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [students, searchQuery]);
+
+  const totalPages = Math.ceil(filteredStudents.length / 10) || 1;
+
+  const displayedStudents = useMemo(() => {
+    if (!isMobile) return filteredStudents;
+    const start = (currentPage - 1) * 10;
+    return filteredStudents.slice(start, start + 10);
+  }, [filteredStudents, isMobile, currentPage]);
 
   /* ─── Promotion Helpers ─── */
   const openPromotionDialog = async () => {
@@ -312,18 +369,95 @@ export function ClassManagementView({ classId, hideBackButton = false }: ClassMa
     }
   };
 
-  if (loading) return <PageSkeleton rows={15} />;
+  if (loading) return null;
   if (!classInfo) return <div className="p-8 text-center text-slate-500 font-bold">Class not found</div>;
 
   const isOwner = Number(profile?.assigned_class_id) === Number(classId);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-0 sm:pb-10">
       
       <Card className="border-none shadow-sm overflow-hidden">
         {/* STANDARD CARD HEADER */}
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-6 border-b border-slate-100 bg-white">
-          <div className="flex items-center gap-3 sm:gap-4">
+          {/* Mobile View Header (< sm) */}
+          <div className="flex sm:hidden flex-col gap-3 w-full">
+            <div className="flex items-center gap-3">
+              {!hideBackButton && (
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="h-9 w-9 shrink-0 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95"
+                  onClick={() => router.back()}
+                >
+                  <ArrowLeft className="h-4 w-4 text-slate-600" />
+                </Button>
+              )}
+              <div className="space-y-0.5 min-w-0 flex-1">
+                <CardTitle className="text-xl font-bold tracking-tight truncate">
+                  Class {classInfo.class_name} - {classInfo.section_name}
+                </CardTitle>
+                <CardDescription className="text-xs font-medium text-slate-500">
+                  Room {classInfo.room_number || "—"}
+                </CardDescription>
+              </div>
+            </div>
+
+            {/* Mobile Action Buttons Hierarchy */}
+            <div className="flex flex-col gap-2 w-full mt-1">
+              {(isAdmin || isOwner) && (
+                <Button 
+                  className="w-full h-11 font-bold rounded-xl shadow-sm"
+                  onClick={() => setIsEnrollOpen(true)}
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" /> Enroll Student
+                </Button>
+              )}
+              <div className="flex flex-wrap gap-2 w-full">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 h-9 font-semibold rounded-xl border-slate-200 text-xs"
+                  onClick={async () => {
+                    try {
+                      setIsTimetableOpen(true);
+                      setIsTimetableLoading(true);
+                      const data = await getMySchedule({ class_id: Number(classId) });
+                      setTimetableData(data || []);
+                    } catch (err) {
+                      toast({ title: "Error", description: "Failed to load timetable", variant: "destructive" });
+                    } finally {
+                      setIsTimetableLoading(false);
+                    }
+                  }}
+                >
+                  <Calendar className="mr-1.5 h-3.5 w-3.5 text-slate-500" /> Timetable
+                </Button>
+
+                {isOwner && students.length > 0 && (
+                  <Button
+                    variant="outline"
+                    className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 h-9 font-semibold rounded-xl text-xs"
+                    onClick={openPromotionDialog}
+                  >
+                    <TrendingUp className="mr-1.5 h-3.5 w-3.5" /> Promote
+                  </Button>
+                )}
+
+                {isAdmin && (
+                  <Button 
+                    variant="secondary"
+                    className="flex-1 h-9 font-semibold rounded-xl text-xs"
+                    onClick={() => setIsConfigOpen(true)}
+                  >
+                    <Settings className="mr-1.5 h-3.5 w-3.5" /> Class Config
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop View Header (>= sm) */}
+          <div className="hidden sm:flex items-center gap-3 sm:gap-4">
             {!hideBackButton && (
               <Button 
                 variant="ghost" 
@@ -349,7 +483,7 @@ export function ClassManagementView({ classId, hideBackButton = false }: ClassMa
             </div>
           </div>
           
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <div className="hidden sm:flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <Button 
               variant="outline" 
               size="sm" 
@@ -393,6 +527,7 @@ export function ClassManagementView({ classId, hideBackButton = false }: ClassMa
                     size="sm" 
                     variant="secondary"
                     className="h-9 font-semibold"
+                    onClick={() => setIsConfigOpen(true)}
                   >
                     <Settings className="mr-2 h-4 w-4" /> Class Config
                   </Button>
@@ -403,7 +538,26 @@ export function ClassManagementView({ classId, hideBackButton = false }: ClassMa
         </CardHeader>
 
         {/* STANDARDIZED STATS GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 sm:p-6 bg-slate-50/10 border-b border-slate-100">
+        {/* Mobile Stats Grid (< sm: 2 cards side-by-side) */}
+        <div className="grid sm:hidden grid-cols-2 gap-3 p-4 bg-slate-50/10 border-b border-slate-100">
+          <StatsCard
+            title="Attendance"
+            value={`${classInfo.attendance_rate || "0"}%`}
+            icon={CheckCircle2}
+            iconColor="text-emerald-600"
+            iconBg="bg-emerald-50"
+          />
+          <StatsCard
+            title="Class Strength"
+            value={students.length}
+            icon={Users}
+            iconColor="text-indigo-600"
+            iconBg="bg-indigo-50"
+          />
+        </div>
+
+        {/* Desktop Stats Grid (>= sm: original 3 cards) */}
+        <div className="hidden sm:grid grid-cols-1 md:grid-cols-3 gap-4 p-4 sm:p-6 bg-slate-50/10 border-b border-slate-100">
           <StatsCard
             title="Attendance"
             value={`${classInfo.attendance_rate || "0"}%`}
@@ -430,7 +584,7 @@ export function ClassManagementView({ classId, hideBackButton = false }: ClassMa
         <CardContent className="p-0">
           {/* SEARCH CONTROLS */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-b border-slate-100 bg-slate-50/20">
-            <div className="space-y-0.5">
+            <div className="space-y-0.5 w-full sm:w-auto">
               <h3 className="font-semibold text-slate-800 text-sm">Student Enrollment Records</h3>
               <p className="text-xs text-slate-500">Manage academic particulars and documents</p>
             </div>
@@ -451,79 +605,49 @@ export function ClassManagementView({ classId, hideBackButton = false }: ClassMa
             </div>
           </div>
 
-          <div className="w-full overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent border-slate-100 bg-slate-50/10">
-                  <TableHead className="w-[100px] font-semibold pl-6">Roll No.</TableHead>
-                  <TableHead className="min-w-[200px] font-semibold">Student Particulars</TableHead>
-                  <TableHead className="hidden md:table-cell font-semibold">Guardian Context</TableHead>
-                  <TableHead className="hidden lg:table-cell font-semibold">Contact Details</TableHead>
-                  {(isAdmin || isOwner) && <TableHead className="text-right pr-6 font-semibold">Actions</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredStudents.length > 0 ? (
-                  filteredStudents.map((s, index) => (
-                    <TableRow key={s.student_id} className="hover:bg-slate-50/50">
-                      <TableCell className="pl-6 py-3">
-                        <Badge variant="secondary" className="bg-slate-100 text-slate-600 font-bold border-none text-xs">
-                          {index + 1}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9 shrink-0">
+          {isMobile ? (
+            <div className="p-3">
+              {displayedStudents.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground text-sm">No matching records found</div>
+              ) : (
+                <div className="flex flex-col gap-2.5">
+                  {displayedStudents.map((s, index) => {
+                    const actualIndex = (currentPage - 1) * 10 + index + 1;
+                    return (
+                      <div
+                        key={s.student_id}
+                        className="bg-white rounded-2xl border border-slate-100 shadow-sm p-3.5 flex items-center justify-between gap-3 hover:border-slate-200 transition-all select-none"
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <Badge variant="secondary" className="bg-slate-100 text-slate-700 font-extrabold text-xs h-7 px-2 rounded-lg shrink-0">
+                            #{actualIndex}
+                          </Badge>
+
+                          <Avatar className="h-10 w-10 shrink-0 border border-slate-100">
                             <AvatarImage src={s.profile_url} className="object-cover" />
-                            <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                            <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
                               {s.stu_first_name?.[0]}{s.stu_last_name?.[0]}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="flex flex-col min-w-0">
-                            <span className="font-semibold text-slate-900 truncate">{s.stu_first_name} {s.stu_last_name}</span>
-                            <span className="text-xs text-slate-500 truncate">Enrolled • {s.joined_date ? formatDate(s.joined_date) : "Pending"}</span>
+
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <span className="font-bold text-slate-900 text-sm truncate">
+                              {s.stu_first_name} {s.stu_last_name}
+                            </span>
+                            <span className="text-xs text-slate-500 truncate mt-0.5">
+                              Enrolled • {s.joined_date ? formatDate(s.joined_date) : "Pending"}
+                            </span>
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell py-3">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-slate-700 text-xs truncate max-w-[150px]">{s.father_name || "-"}</span>
-                          <span className="text-[10px] text-slate-400">Primary Guardian</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell py-3">
-                        <div className="flex flex-col gap-0.5 text-xs text-slate-600">
-                          <span className="flex items-center gap-1.5">
-                            <Mail size={12} className="text-slate-400 shrink-0" />
-                            {(s.email || s.student_email) ? (
-                              <a href={`mailto:${s.email || s.student_email}`} className="hover:underline hover:text-blue-600 truncate max-w-[150px]">
-                                {s.email || s.student_email}
-                              </a>
-                            ) : (
-                              "N/A"
-                            )}
-                          </span>
-                          <span className="flex items-center gap-1.5">
-                            <Phone size={12} className="text-slate-400 shrink-0" />
-                            {(s.primary_contact || s.contact_number) ? (
-                              <a href={`tel:${s.primary_contact || s.contact_number}`} className="hover:underline hover:text-blue-600 truncate">
-                                {s.primary_contact || s.contact_number}
-                              </a>
-                            ) : (
-                              "N/A"
-                            )}
-                          </span>
-                        </div>
-                      </TableCell>
-                      {(isAdmin || isOwner) && (
-                        <TableCell className="text-right pr-6 py-3">
+
+                        {(isAdmin || isOwner) && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
+                              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-slate-100 shrink-0">
+                                <MoreHorizontal className="h-4 w-4 text-slate-600" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                            <DropdownMenuContent align="end" className="rounded-xl shadow-lg border-slate-100">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuItem onClick={() => router.push(`/main/students/${s.student_id}`)}>
                                 View Profile
@@ -531,59 +655,216 @@ export function ClassManagementView({ classId, hideBackButton = false }: ClassMa
                               <DropdownMenuItem onClick={() => router.push(`/main/students/edit/${s.student_id}`)}>
                                 Edit Basic Details
                               </DropdownMenuItem>
-                              
+
                               <DropdownMenuSeparator />
                               <DropdownMenuLabel>Documents</DropdownMenuLabel>
-                              <DropdownMenuItem 
-                                  onClick={() => handleDownload(`/api/documents/id-card/${s.student_id}`, `ID_Card_${s.student_id}.pdf`)}
-                              >
+                              <DropdownMenuItem onClick={() => handleDownload(`/api/documents/id-card/${s.student_id}`, `ID_Card_${s.student_id}.pdf`)}>
                                 <CreditCard className="h-4 w-4 mr-2" /> Generate ID Card
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                  onClick={() => handleDownload(`/api/documents/bonafide/${s.student_id}`, `Bonafide_${s.student_id}.pdf`)}
-                              >
+                              <DropdownMenuItem onClick={() => handleDownload(`/api/documents/bonafide/${s.student_id}`, `Bonafide_${s.student_id}.pdf`)}>
                                 <FileText className="h-4 w-4 mr-2" /> Bonafide Certificate
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                  onClick={() => handleDownload(`/api/documents/mark-sheet/${s.student_id}`, `Marksheet_${s.student_id}.pdf`)}
-                              >
+                              <DropdownMenuItem onClick={() => handleDownload(`/api/documents/mark-sheet/${s.student_id}`, `Marksheet_${s.student_id}.pdf`)}>
                                 <FileText className="h-4 w-4 mr-2" /> Academic Marksheet
                               </DropdownMenuItem>
-                              
+
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                  onClick={() => handleDelete(s.student_id)}
-                                  className="text-red-600 focus:bg-red-50 focus:text-red-600"
-                              >
+                              <DropdownMenuItem onClick={() => handleDelete(s.student_id)} className="text-red-600 focus:bg-red-50 focus:text-red-600">
                                 <Trash2 className="h-4 w-4 mr-2" /> Remove Student
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="py-16 text-center">
-                       <div className="max-w-xs mx-auto space-y-2">
-                          <div className="bg-slate-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                             <Users className="h-6 w-6 text-slate-300" />
-                          </div>
-                          <p className="text-sm font-semibold text-slate-800">No matching records found</p>
-                          <p className="text-xs text-slate-500 leading-relaxed px-4 text-pretty">We couldn't find any students matching your criteria.</p>
-                       </div>
-                    </TableCell>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="w-full overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-slate-100 bg-slate-50/10">
+                    <TableHead className="w-[100px] font-semibold pl-6">Roll No.</TableHead>
+                    <TableHead className="min-w-[200px] font-semibold">Student Particulars</TableHead>
+                    <TableHead className="hidden md:table-cell font-semibold">Guardian Context</TableHead>
+                    <TableHead className="hidden lg:table-cell font-semibold">Contact Details</TableHead>
+                    {(isAdmin || isOwner) && <TableHead className="text-right pr-6 font-semibold">Actions</TableHead>}
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredStudents.length > 0 ? (
+                    filteredStudents.map((s, index) => (
+                      <TableRow key={s.student_id} className="hover:bg-slate-50/50">
+                        <TableCell className="pl-6 py-3">
+                          <Badge variant="secondary" className="bg-slate-100 text-slate-600 font-bold border-none text-xs">
+                            {index + 1}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9 shrink-0">
+                              <AvatarImage src={s.profile_url} className="object-cover" />
+                              <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                                {s.stu_first_name?.[0]}{s.stu_last_name?.[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-semibold text-slate-900 truncate">{s.stu_first_name} {s.stu_last_name}</span>
+                              <span className="text-xs text-slate-500 truncate">Enrolled • {s.joined_date ? formatDate(s.joined_date) : "Pending"}</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell py-3">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-slate-700 text-xs truncate max-w-[150px]">{s.father_name || "-"}</span>
+                            <span className="text-[10px] text-slate-400">Primary Guardian</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell py-3">
+                          <div className="flex flex-col gap-0.5 text-xs text-slate-600">
+                            <span className="flex items-center gap-1.5">
+                              <Mail size={12} className="text-slate-400 shrink-0" />
+                              {(s.email || s.student_email) ? (
+                                <a href={`mailto:${s.email || s.student_email}`} className="hover:underline hover:text-blue-600 truncate max-w-[150px]">
+                                  {s.email || s.student_email}
+                                </a>
+                              ) : (
+                                "N/A"
+                              )}
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              <Phone size={12} className="text-slate-400 shrink-0" />
+                              {(s.primary_contact || s.contact_number) ? (
+                                <a href={`tel:${s.primary_contact || s.contact_number}`} className="hover:underline hover:text-blue-600 truncate">
+                                  {s.primary_contact || s.contact_number}
+                                </a>
+                              ) : (
+                                "N/A"
+                              )}
+                            </span>
+                          </div>
+                        </TableCell>
+                        {(isAdmin || isOwner) && (
+                          <TableCell className="text-right pr-6 py-3">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => router.push(`/main/students/${s.student_id}`)}>
+                                  View Profile
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => router.push(`/main/students/edit/${s.student_id}`)}>
+                                  Edit Basic Details
+                                </DropdownMenuItem>
+                                
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel>Documents</DropdownMenuLabel>
+                                <DropdownMenuItem 
+                                    onClick={() => handleDownload(`/api/documents/id-card/${s.student_id}`, `ID_Card_${s.student_id}.pdf`)}
+                                >
+                                  <CreditCard className="h-4 w-4 mr-2" /> Generate ID Card
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                    onClick={() => handleDownload(`/api/documents/bonafide/${s.student_id}`, `Bonafide_${s.student_id}.pdf`)}
+                                >
+                                  <FileText className="h-4 w-4 mr-2" /> Bonafide Certificate
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                    onClick={() => handleDownload(`/api/documents/mark-sheet/${s.student_id}`, `Marksheet_${s.student_id}.pdf`)}
+                                >
+                                  <FileText className="h-4 w-4 mr-2" /> Academic Marksheet
+                                </DropdownMenuItem>
+                                
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                    onClick={() => handleDelete(s.student_id)}
+                                    className="text-red-600 focus:bg-red-50 focus:text-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" /> Remove Student
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="py-16 text-center">
+                         <div className="max-w-xs mx-auto space-y-2">
+                            <div className="bg-slate-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                               <Users className="h-6 w-6 text-slate-300" />
+                            </div>
+                            <p className="text-sm font-semibold text-slate-800">No matching records found</p>
+                            <p className="text-xs text-slate-500 leading-relaxed px-4 text-pretty">We couldn't find any students matching your criteria.</p>
+                         </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
+
+        {/* Mobile Pagination Controls */}
+        {isMobile && filteredStudents.length > 0 && (
+          <div className="flex items-center justify-between px-4 py-3 bg-slate-50/50 border-t border-slate-200/80 select-none">
+            <span className="text-[11px] sm:text-xs font-bold text-slate-500 shrink-0 leading-tight">
+              Page {currentPage} of {totalPages} ({filteredStudents.length} students)
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="h-9 px-3.5 text-xs font-bold rounded-xl border-slate-200 min-w-[40px]"
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                className="h-9 px-3.5 text-xs font-bold rounded-xl border-slate-200 min-w-[40px]"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
+      <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
+        <DialogContent className="w-[92vw] sm:max-w-2xl max-h-[82vh] sm:max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-xl border border-slate-200/80 shadow-2xl p-4 sm:p-6 bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold tracking-tight">Class Configuration</DialogTitle>
+          </DialogHeader>
+          {classInfo && (
+            <ClassForm
+              readOnly
+              classData={{
+                id: String(classInfo.class_id),
+                class_name: classInfo.class_name,
+                section_id: classInfo.section_id ? String(classInfo.section_id) : undefined,
+                staff_id: classInfo.staff_id ? String(classInfo.staff_id) : undefined,
+                room_number: classInfo.room_number || "",
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isEnrollOpen} onOpenChange={setIsEnrollOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[92vw] sm:max-w-2xl max-h-[82vh] sm:max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-xl border border-slate-200/80 shadow-2xl p-4 sm:p-6 bg-white">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold tracking-tight">Enroll New Student</DialogTitle>
           </DialogHeader>
@@ -596,7 +877,7 @@ export function ClassManagementView({ classId, hideBackButton = false }: ClassMa
         </DialogContent>
       </Dialog>
       <Dialog open={isTimetableOpen} onOpenChange={setIsTimetableOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[92vw] sm:max-w-5xl max-h-[82vh] sm:max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-xl border border-slate-200/80 shadow-2xl p-4 sm:p-6 bg-white">
           <DialogHeader className="flex flex-row items-center justify-between gap-4 pr-8">
             <div>
               <DialogTitle className="text-xl font-bold tracking-tight">Class Timetable</DialogTitle>
@@ -615,12 +896,7 @@ export function ClassManagementView({ classId, hideBackButton = false }: ClassMa
           </DialogHeader>
           
           <div className="mt-6 border rounded-xl overflow-hidden bg-slate-50/30">
-            {isTimetableLoading ? (
-              <div className="py-20 flex flex-col items-center justify-center gap-4">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-500/50" />
-                <p className="text-xs text-slate-400 font-semibold">Fetching Timetable...</p>
-              </div>
-            ) : timetableData.length === 0 ? (
+            {isTimetableLoading ? null : timetableData.length === 0 ? (
               <div className="py-20 text-center">
                 <Calendar className="h-12 w-12 text-slate-200 mx-auto mb-4" />
                 <p className="text-sm font-semibold text-slate-800">No Schedule Found</p>
@@ -679,9 +955,7 @@ export function ClassManagementView({ classId, hideBackButton = false }: ClassMa
                                     </div>
                                   </div>
                                 ) : (
-                                  <div className="h-full border border-dashed border-slate-100 rounded-lg flex items-center justify-center">
-                                    <span className="text-slate-200 text-[10px]">-</span>
-                                  </div>
+                                  <div className="bg-slate-50/50 rounded-lg h-full border border-dashed border-slate-200/60" />
                                 )}
                               </ShadcnTableCell>
                             );
@@ -698,7 +972,7 @@ export function ClassManagementView({ classId, hideBackButton = false }: ClassMa
       </Dialog>
       {/* ─── Promotion Dialog ─── */}
       <Dialog open={isPromoteOpen} onOpenChange={setIsPromoteOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="w-[92vw] sm:max-w-3xl max-h-[82vh] sm:max-h-[90vh] overflow-hidden flex flex-col rounded-2xl sm:rounded-xl border border-slate-200/80 shadow-2xl p-4 sm:p-6 bg-white">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-emerald-600" />
@@ -709,12 +983,7 @@ export function ClassManagementView({ classId, hideBackButton = false }: ClassMa
             </p>
           </DialogHeader>
 
-          {promoLoading ? (
-            <div className="py-20 flex flex-col items-center gap-3">
-              <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
-              <p className="text-xs font-semibold text-slate-400">Loading classes…</p>
-            </div>
-          ) : (
+          {promoLoading ? null : (
             <>
               {/* Stats summary */}
               <div className="flex items-center gap-4 px-1 py-2 border-b border-slate-100">
@@ -852,11 +1121,7 @@ export function ClassManagementView({ classId, hideBackButton = false }: ClassMa
                   disabled={promoStats.promote === 0 || promoSubmitting}
                   className="bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold gap-2"
                 >
-                  {promoSubmitting ? (
-                    <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Processing…</>
-                  ) : (
-                    <><CheckCircle2 className="h-3.5 w-3.5" /> Apply Promotions ({promoStats.promote})</>
-                  )}
+                  <><CheckCircle2 className="h-3.5 w-3.5" /> Apply Promotions ({promoStats.promote})</>
                 </Button>
               </div>
             </>

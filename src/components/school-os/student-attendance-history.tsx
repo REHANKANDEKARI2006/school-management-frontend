@@ -74,11 +74,7 @@ export function StudentAttendanceHistory({ student }: AttendanceHistoryProps) {
   }, [history]);
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-300" />
-      </div>
-    );
+    return null;
   }
 
   return (

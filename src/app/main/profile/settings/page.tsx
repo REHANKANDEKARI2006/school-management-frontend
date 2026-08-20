@@ -293,9 +293,9 @@ export default function ProfileSettingsPage() {
                         type="button" 
                         onClick={handleConfirmCrop} 
                         disabled={uploading}
+                        loading={uploading}
                         className="flex-1 h-9 font-bold text-xs rounded-lg"
                       >
-                        {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                         Save Photo
                       </Button>
                       <Button 
@@ -335,7 +335,7 @@ export default function ProfileSettingsPage() {
                           className="absolute -bottom-1 -right-1 p-2 bg-primary text-white rounded-lg shadow-lg hover:bg-primary/90 transition-all active:scale-95 border-2 border-white"
                           title="Change Photo"
                         >
-                          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                          <Camera className="h-4 w-4" />
                         </button>
                       </>
                     )}
@@ -521,7 +521,7 @@ export default function ProfileSettingsPage() {
               disabled={saving} 
               className="h-11 px-8 rounded-lg font-bold gap-2 transition-all active:scale-95"
             >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {saving ? <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" /> : <Save className="h-4 w-4" />}
               Save Changes
             </Button>
           </div>

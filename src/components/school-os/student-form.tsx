@@ -301,7 +301,7 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
             </div>
             <div className="flex gap-2">
               <Button type="button" size="sm" onClick={handleConfirmCrop} disabled={isUploading}>
-                {isUploading ? "Uploading…" : "✓ Confirm & Upload"}
+                {isUploading ? <><Loader2 className="h-4 w-4 animate-spin text-primary-foreground" /> Uploading…</> : "✓ Confirm & Upload"}
               </Button>
               <Button type="button" size="sm" variant="outline" onClick={() => setImgSrc("")} disabled={isUploading}>
                 Cancel
@@ -338,25 +338,23 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
 
         <Separator />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
-              <FormItem className="md:col-span-2">
-                <FormLabel>Full Name <span className="text-destructive">*</span></FormLabel>
-                <FormControl><Input placeholder="e.g. Rahul Patil" {...field} /></FormControl>
+              <FormItem className="col-span-2">
+                <FormLabel className="text-xs sm:text-sm font-semibold">Full Name <span className="text-destructive">*</span></FormLabel>
+                <FormControl><Input placeholder="e.g. Rahul Patil" className="h-11 sm:h-10 rounded-xl sm:rounded-md border-slate-200 bg-slate-50/40 sm:bg-background text-xs sm:text-sm font-semibold" {...field} /></FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-
-
-          <FormItem>
-            <FormLabel>Standard <span className="text-destructive">*</span></FormLabel>
+          <FormItem className="col-span-1">
+            <FormLabel className="text-xs sm:text-sm font-semibold">Standard <span className="text-destructive">*</span></FormLabel>
             <Select value={selectedStandard} onValueChange={(val) => { setSelectedStandard(val); setSelectedSection(""); form.setValue("class_id", ""); }}>
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectTrigger className="h-11 sm:h-10 rounded-xl sm:rounded-md border-slate-200 bg-slate-50/40 sm:bg-background text-xs sm:text-sm font-semibold"><SelectValue placeholder="Select" /></SelectTrigger>
               <SelectContent>
                 {uniqueStandards.map((std) => (
                   <SelectItem key={std} value={std}>
@@ -371,8 +369,8 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
             control={form.control}
             name="class_id"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Section <span className="text-destructive">*</span></FormLabel>
+              <FormItem className="col-span-1">
+                <FormLabel className="text-xs sm:text-sm font-semibold">Section <span className="text-destructive">*</span></FormLabel>
                 <Select
                   value={selectedSection}
                   onValueChange={(val) => {
@@ -382,7 +380,7 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
                   }}
                   disabled={!selectedStandard}
                 >
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="h-11 sm:h-10 rounded-xl sm:rounded-md border-slate-200 bg-slate-50/40 sm:bg-background text-xs sm:text-sm font-semibold disabled:opacity-60"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     {uniqueSectionsForStandard.map((sec) => <SelectItem key={sec.id} value={sec.section}>Section {sec.section}</SelectItem>)}
                   </SelectContent>
@@ -396,10 +394,10 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
             control={form.control}
             name="gender_id"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Gender <span className="text-destructive">*</span></FormLabel>
+              <FormItem className="col-span-1">
+                <FormLabel className="text-xs sm:text-sm font-semibold">Gender <span className="text-destructive">*</span></FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="h-11 sm:h-10 rounded-xl sm:rounded-md border-slate-200 bg-slate-50/40 sm:bg-background text-xs sm:text-sm font-semibold"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="1">Boy (Male)</SelectItem>
                     <SelectItem value="2">Girl (Female)</SelectItem>
@@ -412,24 +410,12 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
 
           <FormField
             control={form.control}
-            name="dob"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Date of Birth <span className="text-destructive">*</span></FormLabel>
-                <FormControl><Input type="date" {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
             name="bloodGroup"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Blood Group <span className="text-destructive">*</span></FormLabel>
+              <FormItem className="col-span-1">
+                <FormLabel className="text-xs sm:text-sm font-semibold">Blood Group <span className="text-destructive">*</span></FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="h-11 sm:h-10 rounded-xl sm:rounded-md border-slate-200 bg-slate-50/40 sm:bg-background text-xs sm:text-sm font-semibold"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     {bloodGroups.filter((bg: any) => bg.blood_group || bg.bg_name).map((bg: any) => <SelectItem key={bg.bg_id} value={bg.blood_group || bg.bg_name}>{bg.blood_group || bg.bg_name}</SelectItem>)}
                   </SelectContent>
@@ -441,12 +427,24 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
 
           <FormField
             control={form.control}
+            name="dob"
+            render={({ field }) => (
+              <FormItem className="col-span-1">
+                <FormLabel className="text-xs sm:text-sm font-semibold">Date of Birth <span className="text-destructive">*</span></FormLabel>
+                <FormControl><Input type="date" className="h-11 sm:h-10 rounded-xl sm:rounded-md border-slate-200 bg-slate-50/40 sm:bg-background text-xs sm:text-sm font-semibold" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="user_status_id"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status <span className="text-destructive">*</span></FormLabel>
+              <FormItem className="col-span-1">
+                <FormLabel className="text-xs sm:text-sm font-semibold">Status <span className="text-destructive">*</span></FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="h-11 sm:h-10 rounded-xl sm:rounded-md border-slate-200 bg-slate-50/40 sm:bg-background text-xs sm:text-sm font-semibold"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     {userStatuses
                       .filter(s => [
@@ -476,24 +474,24 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
             control={form.control}
             name="address"
             render={({ field }) => (
-              <FormItem className="md:col-span-2">
-                <FormLabel>Address <span className="text-destructive">*</span></FormLabel>
-                <FormControl><Textarea placeholder="Current residential address" {...field} /></FormControl>
+              <FormItem className="col-span-2">
+                <FormLabel className="text-xs sm:text-sm font-semibold">Address <span className="text-destructive">*</span></FormLabel>
+                <FormControl><Textarea placeholder="Current residential address" className="rounded-xl sm:rounded-md border-slate-200 bg-slate-50/40 sm:bg-background text-xs sm:text-sm font-semibold" {...field} /></FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          <Separator className="md:col-span-2 my-2" />
-          <h3 className="md:col-span-2 text-sm font-semibold text-slate-500 uppercase tracking-wider">Guardian Information</h3>
+          <Separator className="col-span-2 my-2" />
+          <h3 className="col-span-2 text-xs sm:text-sm font-semibold text-slate-500 uppercase tracking-wider">Guardian Information</h3>
 
           <FormField
             control={form.control}
             name="fatherName"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Father's Name <span className="text-destructive">*</span></FormLabel>
-                <FormControl><Input placeholder="Father's name" {...field} /></FormControl>
+              <FormItem className="col-span-1">
+                <FormLabel className="text-xs sm:text-sm font-semibold">Father's Name <span className="text-destructive">*</span></FormLabel>
+                <FormControl><Input placeholder="Father's name" className="h-11 sm:h-10 rounded-xl sm:rounded-md border-slate-200 bg-slate-50/40 sm:bg-background text-xs sm:text-sm font-semibold" {...field} /></FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -503,9 +501,9 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
             control={form.control}
             name="motherName"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Mother's Name <span className="text-destructive">*</span></FormLabel>
-                <FormControl><Input placeholder="Mother's name" {...field} /></FormControl>
+              <FormItem className="col-span-1">
+                <FormLabel className="text-xs sm:text-sm font-semibold">Mother's Name <span className="text-destructive">*</span></FormLabel>
+                <FormControl><Input placeholder="Mother's name" className="h-11 sm:h-10 rounded-xl sm:rounded-md border-slate-200 bg-slate-50/40 sm:bg-background text-xs sm:text-sm font-semibold" {...field} /></FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -515,8 +513,8 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
             control={form.control}
             name="primaryContact"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Primary Contact <span className="text-destructive">*</span></FormLabel>
+              <FormItem className="col-span-2 md:col-span-1">
+                <FormLabel className="text-xs sm:text-sm font-semibold">Primary Contact <span className="text-destructive">*</span></FormLabel>
                 <FormControl>
                   <Input 
                     type="tel"
@@ -525,6 +523,7 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
                     minLength={10}
                     title="Phone number must be exactly 10 digits"
                     placeholder="Guardian phone" 
+                    className="h-11 sm:h-10 rounded-xl sm:rounded-md border-slate-200 bg-slate-50/40 sm:bg-background text-xs sm:text-sm font-semibold"
                     {...field} 
                     onChange={e => field.onChange(e.target.value.replace(/\D/g, ''))}
                   />
@@ -538,11 +537,11 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
             control={form.control}
             name="parentEmail"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Guardian Email <span className="text-destructive">*</span></FormLabel>
-                <FormControl><Input type="email" placeholder="guardian@example.com" {...field} /></FormControl>
+              <FormItem className="col-span-2 md:col-span-1">
+                <FormLabel className="text-xs sm:text-sm font-semibold">Guardian Email <span className="text-destructive">*</span></FormLabel>
+                <FormControl><Input type="email" placeholder="guardian@example.com" className="h-11 sm:h-10 rounded-xl sm:rounded-md border-slate-200 bg-slate-50/40 sm:bg-background text-xs sm:text-sm font-semibold" {...field} /></FormControl>
                 {mode === "add" && (
-                  <p className="text-[11px] text-blue-600 font-medium mt-1 flex items-center gap-1.5 bg-blue-50/80 p-2 rounded-md border border-blue-100">
+                  <p className="text-[11px] text-blue-600 font-medium mt-1 flex items-center gap-1.5 bg-blue-50/80 p-2 rounded-xl sm:rounded-md border border-blue-100">
                     <Info className="h-3.5 w-3.5 shrink-0 text-blue-500" />
                     A link for setting the password will be sent to this email address immediately upon addition.
                   </p>
@@ -553,7 +552,7 @@ export function StudentForm({ mode, student, onSubmit }: Props) {
           />
         </div>
 
-        <Button type="submit" className="w-full mt-4" loading={form.formState.isSubmitting}>
+        <Button type="submit" className="w-full mt-4 h-12 sm:h-10 rounded-xl sm:rounded-md font-bold text-sm shadow-md" loading={form.formState.isSubmitting}>
           {mode === "add" ? "Add Student & Register" : "Update Student Details"}
         </Button>
       </form>

@@ -155,12 +155,8 @@ export const TeacherDashboard = () => {
               disabled={refreshing}
               className="gap-1.5 border-slate-200 rounded-xl text-xs font-bold h-9 px-3"
             >
-              {refreshing ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <RefreshCcw className="h-3.5 w-3.5" />
-              )}
-              {refreshing ? "Refreshing..." : "Refresh"}
+              <RefreshCcw className="h-3.5 w-3.5" />
+              Refresh
             </Button>
           </div>
         </div>

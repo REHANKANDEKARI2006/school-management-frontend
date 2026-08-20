@@ -39,11 +39,11 @@ export function Logo({ className, iconClassName, textClassName, showText = true 
 
   return (
     <div className={cn("inline-flex items-center justify-center gap-2.5 select-none shrink-0", containerClass)}>
-      <div className={cn("flex items-center justify-center shrink-0 text-indigo-400", extractedIconClass, iconClassName)}>
-        <GraduationCap className={cn("h-8 w-8 text-indigo-400", extractedIconClass ? "h-full w-full" : "", iconClassName)} />
+      <div className={cn("flex items-center justify-center shrink-0 text-indigo-600", extractedIconClass, iconClassName)}>
+        <GraduationCap className={cn("h-8 w-8 text-indigo-600", extractedIconClass ? "h-full w-full" : "", iconClassName)} />
       </div>
       {showText && (
-        <span className={cn("text-xl font-bold font-headline tracking-tighter text-white shrink-0", textClassName)}>
+        <span className={cn("text-xl font-bold font-headline tracking-tighter text-slate-900 dark:text-white shrink-0", textClassName)}>
           SchoolOS
         </span>
       )}

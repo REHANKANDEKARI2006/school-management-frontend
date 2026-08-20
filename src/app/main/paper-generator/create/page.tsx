@@ -11,10 +11,11 @@ import AddSectionsStep from "./steps/AddSectionsStep";
 import ConfigureQuestionsStep from "./steps/ConfigureQuestionsStep";
 import ConfigureSubsectionsStep from "./steps/ConfigureSubsectionsStep";
 const PreviewStep = dynamic(() => import("./steps/PreviewStep"), {
-  loading: () => <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /><p className="mt-2 text-sm text-muted-foreground">Preparing Paper Preview...</p></div>,
+  loading: () => null,
 });
 import { Button } from "@/components/ui/button";
 import { useGlobalLoaderStore } from "@/store/useGlobalLoaderStore";
+import { PageSkeleton } from "@/components/ui/skeletons";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface Question {
@@ -493,12 +494,7 @@ function CreatePaperPageInner() {
   };
 
   if (loading) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-[#3335e3]" />
-        <p className="text-sm text-slate-500 animate-pulse">Loading paper details...</p>
-      </div>
-    );
+    return <PageSkeleton rows={6} />;
   }
 
   const currentSection = paper.sections[activeSectionIdx];
@@ -506,12 +502,12 @@ function CreatePaperPageInner() {
   const nextSectionLetter = !isLastSection ? String.fromCharCode(65 + activeSectionIdx + 1) : "";
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50/50">
+    <div className="flex flex-col min-h-[calc(100vh-3.5rem-5rem)] bg-slate-50/50 pb-0 md:pb-0">
       {/* ── Top Navigation Bar with Step Indicator ── */}
-      <div className="border-b bg-white sticky top-0 z-30 shadow-sm print:hidden">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-center relative">
+      <div className="border-b bg-white sticky top-0 z-30 shadow-2xs print:hidden">
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between sm:justify-center relative">
           {/* Connected Step Indicator Centered */}
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1 sm:gap-4 mx-auto sm:mx-0">
             {STEPS.map((s, idx) => {
               const isActive = step === s.num;
               const isPast   = step > s.num;
@@ -519,14 +515,14 @@ function CreatePaperPageInner() {
                 <React.Fragment key={s.num}>
                   <button
                     onClick={() => { if (isPast) { setStep(s.num); setValidationError(null); } }}
-                    className={`flex items-center gap-2.5 transition-all ${isPast ? "cursor-pointer" : "cursor-default"}`}
+                    className={`flex items-center gap-1.5 sm:gap-2.5 transition-all ${isPast ? "cursor-pointer" : "cursor-default"}`}
                   >
-                    <div className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-black transition-all ${
-                      isActive ? "bg-[#3335e3] text-white scale-110 shadow-md ring-4 ring-[#3335e3]/20" :
+                    <div className={`h-6 w-6 sm:h-7 sm:w-7 rounded-full flex items-center justify-center text-[11px] sm:text-xs font-black transition-all ${
+                      isActive ? "bg-[#3335e3] text-white scale-105 shadow-xs ring-2 sm:ring-4 ring-[#3335e3]/20" :
                       isPast   ? "bg-emerald-500 text-white" :
                                  "bg-slate-100 text-slate-400 border border-slate-200"
                     }`}>
-                      {isPast ? <CheckCircle2 className="h-4 w-4" /> : s.num}
+                      {isPast ? <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : s.num}
                     </div>
                     <span className={`text-xs font-extrabold uppercase tracking-widest hidden sm:inline ${
                       isActive ? "text-slate-900" : isPast ? "text-emerald-600" : "text-slate-400"
@@ -537,7 +533,7 @@ function CreatePaperPageInner() {
                     </span>
                   </button>
                   {idx < STEPS.length - 1 && (
-                    <div className={`h-0.5 w-6 sm:w-10 transition-colors ${isPast ? "bg-emerald-500" : "bg-slate-200"}`} />
+                    <div className={`h-0.5 w-3.5 sm:w-10 transition-colors ${isPast ? "bg-emerald-500" : "bg-slate-200"}`} />
                   )}
                 </React.Fragment>
               );
@@ -546,13 +542,13 @@ function CreatePaperPageInner() {
 
           {/* Auto-Save Status Badge */}
           {saveStatus === "saving" && (
-            <div className="absolute right-4 sm:right-6 flex items-center gap-1.5 text-xs font-semibold text-[#3335e3] animate-in fade-in">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Auto-saving...
+            <div className="absolute right-3 sm:right-6 flex items-center gap-1 text-[11px] sm:text-xs font-bold text-muted-foreground animate-in fade-in">
+              <Loader2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 animate-spin text-primary" /> <span className="hidden sm:inline">Saving…</span>
             </div>
           )}
           {saveStatus === "saved" && (
-            <div className="absolute right-4 sm:right-6 flex items-center gap-1.5 text-xs font-bold text-emerald-600 animate-in fade-in">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Saved
+            <div className="absolute right-3 sm:right-6 flex items-center gap-1 text-[11px] sm:text-xs font-bold text-emerald-600 animate-in fade-in">
+              <CheckCircle2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-500" /> <span className="hidden sm:inline">Saved</span>
             </div>
           )}
         </div>
@@ -561,7 +557,7 @@ function CreatePaperPageInner() {
       {/* ── Validation Error Banner ── */}
       {validationError && (
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-4 w-full animate-in fade-in">
-          <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm font-bold text-red-700 shadow-sm">
+          <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-xs sm:text-sm font-bold text-red-700 shadow-2xs">
             <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
             {validationError}
           </div>
@@ -569,7 +565,7 @@ function CreatePaperPageInner() {
       )}
 
       {/* ── Content Body ── */}
-      <div className="flex-1 w-full max-w-[1400px] mx-auto py-8 px-4 sm:px-6 pb-8">
+      <div className="flex-1 w-full max-w-[1400px] mx-auto py-4 sm:py-8 px-4 sm:px-6 pb-4 sm:pb-8">
         {step === 1 && <PaperDetailsStep paper={paper} onChange={updateField} />}
         {step === 2 && <AddSectionsStep paper={paper} onChange={updateField} />}
         {step === 3 && (
@@ -591,22 +587,25 @@ function CreatePaperPageInner() {
         {step === 5 && <PreviewStep paper={paper} />}
       </div>
 
-      {/* ── Sticky Bottom Action Bar (Exclusive Navigation Bar) ── */}
-      <div className="sticky bottom-0 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 bg-white/95 backdrop-blur-md border-t border-slate-200/80 p-4 z-20 shadow-lg mt-auto">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+      {/* ── Sticky Bottom Action Bar (Clear of Mobile Bottom Nav) ── */}
+      <div className="sticky bottom-0 bg-white/95 backdrop-blur-md border-t border-slate-200/80 p-3 sm:p-4 z-30 shadow-lg mt-auto">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
           <Button
             variant="outline"
             onClick={goBack}
-            className="h-10 px-5 text-xs font-bold rounded-xl border-slate-300 hover:bg-slate-100"
+            className="h-11 sm:h-10 px-4 sm:px-5 text-xs font-bold rounded-xl border-slate-300 hover:bg-slate-100 min-w-[90px] sm:min-w-0"
           >
-            ← {step === 1 ? "Cancel & Exit" :
-               step === 2 ? "Back to Paper Details" :
-               step === 3 && activeSectionIdx === 0 ? "Back to Add Sections" :
-               step === 3 ? `Back to Section ${String.fromCharCode(65 + activeSectionIdx - 1)}` :
-               step === 4 && activeSectionIdx === 0 ? "Back to Questions" :
-               step === 4 ? `Back to Section ${String.fromCharCode(65 + activeSectionIdx - 1)}` :
-               step === 5 ? "Back to Sub-Questions" :
-               "Back"}
+            <span className="sm:hidden">← Back</span>
+            <span className="hidden sm:inline">
+              ← {step === 1 ? "Cancel & Exit" :
+                 step === 2 ? "Back to Paper Details" :
+                 step === 3 && activeSectionIdx === 0 ? "Back to Add Sections" :
+                 step === 3 ? `Back to Section ${String.fromCharCode(65 + activeSectionIdx - 1)}` :
+                 step === 4 && activeSectionIdx === 0 ? "Back to Questions" :
+                 step === 4 ? `Back to Section ${String.fromCharCode(65 + activeSectionIdx - 1)}` :
+                 step === 5 ? "Back to Sub-Questions" :
+                 "Back"}
+            </span>
           </Button>
 
           <div className="flex items-center gap-3">
@@ -619,20 +618,23 @@ function CreatePaperPageInner() {
               <Button
                 onClick={goNext}
                 disabled={saving}
-                className="h-10 px-6 text-xs font-bold bg-[#3335e3] hover:bg-[#3335e3]/90 text-white shadow-sm gap-2 rounded-xl"
+                className="h-11 sm:h-10 px-5 sm:px-6 text-xs font-bold bg-[#3335e3] hover:bg-[#3335e3]/90 text-white shadow-sm gap-2 rounded-xl min-w-[100px] sm:min-w-0"
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {step === 1 ? "Next: Add Sections →" :
-                 step === 2 ? `Next: Configure Section A →` :
-                 step === 3 && !isLastSection ? `Next: Section ${nextSectionLetter} Questions →` :
-                 step === 3 && isLastSection ? "Next: Configure Sub-Questions →" :
-                 step === 4 && !isLastSection ? `Next: Section ${nextSectionLetter} Sub-Qs →` :
-                 "Next: Preview & Download →"}
+                {saving ? null : null}
+                <span className="sm:hidden">Next →</span>
+                <span className="hidden sm:inline">
+                  {step === 1 ? "Next: Add Sections →" :
+                   step === 2 ? `Next: Configure Section A →` :
+                   step === 3 && !isLastSection ? `Next: Section ${nextSectionLetter} Questions →` :
+                   step === 3 && isLastSection ? "Next: Configure Sub-Questions →" :
+                   step === 4 && !isLastSection ? `Next: Section ${nextSectionLetter} Sub-Qs →` :
+                   "Next: Preview & Download →"}
+                </span>
               </Button>
             ) : (
               <Button
                 onClick={() => router.push("/main/paper-generator")}
-                className="h-10 px-6 text-xs font-bold bg-[#3335e3] hover:bg-[#3335e3]/90 text-white shadow-sm gap-2 rounded-xl"
+                className="h-11 sm:h-10 px-5 sm:px-6 text-xs font-bold bg-[#3335e3] hover:bg-[#3335e3]/90 text-white shadow-sm gap-2 rounded-xl"
               >
                 Exit Wizard
               </Button>
@@ -646,11 +648,7 @@ function CreatePaperPageInner() {
 
 export default function CreatePaperPage() {
   return (
-    <Suspense fallback={
-      <div className="h-64 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#3335e3]" />
-      </div>
-    }>
+    <Suspense fallback={null}>
       <CreatePaperPageInner />
     </Suspense>
   );

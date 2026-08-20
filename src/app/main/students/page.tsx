@@ -573,13 +573,84 @@ export default function StudentsPage() {
     <>
       <Card className="border-none shadow-sm overflow-hidden">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 sm:p-6 border-b">
-          <div className="space-y-1">
+          <div className="space-y-1 hidden md:block">
             <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight">Students</CardTitle>
             <CardDescription className="text-sm">Manage and monitor student records</CardDescription>
           </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full md:w-auto">
+          {/* Mobile View Filter & Action Controls (< sm) */}
+          <div className="flex sm:hidden flex-col gap-2.5 w-full mt-2">
+            {/* Row 1: Standard & Section Selects in 2 Columns */}
+            <div className="grid grid-cols-2 gap-2.5 w-full">
+              <Select value={selectedStandard} onValueChange={setSelectedStandard}>
+                <SelectTrigger className="w-full h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm">
+                  <SelectValue placeholder="Standard" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Standards</SelectItem>
+                  {uniqueStandards.map((std) => (
+                    <SelectItem key={std} value={std}>
+                      Std {std}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={selectedSection}
+                onValueChange={setSelectedSection}
+                disabled={selectedStandard === "all"}
+              >
+                <SelectTrigger className="w-full h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm disabled:opacity-60">
+                  <SelectValue placeholder="Section" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sections</SelectItem>
+                  {uniqueSectionsForStandard.map((sec) => (
+                    <SelectItem key={sec} value={sec}>
+                      Sec {sec}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Row 2: Status Select & Bulk Generator Button in 2 Columns */}
+            <div className="grid grid-cols-2 gap-2.5 w-full">
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="w-full h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {uniqueStatuses.map((st) => (
+                    <SelectItem key={st} value={st}>
+                      {st}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Button asChild variant="outline" className="w-full h-11 border-blue-200 text-blue-700 hover:bg-blue-50 font-bold rounded-xl shadow-sm text-xs px-2">
+                <a href="/main/bulk-documents">
+                  <Printer className="h-3.5 w-3.5 mr-1.5 text-blue-600 shrink-0" />
+                  <span className="truncate">Bulk Generator</span>
+                </a>
+              </Button>
+            </div>
+
+            {/* Row 3: Add Student Button (Full Width Below) */}
+            {canManage && (
+              <Button onClick={() => setAddOpen(true)} loading={addLoading} className="w-full h-11 font-bold rounded-xl shadow-sm">
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Add Student
+              </Button>
+            )}
+          </div>
+
+          {/* Desktop View Filter & Action Controls (>= sm) */}
+          <div className="hidden sm:flex flex-row items-center gap-3 w-auto">
             <Select value={selectedStandard} onValueChange={setSelectedStandard}>
-              <SelectTrigger className="w-full sm:w-[140px] h-10 sm:h-9 text-xs sm:text-sm font-semibold rounded-xl bg-white border-slate-200">
+              <SelectTrigger className="w-[140px] h-9 text-sm font-semibold rounded-xl bg-white border-slate-200">
                 <SelectValue placeholder="Standard" />
               </SelectTrigger>
               <SelectContent>
@@ -597,7 +668,7 @@ export default function StudentsPage() {
               onValueChange={setSelectedSection}
               disabled={selectedStandard === "all"}
             >
-              <SelectTrigger className="w-full sm:w-[130px] h-10 sm:h-9 text-xs sm:text-sm font-semibold rounded-xl bg-white border-slate-200 disabled:opacity-60">
+              <SelectTrigger className="w-[130px] h-9 text-sm font-semibold rounded-xl bg-white border-slate-200 disabled:opacity-60">
                 <SelectValue placeholder="Section" />
               </SelectTrigger>
               <SelectContent>
@@ -611,7 +682,7 @@ export default function StudentsPage() {
             </Select>
 
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-full sm:w-[130px] h-10 sm:h-9 text-xs sm:text-sm font-semibold rounded-xl bg-white border-slate-200">
+              <SelectTrigger className="w-[130px] h-9 text-sm font-semibold rounded-xl bg-white border-slate-200">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -624,7 +695,7 @@ export default function StudentsPage() {
               </SelectContent>
             </Select>
 
-            <Button asChild variant="outline" className="w-full sm:w-auto h-11 sm:h-9 border-blue-200 text-blue-700 hover:bg-blue-50 font-bold rounded-xl">
+            <Button asChild variant="outline" className="h-9 border-blue-200 text-blue-700 hover:bg-blue-50 font-bold rounded-xl">
               <a href="/main/bulk-documents">
                 <Printer className="h-4 w-4 mr-2 text-blue-600" />
                 Bulk Generator
@@ -632,7 +703,7 @@ export default function StudentsPage() {
             </Button>
 
             {canManage && (
-              <Button onClick={() => setAddOpen(true)} loading={addLoading} className="w-full sm:w-auto h-11 sm:h-9 font-bold rounded-xl">
+              <Button onClick={() => setAddOpen(true)} loading={addLoading} className="h-9 font-bold rounded-xl">
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Add Student
               </Button>
@@ -644,93 +715,92 @@ export default function StudentsPage() {
           {isMobile ? (
             <div className="p-3">
               {loading ? (
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="flex flex-col gap-2.5">
                   {[...Array(6)].map((_, i) => (
-                    <div key={i} className="h-36 rounded-2xl bg-slate-100 animate-pulse" />
+                    <div key={i} className="h-16 rounded-2xl bg-slate-100 animate-pulse" />
                   ))}
                 </div>
               ) : displayedStudents.length === 0 ? (
                 <div className="py-12 text-center text-muted-foreground text-sm">No students found.</div>
               ) : (
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="flex flex-col gap-2.5">
                   {displayedStudents.map((s) => (
                     <div
                       key={`${s.id}-${s.class}`}
-                      className="bg-white rounded-2xl border border-slate-100 shadow-sm p-3 flex flex-col justify-between h-full min-h-[140px] hover:border-slate-200 transition-all select-none"
+                      className="bg-white rounded-2xl border border-slate-100 shadow-sm p-3.5 flex items-center justify-between gap-3 hover:border-slate-200 transition-all select-none"
                     >
-                      <div className="flex items-start justify-between gap-1.5">
-                        <Avatar className="h-9 w-9 shrink-0 border border-slate-100">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <Avatar className="h-11 w-11 shrink-0 border border-slate-100">
                           <AvatarImage src={s.avatar} className="object-cover" />
                           <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
                             {s.initials}
                           </AvatarFallback>
                         </Avatar>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg hover:bg-slate-100 -mr-1 -mt-1 shrink-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleViewDetails(s.id)}>
-                              View Details
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 text-sm truncate" title={s.name}>
+                              {s.name}
+                            </span>
+                            <Badge variant={statusVariant(s.status)} className="text-[10px] px-2 py-0.5 font-bold shrink-0">
+                              {s.status}
+                            </Badge>
+                          </div>
+                          <span className="text-xs text-slate-500 truncate mt-0.5">
+                            {s.email ? (
+                              <a href={`mailto:${s.email}`} className="hover:underline hover:text-blue-600">
+                                {s.email}
+                              </a>
+                            ) : (
+                              "No email"
+                            )}
+                          </span>
+                          <span className="text-[11px] font-bold text-slate-400 mt-1">
+                            Class: {s.class}
+                          </span>
+                        </div>
+                      </div>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-slate-100 shrink-0">
+                            <MoreHorizontal className="h-4 w-4 text-slate-600" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="rounded-xl shadow-lg border-slate-100">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleViewDetails(s.id)}>
+                            View Details
+                          </DropdownMenuItem>
+                          {canManage && (
+                            <DropdownMenuItem onClick={() => handleEditClick(s.id)}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit
                             </DropdownMenuItem>
-                            {canManage && (
-                              <DropdownMenuItem onClick={() => handleEditClick(s.id)}>
-                                <Pencil className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                            )}
-                            {canDelete && (
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                                onClick={() => handleDelete(s.id)}
-                              >
-                                <Trash className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            )}
-                            {canManage && (
-                              <>
-                                <DropdownMenuLabel className="border-t mt-1 pt-2">Documents</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => generateIdCard(s)} disabled={docLoadingId === `${s.id}_idcard`}>
-                                  <CreditCard className="h-4 w-4 mr-2" />
-                                  {docLoadingId === `${s.id}_idcard` ? "Generating..." : "ID Card"}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => generateBonafide(s)} disabled={docLoadingId === `${s.id}_bonafide`}>
-                                  <FileCheck className="h-4 w-4 mr-2" />
-                                  {docLoadingId === `${s.id}_bonafide` ? "Generating..." : "Bonafide"}
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-
-                      <div className="mt-2 space-y-0.5 min-w-0">
-                        <span className="font-bold text-slate-900 text-xs leading-snug block truncate" title={s.name}>
-                          {s.name}
-                        </span>
-                        <span className="text-[10px] text-slate-500 block truncate leading-tight">
-                          {s.email ? (
-                            <a href={`mailto:${s.email}`} className="hover:underline hover:text-blue-600">
-                              {s.email}
-                            </a>
-                          ) : (
-                            "No email"
                           )}
-                        </span>
-                      </div>
-
-                      <div className="mt-2.5 pt-2 border-t border-slate-50 flex items-center justify-between gap-1">
-                        <span className="text-[9px] font-bold text-slate-400 truncate max-w-[50%]">
-                          {s.class}
-                        </span>
-                        <Badge variant={statusVariant(s.status)} className="text-[9px] px-1.5 py-0.5 font-bold shrink-0">
-                          {s.status}
-                        </Badge>
-                      </div>
+                          {canDelete && (
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                              onClick={() => handleDelete(s.id)}
+                            >
+                              <Trash className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
+                          {canManage && (
+                            <>
+                              <DropdownMenuLabel className="border-t mt-1 pt-2">Documents</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => generateIdCard(s)} disabled={docLoadingId === `${s.id}_idcard`}>
+                                <CreditCard className="h-4 w-4 mr-2" />
+                                {docLoadingId === `${s.id}_idcard` ? "Generating..." : "ID Card"}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => generateBonafide(s)} disabled={docLoadingId === `${s.id}_bonafide`}>
+                                <FileCheck className="h-4 w-4 mr-2" />
+                                {docLoadingId === `${s.id}_bonafide` ? "Generating..." : "Bonafide"}
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   ))}
                 </div>
@@ -881,9 +951,9 @@ export default function StudentsPage() {
 
       {/* ADD */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="w-[92vw] sm:max-w-[600px] max-h-[85vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-3xl sm:rounded-2xl border-slate-100/80 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Add New Student</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl font-bold text-slate-900">Add New Student</DialogTitle>
           </DialogHeader>
           <StudentForm mode="add" onSubmit={handleAddStudent} />
         </DialogContent>
@@ -891,9 +961,9 @@ export default function StudentsPage() {
 
       {/* EDIT */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="w-[92vw] sm:max-w-[600px] max-h-[85vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-3xl sm:rounded-2xl border-slate-100/80 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Edit Student</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl font-bold text-slate-900">Edit Student</DialogTitle>
           </DialogHeader>
 
           {editingStudent && (
@@ -909,7 +979,7 @@ export default function StudentsPage() {
       </Dialog>
 
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="w-[95vw] sm:max-w-5xl max-h-[95vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="w-[92vw] sm:max-w-5xl max-h-[85vh] sm:max-h-[95vh] overflow-y-auto p-4 sm:p-6 rounded-3xl sm:rounded-2xl border-slate-100/80 shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-slate-900 border-b pb-4 mb-2">Student Details</DialogTitle>
           </DialogHeader>

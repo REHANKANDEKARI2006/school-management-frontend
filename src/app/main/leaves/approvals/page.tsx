@@ -53,20 +53,18 @@ const MATCH_BADGE: Record<string, string> = {
 };
 
 // ─── Stats Card ───────────────────────────────────────────────────────────────
-function StatCard({ label, value, icon: Icon, color }: any) {
+function StatCard({ label, value, icon: Icon, color, iconBg }: any) {
   return (
-    <Card className="border-none bg-background/60 shadow-sm hover:shadow-md transition-all overflow-hidden relative">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">{label}</p>
-            <p className={`text-3xl font-extrabold mt-1 ${color}`}>{value ?? "—"}</p>
-          </div>
-          <div className={`p-3 rounded-xl bg-background shadow-sm ${color}`}>
-            <Icon className="w-5 h-5" />
-          </div>
+    <Card className="border border-slate-100/80 shadow-sm bg-white overflow-hidden rounded-2xl p-3 sm:p-5 flex flex-col justify-between hover:shadow-md transition-all duration-300">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase tracking-wider truncate">{label}</h3>
+        <div className={`h-8 w-8 rounded-xl flex items-center justify-center border shrink-0 ${iconBg || "bg-slate-50 border-slate-100"}`}>
+          <Icon className={`w-4 h-4 ${color}`} />
         </div>
-      </CardContent>
+      </div>
+      <div className="mt-2 sm:mt-4">
+        <p className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">{value ?? "—"}</p>
+      </div>
     </Card>
   );
 }
@@ -114,24 +112,24 @@ function LeaveCalendar() {
   const isCurrentMonth = year === today.getFullYear() && month === today.getMonth() + 1;
 
   return (
-    <div className="space-y-5" onClick={() => setTooltip(null)}>
+    <div className="space-y-4 sm:space-y-5" onClick={() => setTooltip(null)}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h3 className="text-base font-semibold text-slate-800">{monthName} {year}</h3>
+        <div className="flex items-center gap-2.5">
+          <h3 className="text-base font-bold text-slate-900">{monthName} {year}</h3>
           {!isCurrentMonth && (
             <button onClick={goToday}
-              className="text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-0.5 rounded-full bg-blue-50 hover:bg-blue-100 transition-colors">
+              className="text-[11px] text-blue-600 hover:text-blue-700 font-semibold px-2 py-0.5 rounded-full bg-blue-50 hover:bg-blue-100 transition-colors">
               Today
             </button>
           )}
         </div>
-        <div className="flex gap-1.5">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={prevMonth}>
-            <ChevronLeft className="w-4 h-4" />
+        <div className="flex items-center gap-1.5">
+          <Button variant="outline" size="icon" className="h-9 w-9 sm:h-8 sm:w-8 rounded-xl border-slate-200 hover:bg-slate-50" onClick={prevMonth}>
+            <ChevronLeft className="w-4 h-4 text-slate-600" />
           </Button>
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={nextMonth}>
-            <ChevronRight className="w-4 h-4" />
+          <Button variant="outline" size="icon" className="h-9 w-9 sm:h-8 sm:w-8 rounded-xl border-slate-200 hover:bg-slate-50" onClick={nextMonth}>
+            <ChevronRight className="w-4 h-4 text-slate-600" />
           </Button>
         </div>
       </div>
@@ -142,7 +140,7 @@ function LeaveCalendar() {
             <div key={d} className="text-center text-xs font-semibold text-muted-foreground py-2">{d}</div>
           ))}
           {Array(35).fill(0).map((_, i) => (
-            <div key={i} className="h-[72px] rounded-lg animate-pulse bg-secondary/30" />
+            <div key={i} className="h-14 sm:h-[72px] rounded-lg animate-pulse bg-secondary/30" />
           ))}
         </div>
       ) : (
@@ -154,7 +152,7 @@ function LeaveCalendar() {
             ))}
 
             {cells.map((day, i) => {
-              if (!day) return <div key={`b-${i}`} className="h-[72px]" />;
+              if (!day) return <div key={`b-${i}`} className="h-14 sm:h-[72px]" />;
               const dayLeaves = leavesOnDay(day);
               const isToday   = isCurrentMonth && day === today.getDate();
               const isSun     = new Date(year, month - 1, day).getDay() === 0;
@@ -162,12 +160,12 @@ function LeaveCalendar() {
               return (
                 <div
                   key={day}
-                  className={`h-[72px] rounded-xl p-1.5 border transition-all cursor-default relative
+                  className={`h-14 sm:h-[72px] rounded-xl p-1 sm:p-1.5 border transition-all cursor-default relative flex flex-col items-center sm:items-start justify-between
                     ${isToday
-                      ? "border-blue-400/60 bg-blue-50/70 shadow-sm shadow-blue-100"
+                      ? "border-blue-400/60 bg-blue-50/70 shadow-xs shadow-blue-100"
                       : dayLeaves.length > 0
-                        ? "border-border/60 bg-background/80 hover:border-border hover:shadow-sm"
-                        : "border-transparent hover:border-border/40 hover:bg-secondary/20"}
+                        ? "border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-xs"
+                        : "border-transparent hover:border-slate-200/40 hover:bg-slate-50/50"}
                     ${isSun ? "opacity-50" : ""}`}
                   onClick={e => {
                     if (dayLeaves.length === 0) return;
@@ -176,26 +174,26 @@ function LeaveCalendar() {
                   }}
                 >
                   {/* Day number */}
-                  <div className={`text-[11px] font-bold mb-1 w-5 h-5 flex items-center justify-center rounded-full
-                    ${isToday ? "bg-blue-600 text-white" : "text-muted-foreground"}`}>
+                  <div className={`text-[10px] sm:text-[11px] font-bold w-5 h-5 flex items-center justify-center rounded-full
+                    ${isToday ? "bg-blue-600 text-white shadow-xs" : "text-slate-600"}`}>
                     {day}
                   </div>
 
                   {/* Avatar pills */}
-                  <div className="flex flex-wrap gap-0.5">
-                    {dayLeaves.slice(0, 3).map((l, li) => (
+                  <div className="flex flex-wrap gap-0.5 justify-center sm:justify-start">
+                    {dayLeaves.slice(0, 2).map((l, li) => (
                       <div
                         key={li}
                         title={`${l.staff_first_name} ${l.staff_last_name} — ${l.leave_type_name}`}
-                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black text-white shrink-0
+                        className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[7px] sm:text-[8px] font-black text-white shrink-0
                           ${teacherColor(l.teacher_id)}`}
                       >
                         {l.staff_first_name?.[0]}{l.staff_last_name?.[0]}
                       </div>
                     ))}
-                    {dayLeaves.length > 3 && (
-                      <div className="w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-[8px] font-bold text-muted-foreground">
-                        +{dayLeaves.length - 3}
+                    {dayLeaves.length > 2 && (
+                      <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-slate-100 flex items-center justify-center text-[7px] sm:text-[8px] font-bold text-slate-500">
+                        +{dayLeaves.length - 2}
                       </div>
                     )}
                   </div>
@@ -248,10 +246,12 @@ function LeaveCalendar() {
               </div>
             </div>
           ) : (
-            <div className="border-t border-border/40 pt-4 flex items-center justify-center py-6 text-muted-foreground">
-              <div className="text-center">
-                <Calendar className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">No approved leaves this month.</p>
+            <div className="border-t border-slate-100 pt-4 flex items-center justify-center py-6 text-slate-400">
+              <div className="text-center space-y-1.5">
+                <div className="h-10 w-10 mx-auto rounded-full bg-slate-100 flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-slate-400" />
+                </div>
+                <p className="text-xs font-medium text-slate-500">No approved leaves this month.</p>
               </div>
             </div>
           )}
@@ -470,16 +470,10 @@ function ApprovalModal({
             <div className="lg:col-span-3 space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Period-wise Substitute Assignment</h3>
-                {loadingSugg && <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />}
+                {loadingSugg && null}
               </div>
 
-              {loadingSugg ? (
-                <div className="space-y-2">
-                  {Array(4).fill(0).map((_, i) => (
-                    <div key={i} className="h-16 rounded-lg animate-pulse bg-secondary/30" />
-                  ))}
-                </div>
-              ) : suggestions.length === 0 ? (
+              {loadingSugg ? null : suggestions.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground rounded-xl border-2 border-dashed border-border">
                   <Calendar className="w-8 h-8 mb-2 opacity-40" />
                   <p className="text-sm">No class periods found for this teacher during the leave period.</p>
@@ -556,9 +550,7 @@ function ApprovalModal({
                                     onClick={() => loadManualTeachers(s)}
                                     disabled={loadingManual[key]}
                                   >
-                                    {loadingManual[key]
-                                      ? <><RefreshCw className="w-3 h-3 animate-spin" /> Loading teachers…</>
-                                      : <><User className="w-3 h-3" /> Select Teacher Manually</>}
+                                      <><User className="w-3 h-3" /> Select Teacher Manually</>
                                   </Button>
                                 ) : manualTeachers[key].length === 0 ? (
                                   <div className="h-9 flex items-center px-3 rounded-lg bg-secondary/40 text-xs text-muted-foreground">
@@ -625,7 +617,7 @@ function ApprovalModal({
                 disabled={submitting || loadingSugg || isExpired}
                 title={isExpired ? "Cannot approve: leave dates have already passed" : undefined}
               >
-                {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                <CheckCircle2 className="w-4 h-4" />
                 {isExpired ? "Approval Disabled (Expired)" : "Approve & Notify"}
               </Button>
             </div>
@@ -733,7 +725,7 @@ export default function AdminLeavePage() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-10 animate-in fade-in duration-500 pb-10">
+    <div className="space-y-6 sm:space-y-10 animate-in fade-in duration-500 pb-2 md:pb-6 px-0.5 sm:px-0">
 
       {/* Toast */}
       {toast && (
@@ -755,20 +747,20 @@ export default function AdminLeavePage() {
       />
 
       {/* ══ SECTION 1 — Stats Cards ══════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Pending"       value={stats?.pending_count}  icon={Clock}     color="text-amber-600"   />
-        <StatCard label="Approved This Month" value={stats?.approved_month} icon={FileCheck} color="text-emerald-600" />
-        <StatCard label="Rejected This Month" value={stats?.rejected_month} icon={XCircle}   color="text-rose-600"    />
-        <StatCard label="On Leave Today"      value={stats?.on_leave_today} icon={UserMinus}  color="text-blue-600"    />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard label="Total Pending"       value={stats?.pending_count}  icon={Clock}     color="text-amber-600"   iconBg="bg-amber-50 border-amber-100/80"   />
+        <StatCard label="Approved This Month" value={stats?.approved_month} icon={FileCheck} color="text-emerald-600" iconBg="bg-emerald-50 border-emerald-100/80" />
+        <StatCard label="Rejected This Month" value={stats?.rejected_month} icon={XCircle}   color="text-rose-600"    iconBg="bg-rose-50 border-rose-100/80"    />
+        <StatCard label="On Leave Today"      value={stats?.on_leave_today} icon={UserMinus}  color="text-blue-600"    iconBg="bg-blue-50 border-blue-100/80"    />
       </div>
 
       {/* ══ SECTION 2 — Pending Approvals ════════════════════════════════════ */}
       <section>
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-3.5 sm:mb-4">
           <AlertCircle className="w-5 h-5 text-amber-500" />
-          <h2 className="text-lg font-semibold">Pending Approvals</h2>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">Pending Approvals</h2>
           {pending.length > 0 && (
-            <Badge className="bg-amber-500/15 text-amber-600 border border-amber-300/50 ml-1">{pending.length}</Badge>
+            <Badge className="bg-amber-500/15 text-amber-600 border border-amber-300/50 ml-1 rounded-lg px-2 text-xs font-semibold">{pending.length}</Badge>
           )}
         </div>
 
@@ -777,37 +769,41 @@ export default function AdminLeavePage() {
             {Array(2).fill(0).map((_, i) => (<div key={i} className="h-24 rounded-xl animate-pulse bg-secondary/20" />))}
           </div>
         ) : pending.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-14 border-2 border-dashed border-secondary rounded-2xl text-muted-foreground">
-            <CheckCircle2 className="w-10 h-10 mb-3 text-emerald-500/50" />
-            <p className="font-medium">All caught up!</p>
-            <p className="text-sm">No pending leave requests.</p>
-          </div>
+          <Card className="border border-slate-200/80 shadow-sm rounded-2xl bg-white p-8 text-center flex flex-col items-center justify-center gap-2">
+            <div className="h-12 w-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+              <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-base font-semibold text-slate-800">All caught up!</p>
+              <p className="text-xs text-slate-400">No pending leave requests.</p>
+            </div>
+          </Card>
         ) : (
           <div className="grid gap-3">
             {pending.map(app => {
               const isAppExpired = new Date(app.to_date) < new Date(new Date().toDateString());
               return (
-                <Card key={app.id} className={`border-none bg-background/60 shadow-sm hover:shadow-md transition-all border-l-4 overflow-hidden
-                  ${isAppExpired ? "border-amber-400/50 opacity-80" : "border-amber-500"}`}>
-                  <CardContent className="p-5">
+                <Card key={app.id} className={`border border-slate-200/80 bg-white shadow-sm hover:shadow-md transition-all border-l-4 overflow-hidden rounded-2xl
+                  ${isAppExpired ? "border-l-amber-400 opacity-90" : "border-l-amber-500"}`}>
+                  <CardContent className="p-4 sm:p-5">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       {/* Teacher info */}
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3 sm:gap-4">
                         {app.teacher_photo ? (
-                          <img src={app.teacher_photo} alt="" className="w-12 h-12 rounded-full object-cover ring-2 ring-border shrink-0" />
+                          <img src={app.teacher_photo} alt="" className="w-11 h-11 sm:w-12 sm:h-12 rounded-full object-cover ring-2 ring-border shrink-0" />
                         ) : (
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0 ${teacherColor(app.teacher_id)}`}>
+                          <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white font-bold text-base sm:text-lg shrink-0 ${teacherColor(app.teacher_id)}`}>
                             {app.staff_first_name?.[0]}{app.staff_last_name?.[0]}
                           </div>
                         )}
                         <div>
-                          <p className="font-bold">{app.staff_first_name} {app.staff_last_name}</p>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5 font-medium">
-                            <Badge variant="secondary" className="text-xs font-normal">{app.leave_type_name}</Badge>
+                          <p className="font-bold text-slate-900 text-sm sm:text-base">{app.staff_first_name} {app.staff_last_name}</p>
+                          <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 mt-0.5 font-medium">
+                            <Badge variant="secondary" className="text-[11px] font-normal px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700">{app.leave_type_name}</Badge>
                             <span>·</span>
                             <span>{app.total_days} day(s)</span>
                             {isAppExpired && (
-                              <Badge className="bg-rose-500/10 text-rose-600 border border-rose-200/40 text-[10px] py-0 px-1.5 ml-1 font-semibold animate-pulse">
+                              <Badge className="bg-rose-500/10 text-rose-600 border border-rose-200/40 text-[10px] py-0 px-1.5 font-semibold">
                                 Expired
                               </Badge>
                             )}
@@ -833,8 +829,8 @@ export default function AdminLeavePage() {
                       <Button
                         variant={isAppExpired ? "outline" : "default"}
                         className={isAppExpired
-                          ? "gap-2 border-slate-300 text-slate-500 hover:bg-slate-50 shrink-0"
-                          : "gap-2 shrink-0"
+                          ? "gap-2 border-slate-300 text-slate-500 hover:bg-slate-50 shrink-0 w-full sm:w-auto"
+                          : "gap-2 shrink-0 w-full sm:w-auto"
                         }
                         onClick={() => setModalApp(app)}
                       >
@@ -852,42 +848,185 @@ export default function AdminLeavePage() {
 
       {/* ══ SECTION 3 — All Applications with Filters ════════════════════════ */}
       <section>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <h2 className="text-base sm:text-lg font-bold text-slate-900 mb-3.5 sm:mb-4 flex items-center gap-2">
           <FileCheck className="w-5 h-5 text-blue-500" /> All Applications
         </h2>
 
         {/* Filter row */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Teacher name..." value={filters.teacher_name}
-              onChange={e => setFilters(p => ({ ...p, teacher_name: e.target.value }))} />
+        <div className="mb-4">
+          {/* Mobile layout (< md) */}
+          <div className="block md:hidden space-y-2.5">
+            {/* Search row */}
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                className="pl-9 h-10 rounded-xl border-slate-200 text-xs bg-white focus-visible:ring-1"
+                placeholder="Teacher name..."
+                value={filters.teacher_name}
+                onChange={e => setFilters(p => ({ ...p, teacher_name: e.target.value }))}
+              />
+            </div>
+            {/* Dropdowns row */}
+            <div className="grid grid-cols-2 gap-2">
+              <Select value={filters.leave_type_id} onValueChange={v => setFilters(p => ({ ...p, leave_type_id: v === "all" ? "" : v }))}>
+                <SelectTrigger className="h-10 rounded-xl border-slate-200 text-xs bg-white">
+                  <SelectValue placeholder="Leave type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {leaveTypes.map(lt => <SelectItem key={lt.id} value={String(lt.id)}>{lt.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+
+              <Select value={filters.status} onValueChange={v => setFilters(p => ({ ...p, status: v === "all" ? "" : v }))}>
+                <SelectTrigger className="h-10 rounded-xl border-slate-200 text-xs bg-white">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Dates + Action row */}
+            <div className="grid grid-cols-5 gap-2 items-center">
+              <Input
+                type="date"
+                className="col-span-2 h-10 rounded-xl border-slate-200 text-xs bg-white px-2"
+                value={filters.from_date}
+                onChange={e => setFilters(p => ({ ...p, from_date: e.target.value }))}
+              />
+              <Input
+                type="date"
+                className="col-span-2 h-10 rounded-xl border-slate-200 text-xs bg-white px-2"
+                value={filters.to_date}
+                onChange={e => setFilters(p => ({ ...p, to_date: e.target.value }))}
+              />
+              <Button
+                onClick={fetchFiltered}
+                size="icon"
+                variant="outline"
+                className="col-span-1 h-10 w-full rounded-xl border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shrink-0"
+                title="Apply Filters"
+              >
+                <Filter className="w-4 h-4 text-slate-600" />
+              </Button>
+            </div>
           </div>
-          <Select value={filters.leave_type_id} onValueChange={v => setFilters(p => ({ ...p, leave_type_id: v === "all" ? "" : v }))}>
-            <SelectTrigger><SelectValue placeholder="Leave type" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              {leaveTypes.map(lt => <SelectItem key={lt.id} value={String(lt.id)}>{lt.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={filters.status} onValueChange={v => setFilters(p => ({ ...p, status: v === "all" ? "" : v }))}>
-            <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-          <Input type="date" value={filters.from_date} onChange={e => setFilters(p => ({ ...p, from_date: e.target.value }))} />
-          <div className="flex gap-2">
-            <Input type="date" value={filters.to_date} onChange={e => setFilters(p => ({ ...p, to_date: e.target.value }))} />
-            <Button onClick={fetchFiltered} size="icon" variant="outline"><Filter className="w-4 h-4" /></Button>
+
+          {/* Desktop layout (>= md) */}
+          <div className="hidden md:grid md:grid-cols-5 gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input className="pl-9" placeholder="Teacher name..." value={filters.teacher_name}
+                onChange={e => setFilters(p => ({ ...p, teacher_name: e.target.value }))} />
+            </div>
+            <Select value={filters.leave_type_id} onValueChange={v => setFilters(p => ({ ...p, leave_type_id: v === "all" ? "" : v }))}>
+              <SelectTrigger><SelectValue placeholder="Leave type" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                {leaveTypes.map(lt => <SelectItem key={lt.id} value={String(lt.id)}>{lt.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filters.status} onValueChange={v => setFilters(p => ({ ...p, status: v === "all" ? "" : v }))}>
+              <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input type="date" value={filters.from_date} onChange={e => setFilters(p => ({ ...p, from_date: e.target.value }))} />
+            <div className="flex gap-2">
+              <Input type="date" value={filters.to_date} onChange={e => setFilters(p => ({ ...p, to_date: e.target.value }))} />
+              <Button onClick={fetchFiltered} size="icon" variant="outline"><Filter className="w-4 h-4" /></Button>
+            </div>
           </div>
         </div>
 
-        <Card className="border-none bg-background/60 shadow-sm overflow-hidden">
+        {/* Mobile Card List (< md) */}
+        <div className="block md:hidden space-y-3">
+          {loading ? (
+            Array(3).fill(0).map((_, i) => (
+              <div key={i} className="h-28 rounded-2xl animate-pulse bg-slate-200/50" />
+            ))
+          ) : allApps.length === 0 ? (
+            <Card className="border border-slate-200/80 shadow-sm rounded-2xl bg-white p-8 text-center flex flex-col items-center justify-center gap-2">
+              <div className="h-12 w-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center border border-slate-200/60">
+                <FileCheck className="h-6 w-6 text-slate-400" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-slate-700">No applications found</p>
+                <p className="text-xs text-slate-400">Try adjusting your search filters.</p>
+              </div>
+            </Card>
+          ) : (
+            allApps.map(app => {
+              const cfg = STATUS_CONFIG[app.status] ?? STATUS_CONFIG.pending;
+              const isAppExpired = app.status === "pending" && new Date(app.to_date) < new Date(new Date().toDateString());
+              return (
+                <Card key={app.id} className="border border-slate-200/80 bg-white shadow-sm rounded-2xl p-4 space-y-3 hover:border-slate-300 transition-all">
+                  {/* Top row: Teacher Avatar + Name + Status Badge */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${teacherColor(app.teacher_id)}`}>
+                        {app.staff_first_name?.[0]}{app.staff_last_name?.[0]}
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm text-slate-900 leading-tight">{app.staff_first_name} {app.staff_last_name}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{app.leave_type_name}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <Badge className={`${cfg.cls} border text-[11px] px-2 py-0.5 font-semibold`}>{cfg.label}</Badge>
+                      {isAppExpired && (
+                        <Badge className="bg-rose-500/10 text-rose-600 border border-rose-200/40 text-[9px] py-0 px-1 font-semibold">
+                          Expired
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Details row: Duration & Days */}
+                  <div className="grid grid-cols-2 gap-2 pt-2.5 border-t border-slate-100 text-xs">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Duration</span>
+                      <span className="font-medium text-slate-700">{fmtDate(app.from_date)} → {fmtDate(app.to_date)}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Days</span>
+                      <Badge variant="outline" className="font-bold text-slate-800 border-slate-300 px-2 py-0.5">{app.total_days}d</Badge>
+                    </div>
+                  </div>
+
+                  {/* Bottom row: Applied date + Action if pending */}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                    <span className="text-slate-400 text-[11px]">Applied {fmtDate(app.applied_at)}</span>
+                    {app.status === "pending" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className={`h-8 text-xs font-semibold gap-1.5 rounded-xl border-slate-200 ${isAppExpired ? "text-slate-400 border-slate-200 hover:bg-slate-50" : "text-blue-600 border-blue-200 hover:bg-blue-50"}`}
+                        onClick={() => setModalApp(app)}
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        {isAppExpired ? "Review (Expired)" : "Review"}
+                      </Button>
+                    )}
+                  </div>
+                </Card>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop Table (>= md) */}
+        <Card className="hidden md:block border-none bg-background/60 shadow-sm overflow-hidden">
           <Table>
             <TableHeader className="bg-secondary/20">
               <TableRow>
@@ -963,11 +1102,11 @@ export default function AdminLeavePage() {
 
       {/* ══ SECTION 4 — Leave Calendar ══════════════════════════════════════ */}
       <section>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <h2 className="text-base sm:text-lg font-bold text-slate-900 mb-3.5 sm:mb-4 flex items-center gap-2">
           <Calendar className="w-5 h-5 text-violet-500" /> Leave Calendar
         </h2>
-        <Card className="border-none bg-background/60 shadow-sm">
-          <CardContent className="p-6">
+        <Card className="border border-slate-200/80 bg-white shadow-sm rounded-2xl overflow-hidden">
+          <CardContent className="p-4 sm:p-6">
             <LeaveCalendar />
           </CardContent>
         </Card>

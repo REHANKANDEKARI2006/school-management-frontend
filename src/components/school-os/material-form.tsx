@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Upload } from "lucide-react";
+import { CalendarIcon, Upload, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -178,143 +178,143 @@ export function MaterialForm({ onSubmit, onCancel, material }: MaterialFormProps
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 pt-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem className="space-y-2">
-              <FormLabel className="text-sm font-semibold text-slate-700">Material Name</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g. Introduction to Algebra" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <div className="grid grid-cols-2 gap-4">
-            <FormField
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 sm:space-y-5">
+          <FormField
             control={form.control}
-            name="subject_id"
+            name="name"
             render={({ field }) => (
-                <FormItem className="space-y-2">
-                <FormLabel className="text-sm font-semibold text-slate-700">Subject</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormItem className="space-y-1.5">
+                <FormLabel className="text-xs font-semibold text-slate-700">Material Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g. Introduction to Algebra" {...field} className="h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <FormField
+              control={form.control}
+              name="subject_id"
+              render={({ field }) => (
+                <FormItem className="space-y-1.5">
+                  <FormLabel className="text-xs font-semibold text-slate-700">Subject</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                    <SelectTrigger>
+                      <SelectTrigger className="h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm truncate">
                         <SelectValue placeholder="Select" />
-                    </SelectTrigger>
+                      </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                    {subjects.map(s => (
+                      {subjects.map(s => (
                         <SelectItem key={s.subject_id} value={String(s.subject_id)}>{s.subject_name}</SelectItem>
-                    ))}
+                      ))}
                     </SelectContent>
-                </Select>
-                <FormMessage />
+                  </Select>
+                  <FormMessage />
                 </FormItem>
-            )}
+              )}
             />
             <FormField
-            control={form.control}
-            name="class_id"
-            render={({ field }) => (
-                <FormItem className="space-y-2">
-                <FormLabel className="text-sm font-semibold text-slate-700">Class</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+              control={form.control}
+              name="class_id"
+              render={({ field }) => (
+                <FormItem className="space-y-1.5">
+                  <FormLabel className="text-xs font-semibold text-slate-700">Class</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                    <SelectTrigger>
+                      <SelectTrigger className="h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm truncate">
                         <SelectValue placeholder="Select" />
-                    </SelectTrigger>
+                      </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                    {classes.map(c => (
+                      {classes.map(c => (
                         <SelectItem key={c.class_id} value={String(c.class_id)}>
-                        {c.class_name}{c.section_name ? ` - ${c.section_name}` : ""}
+                          {c.class_name}{c.section_name ? ` - ${c.section_name}` : ""}
                         </SelectItem>
-                    ))}
+                      ))}
                     </SelectContent>
-                </Select>
-                <FormMessage />
+                  </Select>
+                  <FormMessage />
                 </FormItem>
-            )}
+              )}
             />
-        </div>
+          </div>
 
-        <FormItem className="space-y-2">
-          <FormLabel className="text-sm font-semibold text-slate-700">Files</FormLabel>
-          <FormControl>
-            <div className="relative">
-              <Input
-                type="file"
-                multiple={true}
-                onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
-                className="cursor-pointer"
-              />
-            </div>
-          </FormControl>
-          {selectedFiles.length > 0 && (
-            <div className="mt-2 space-y-1 bg-slate-50 p-2.5 rounded-xl border border-slate-100 max-h-[120px] overflow-y-auto">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Selected Files ({selectedFiles.length}):</p>
-              {selectedFiles.map((f, idx) => (
-                <div key={idx} className="text-xs font-semibold text-slate-650 truncate flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 shrink-0" />
-                  {f.name} <span className="text-[10px] font-normal text-slate-400">({(f.size / (1024 * 1024)).toFixed(2)} MB)</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </FormItem>
-
-        <FormField
-          control={form.control}
-          name="date"
-          render={({ field }) => (
-            <FormItem className="flex flex-col space-y-2">
-              <FormLabel className="text-sm font-semibold text-slate-700">Upload Date</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <div className="pt-2 flex flex-col sm:flex-row gap-2">
-            {onCancel && (
-                <Button type="button" variant="outline" onClick={onCancel} className="order-2 sm:order-1">
-                    Cancel
-                </Button>
+          <FormItem className="space-y-1.5">
+            <FormLabel className="text-xs font-semibold text-slate-700">Files</FormLabel>
+            <FormControl>
+              <div className="relative">
+                <Input
+                  type="file"
+                  multiple={true}
+                  onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
+                  className="h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm file:text-xs file:font-bold file:border-0 file:bg-slate-100 file:text-slate-700 file:rounded-lg file:px-2.5 file:py-1 cursor-pointer flex items-center"
+                />
+              </div>
+            </FormControl>
+            {selectedFiles.length > 0 && (
+              <div className="mt-2 space-y-1 bg-slate-50 p-2.5 rounded-xl border border-slate-100 max-h-[120px] overflow-y-auto">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Selected Files ({selectedFiles.length}):</p>
+                {selectedFiles.map((f, idx) => (
+                  <div key={idx} className="text-xs font-semibold text-slate-650 truncate flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 shrink-0" />
+                    {f.name} <span className="text-[10px] font-normal text-slate-400">({(f.size / (1024 * 1024)).toFixed(2)} MB)</span>
+                  </div>
+                ))}
+              </div>
             )}
-            <Button type="submit" className="flex-1 order-1 sm:order-2" loading={isUploading}>
-                {material ? "Update Material" : "Upload Material"}
+          </FormItem>
+
+          <FormField
+            control={form.control}
+            name="date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col space-y-1.5">
+                <FormLabel className="text-xs font-semibold text-slate-700">Upload Date</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "h-11 px-3 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm justify-between text-left",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        <span className="truncate">
+                          {field.value ? format(field.value, "PPP") : <span>Pick date</span>}
+                        </span>
+                        <CalendarIcon className="h-4 w-4 opacity-50 shrink-0 ml-1" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        <div className="p-4 sm:p-6 pt-3 bg-slate-50/50 border-t flex flex-col-reverse sm:flex-row gap-2 shrink-0">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto h-11 rounded-xl text-xs font-bold border-slate-200">
+              Cancel
             </Button>
+          )}
+          <Button type="submit" disabled={isUploading} loading={isUploading} className="w-full sm:w-auto h-11 rounded-xl text-xs font-bold shadow-sm">
+            {material ? "Update Material" : "Upload Material"}
+          </Button>
         </div>
       </form>
     </Form>

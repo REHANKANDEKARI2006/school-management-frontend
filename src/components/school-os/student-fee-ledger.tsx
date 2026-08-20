@@ -308,37 +308,37 @@ export function StudentFeeLedger({ studentId, studentName }: StudentFeeLedgerPro
       <AnimatePresence>
         {selectedFeeIds.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            initial={{ opacity: 0, y: -16, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="relative z-10 p-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-4 border border-blue-400/20"
+            exit={{ opacity: 0, y: -16, scale: 0.98 }}
+            className="relative z-10 p-4 sm:p-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white rounded-2xl shadow-xl flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3.5 border border-blue-400/20"
           >
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center text-white border border-white/10">
-                <Sparkles size={20} className="animate-pulse" />
+              <div className="h-9 w-9 bg-white/15 rounded-xl flex items-center justify-center text-white border border-white/20 shrink-0">
+                <Sparkles size={18} className="animate-pulse" />
               </div>
-              <div>
-                <div className="font-extrabold text-md tracking-tight">Bulk Payment Ready</div>
-                <div className="text-xs text-blue-100 font-medium">
-                  Selected <span className="font-bold text-white bg-white/20 px-1.5 py-0.5 rounded-md">{selectedFeeIds.length}</span> fee structures • Total: <span className="font-bold text-white">₹{totalSelectedAmount.toLocaleString()}</span>
+              <div className="space-y-0.5">
+                <div className="font-black text-sm tracking-tight text-white">Bulk Payment Ready</div>
+                <div className="text-[11px] text-blue-100 font-medium leading-tight">
+                  Selected <span className="font-bold text-white bg-white/20 px-1.5 py-0.5 rounded-md text-[10px]">{selectedFeeIds.length}</span> fee structures • Total: <span className="font-extrabold text-white">₹{totalSelectedAmount.toLocaleString()}</span>
                 </div>
               </div>
             </div>
-            <div className="flex gap-2.5 w-full md:w-auto">
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end pt-1 sm:pt-0">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSelectedFeeIds([])}
-                className="text-white hover:bg-white/10 font-bold w-full md:w-auto px-4 py-5"
+                className="text-white hover:bg-white/15 font-bold h-10 px-3 text-xs rounded-xl transition-all"
               >
                 Clear
               </Button>
               <Button
                 onClick={handleOpenBulkPay}
-                className="bg-white text-blue-700 hover:bg-slate-50 font-extrabold w-full md:w-auto px-6 py-5 shadow-lg flex items-center justify-center gap-2 rounded-xl transition-all hover:scale-[1.02]"
+                className="bg-white text-indigo-700 hover:bg-slate-50 font-extrabold h-10 px-4 text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 flex-1 sm:flex-initial transition-all active:scale-95"
               >
-                Collect Selected Fees
-                <ArrowRight size={16} className="stroke-[2.5]" />
+                <span>Collect Selected Fees</span>
+                <ArrowRight size={14} className="stroke-[2.5]" />
               </Button>
             </div>
           </motion.div>
@@ -367,7 +367,7 @@ export function StudentFeeLedger({ studentId, studentName }: StudentFeeLedgerPro
                 <Card 
                   className={`overflow-hidden transition-all duration-200 relative border-l-4 ${
                     isPaid ? "border-l-green-500 bg-white" : (status === "Partial" ? "border-l-amber-500 bg-white" : "border-l-rose-500 bg-white")
-                  } ${isSelected ? "ring-2 ring-blue-500 shadow-md translate-y-[-2px]" : "hover:shadow-md"}`}
+                  } ${isSelected ? "ring-2 ring-indigo-500 border-indigo-500 shadow-md bg-indigo-50/20" : "hover:shadow-md"}`}
                 >
                   <CardHeader className="pb-3 pt-4 px-4 flex flex-row justify-between items-start">
                     <div className="space-y-1 pr-6">
@@ -383,7 +383,7 @@ export function StudentFeeLedger({ studentId, studentName }: StudentFeeLedgerPro
                       <Checkbox
                         checked={isSelected}
                         onCheckedChange={() => toggleSelectFee(f.fee_struct_id)}
-                        className="h-5 w-5 rounded-md border-slate-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                        className="h-5 w-5 rounded-md border-slate-300 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
                       />
                     ) : (
                       <div className="h-5 w-5 bg-green-50 rounded-full flex items-center justify-center border border-green-200 text-green-600">
@@ -440,7 +440,7 @@ export function StudentFeeLedger({ studentId, studentName }: StudentFeeLedgerPro
               </CardTitle>
               <CardDescription className="text-xs">Download consolidated PDF receipts for any past transactions</CardDescription>
             </div>
-            <Badge variant="secondary" className="font-bold text-[10px] bg-slate-100 text-slate-600">
+            <Badge variant="secondary" className="font-bold text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
               {groupedHistory.length} Transactions Total
             </Badge>
           </div>
@@ -452,10 +452,14 @@ export function StudentFeeLedger({ studentId, studentName }: StudentFeeLedgerPro
               <Skeleton className="h-10 w-full rounded-xl" />
             </div>
           ) : groupedHistory.length === 0 ? (
-            <div className="text-center py-10 text-slate-400 select-none flex flex-col items-center justify-center">
-              <History size={36} className="text-slate-300 mb-2 stroke-[1.5]" />
-              <p className="text-xs font-semibold">No payment history recorded yet.</p>
-              <p className="text-[10px] text-slate-400">Payments will display here after fee collections.</p>
+            <div className="text-center py-12 px-4 text-slate-400 select-none flex flex-col items-center justify-center space-y-2">
+              <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 shadow-2xs mb-1">
+                <History className="h-6 w-6 stroke-[1.75]" />
+              </div>
+              <p className="text-xs font-bold text-slate-700">No payment history recorded yet.</p>
+              <p className="text-[11px] font-medium text-slate-400 max-w-[240px] leading-relaxed">
+                Payments will display here after fee collections.
+              </p>
             </div>
           ) : (
             <div className="divide-y divide-slate-50 max-h-[300px] overflow-y-auto">
@@ -601,7 +605,7 @@ export function StudentFeeLedger({ studentId, studentName }: StudentFeeLedgerPro
                 onClick={handleBulkPay} 
                 disabled={receiptLoading}
             >
-                {receiptLoading ? "Processing..." : "Record Bulk Payments"}
+                Record Bulk Payments
                 <ArrowRight size={14} className="stroke-[2.5]" />
             </Button>
           </DialogFooter>

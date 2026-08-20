@@ -238,19 +238,19 @@ function QuestionForm({
                 className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all max-w-md ${
                   uploading
                     ? "border-slate-300 bg-slate-50"
-                    : "border-slate-300 hover:border-[#3335e3] hover:bg-[#3335e3]/5"
+                    : "border-slate-300 hover:border-primary hover:bg-primary/5"
                 }`}
               >
                 {uploading ? (
                   <div className="flex flex-col items-center justify-center space-y-2">
-                    <Loader2 className="h-6 w-6 animate-spin text-[#3335e3]" />
-                    <span className="text-xs font-bold text-slate-500">Uploading diagram...</span>
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-xs font-bold text-muted-foreground">Uploading diagram...</span>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center space-y-1">
-                    <Upload className="h-6 w-6 text-slate-400 mb-1" />
-                    <span className="text-xs font-bold text-slate-700">Click to upload diagram</span>
-                    <span className="text-[10px] text-slate-400 font-medium">Supports JPG, PNG, WEBP (Max 5MB)</span>
+                    <Upload className="h-5 w-5 text-slate-400 mb-1 mx-auto" />
+                    <span className="text-xs font-bold text-slate-700 block">Click to upload diagram</span>
+                    <span className="text-[10px] text-slate-400 font-medium block">Supports JPG, PNG, WEBP (Max 5MB)</span>
                   </div>
                 )}
               </div>
@@ -1238,7 +1238,7 @@ export default function AddQuestionsStep({ paper, onChange }: Props) {
                   disabled={saving}
                   className="flex items-center gap-2 px-5 py-2.5 bg-[#3335e3] text-white text-sm font-bold rounded-xl hover:bg-[#3335e3]/90 disabled:opacity-50 transition-all shadow-sm"
                 >
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  <Plus className="h-4 w-4" />
                   {editingQ.question_id ? "Save Changes" : "Save & Close"}
                 </button>
                 
@@ -1361,7 +1361,7 @@ export default function AddQuestionsStep({ paper, onChange }: Props) {
                                       disabled={saving}
                                       className="flex items-center gap-1.5 px-4 py-2 bg-[#3335e3] text-white text-xs font-bold rounded-lg hover:bg-[#3335e3]/90 disabled:opacity-50 transition-all shadow-sm"
                                     >
-                                      {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                                      <Plus className="h-3.5 w-3.5" />
                                       Save Changes
                                     </button>
                                     <button
@@ -1489,7 +1489,7 @@ export default function AddQuestionsStep({ paper, onChange }: Props) {
                                       disabled={saving}
                                       className="flex items-center gap-1.5 px-4 py-2 bg-green-700 hover:bg-green-800 text-white text-xs font-bold rounded-lg disabled:opacity-50 transition-all shadow-sm"
                                     >
-                                      {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                                      <Plus className="h-3.5 w-3.5" />
                                       Save & Close
                                     </button>
                                     <button

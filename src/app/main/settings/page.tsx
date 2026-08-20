@@ -145,7 +145,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50/50 pb-10">
-      <div className="max-w-4xl mx-auto px-4 md:px-6 pt-8 pb-4">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 pt-8 pb-4 hidden md:block">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
@@ -157,81 +157,61 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 md:px-6 space-y-8">
+      <div className="max-w-4xl mx-auto px-3.5 sm:px-6 space-y-6 sm:space-y-8 pt-4 sm:pt-0">
         
         {/* Document Branding Section */}
-        <section className="space-y-4">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Branding & Identity</h2>
+        <section className="space-y-3 sm:space-y-4">
+          <h2 className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-400 ml-1">Branding &amp; Identity</h2>
           <Link href="/main/settings/documents" className="block group mb-4">
-            <div className="border border-slate-200 shadow-sm rounded-xl p-6 bg-white hover:border-primary/50 transition-all flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <FileText className="h-6 w-6 text-primary" />
+            <div className="border border-slate-200/80 shadow-sm rounded-2xl p-4 sm:p-6 bg-white hover:border-primary/50 transition-all flex items-center justify-between">
+              <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                <div className="h-11 w-11 sm:h-12 sm:w-12 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                  <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-slate-800 group-hover:text-primary transition-colors">
+                <div className="min-w-0">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-800 group-hover:text-primary transition-colors truncate">
                     Document Branding
                   </h3>
-                  <p className="text-slate-500 text-sm font-medium">
+                  <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5 leading-snug">
                     Customize logos, stamps, and signatures for all system-generated reports.
                   </p>
                 </div>
               </div>
-              <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+              <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0 ml-2" />
             </div>
           </Link>
-          {/* 
-          <Link href="/main/settings/document-content" className="block group">
-            <div className="border border-slate-200 shadow-sm rounded-xl p-6 bg-white hover:border-emerald-500/50 transition-all flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 bg-emerald-500/10 rounded-lg flex items-center justify-center">
-                  <FileText className="h-6 w-6 text-emerald-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-slate-800 group-hover:text-emerald-600 transition-colors">
-                    Document Content Manager
-                  </h3>
-                  <p className="text-slate-500 text-sm font-medium">
-                    Manage dynamic content, translations, and placeholders for certificates without altering layouts.
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all" />
-            </div>
-          </Link>
-          */}
         </section>
 
         {/* School Profile Card */}
-        <section className="space-y-4">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Institutional Profile</h2>
-          <Card className="shadow-sm border-slate-100 rounded-xl overflow-hidden">
-            <CardHeader className="p-6 border-b bg-slate-50/30">
-              <div className="flex items-center gap-4">
-                <div className="p-2 bg-primary/10 rounded-lg">
+        <section className="space-y-3 sm:space-y-4">
+          <h2 className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-400 ml-1">Institutional Profile</h2>
+          <Card className="shadow-sm border-slate-200/80 rounded-2xl overflow-hidden bg-white">
+            <CardHeader className="p-4 sm:p-6 border-b border-slate-100 bg-slate-50/30">
+              <div className="flex items-center gap-3.5 sm:gap-4">
+                <div className="p-2 bg-primary/10 rounded-xl shrink-0">
                   <Building2 className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg font-bold">Identity Configuration</CardTitle>
-                  <CardDescription className="text-sm">Manage core information used across ID cards and certificates.</CardDescription>
+                  <CardTitle className="text-base sm:text-lg font-bold text-slate-900">Identity Configuration</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm text-slate-500">Manage core information used across ID cards and certificates.</CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     <FormField
                       control={form.control}
                       name="schoolName"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-wider">Institutional Name</FormLabel>
+                        <FormItem className="space-y-1.5">
+                          <FormLabel className="text-[10px] sm:text-xs font-extrabold text-slate-400 uppercase tracking-wider">Institutional Name</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="e.g. SchoolOS University" 
                               {...field} 
-                              className="h-11 bg-white border-slate-200 focus:ring-primary/10 transition-all rounded-lg text-sm font-semibold"
+                              className="h-10 sm:h-11 bg-white border-slate-200 focus:ring-primary/10 transition-all rounded-xl text-xs sm:text-sm font-semibold"
                             />
                           </FormControl>
                           <FormMessage />
@@ -243,14 +223,14 @@ export default function SettingsPage() {
                       control={form.control}
                       name="organizationName"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-wider">Organization Name</FormLabel>
+                        <FormItem className="space-y-1.5">
+                          <FormLabel className="text-[10px] sm:text-xs font-extrabold text-slate-400 uppercase tracking-wider">Organization Name</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="e.g. SchoolOS Educational Trust" 
                               {...field} 
                               value={field.value || ""}
-                              className="h-11 bg-white border-slate-200 focus:ring-primary/10 transition-all rounded-lg text-sm font-semibold"
+                              className="h-10 sm:h-11 bg-white border-slate-200 focus:ring-primary/10 transition-all rounded-xl text-xs sm:text-sm font-semibold"
                             />
                           </FormControl>
                           <FormMessage />
@@ -259,18 +239,18 @@ export default function SettingsPage() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     <FormField
                       control={form.control}
                       name="schoolPhone"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-wider">Primary Contact</FormLabel>
+                        <FormItem className="space-y-1.5">
+                          <FormLabel className="text-[10px] sm:text-xs font-extrabold text-slate-400 uppercase tracking-wider">Primary Contact</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="+1-202-555-0123" 
                               {...field} 
-                              className="h-11 bg-white border-slate-200 focus:ring-primary/10 transition-all rounded-lg text-sm font-semibold"
+                              className="h-10 sm:h-11 bg-white border-slate-200 focus:ring-primary/10 transition-all rounded-xl text-xs sm:text-sm font-semibold"
                             />
                           </FormControl>
                           <FormMessage />
@@ -283,13 +263,13 @@ export default function SettingsPage() {
                     control={form.control}
                     name="schoolAddress"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-wider">Campus Address</FormLabel>
+                      <FormItem className="space-y-1.5">
+                        <FormLabel className="text-[10px] sm:text-xs font-extrabold text-slate-400 uppercase tracking-wider">Campus Address</FormLabel>
                         <FormControl>
                           <Textarea 
                             placeholder="Enter the full institutional address..." 
                             {...field} 
-                            className="bg-white border-slate-200 min-h-[100px] focus:ring-primary/10 transition-all rounded-lg text-sm font-medium resize-none"
+                            className="bg-white border-slate-200 min-h-[90px] sm:min-h-[100px] focus:ring-primary/10 transition-all rounded-xl text-xs sm:text-sm font-medium resize-none"
                           />
                         </FormControl>
                         <FormMessage />
@@ -301,10 +281,10 @@ export default function SettingsPage() {
                     <Button 
                       type="submit" 
                       disabled={saving}
-                      className="w-full sm:w-auto h-11 px-8 rounded-lg font-bold transition-all flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto h-11 px-8 rounded-xl font-bold transition-all flex items-center justify-center gap-2"
                     >
-                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                      {saving ? "Saving..." : "Save Settings"}
+                      <Save className="h-4 w-4" />
+                      Save Settings
                     </Button>
                   </div>
                 </form>

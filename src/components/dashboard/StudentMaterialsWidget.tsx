@@ -282,11 +282,7 @@ export const StudentMaterialsWidget = () => {
                         : "bg-blue-50 border-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 opacity-0 group-hover:opacity-100"
                     )}
                   >
-                    {downloadingId === m.material_id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Download className="h-3.5 w-3.5" />
-                    )}
+                    <Download className="h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>

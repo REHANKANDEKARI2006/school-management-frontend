@@ -139,7 +139,7 @@ export default function SubstituteDutiesPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex items-center gap-3 text-muted-foreground">
-          <Loader2 className="w-6 h-6 animate-spin" />
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
           <span>Resolving user identity…</span>
         </div>
       </div>

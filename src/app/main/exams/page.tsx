@@ -381,54 +381,99 @@ export default function ExamsPage() {
   =================================================================== */
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-          <div>
-            <CardTitle>Examination Management</CardTitle>
-            <CardDescription>
-              Design papers, schedule tests, and track academic performance
-            </CardDescription>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-             <Select value={selectedStandard} onValueChange={setSelectedStandard}>
-              <SelectTrigger className="w-full sm:w-[140px] h-9">
-                <SelectValue placeholder="Standard" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Standards</SelectItem>
-                {uniqueStandards.map((std) => (
-                  <SelectItem key={std} value={std}>
-                    Standard {std}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <Card className="border-none shadow-sm overflow-hidden bg-white dark:bg-slate-900 rounded-2xl">
+        <CardHeader className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3.5">
+            <div className="space-y-0.5 hidden md:block">
+              <CardTitle className="text-[19px] sm:text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 leading-snug sm:leading-normal">Examination Management</CardTitle>
+              <CardDescription className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                Design papers, schedule tests, and track academic performance
+              </CardDescription>
+            </div>
+            
+            {/* Mobile View Controls (< sm: side-by-side 2-col filters & centered button) */}
+            <div className="flex sm:hidden flex-col gap-2.5 w-full mt-1">
+              <div className="grid grid-cols-2 gap-2.5 w-full">
+                <Select value={selectedStandard} onValueChange={setSelectedStandard}>
+                  <SelectTrigger className="w-full h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm">
+                    <SelectValue placeholder="Standard" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Standards</SelectItem>
+                    {uniqueStandards.map((std) => (
+                      <SelectItem key={std} value={std}>
+                        Standard {std}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-full sm:w-[140px] h-9">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="upcoming">Upcoming</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="scheduled">Scheduled</SelectItem>
-              </SelectContent>
-            </Select>
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <SelectTrigger className="w-full h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="upcoming">Upcoming</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {canManage && (
-              <div className="flex flex-col xs:flex-row gap-2">
+              {canManage && (
                 <Button
-                  className="w-full xs:w-auto gap-2"
+                  className="w-full h-11 font-bold rounded-xl shadow-sm text-xs justify-center flex items-center gap-2"
                   onClick={() => router.push("/main/exams/create")}
                 >
                   <PlusCircle className="h-4 w-4" />
-                  Create Exam
+                  <span>Create Exam</span>
                   <ArrowUpRight className="h-3.5 w-3.5 opacity-70" />
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
+
+            {/* Desktop View Controls (>= sm: flex row) */}
+            <div className="hidden sm:flex flex-row items-center gap-3 w-auto">
+              <Select value={selectedStandard} onValueChange={setSelectedStandard}>
+                <SelectTrigger className="w-[140px] h-9">
+                  <SelectValue placeholder="Standard" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Standards</SelectItem>
+                  {uniqueStandards.map((std) => (
+                    <SelectItem key={std} value={std}>
+                      Standard {std}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="w-[140px] h-9">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="upcoming">Upcoming</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {canManage && (
+                <div className="flex flex-col xs:flex-row gap-2">
+                  <Button
+                    className="w-full xs:w-auto gap-2"
+                    onClick={() => router.push("/main/exams/create")}
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                    Create Exam
+                    <ArrowUpRight className="h-3.5 w-3.5 opacity-70" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </CardHeader>
 
@@ -516,25 +561,31 @@ export default function ExamsPage() {
           </div>
 
           {/* Mobile Card List */}
-          <div className="sm:hidden flex flex-col gap-3 p-4 bg-muted/10">
+          <div className="sm:hidden flex flex-col gap-3 p-4 bg-slate-50/30">
             {loading ? (
               <div className="py-4">
                 <PageSkeleton rows={3} />
               </div>
             ) : filtered.length === 0 ? (
-              <p className="text-center text-muted-foreground py-10">
-                No exams found.
-              </p>
+              <div className="flex flex-col items-center justify-center py-12 px-4 text-center select-none">
+                <div className="bg-slate-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 border border-slate-100 shadow-sm">
+                  <BookOpen className="h-6 w-6 text-slate-400" />
+                </div>
+                <p className="text-sm font-bold text-slate-800">No exams found</p>
+                <p className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
+                  Try adjusting your filters or click "Create Exam" to add a new exam.
+                </p>
+              </div>
             ) : (
               filtered.map((exam) => {
                 const dt = formatDateTime(exam.date_time);
                 const isCompleted = exam.computed_status?.toLowerCase() === "completed" || exam.exam_status_name?.toLowerCase() === "completed";
                 return (
-                  <div key={exam.exam_id} className="bg-background border rounded-xl p-4 shadow-sm space-y-3 relative">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-semibold text-sm">{exam.exam_name}</p>
-                        <p className="text-xs text-muted-foreground">{exam.exam_type_name}</p>
+                  <div key={exam.exam_id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3 relative">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-0.5">
+                        <h3 className="font-bold text-slate-900 text-sm">{exam.exam_name}</h3>
+                        <p className="text-xs font-medium text-slate-500">{exam.exam_type_name}</p>
                       </div>
                       {!isStudent && (
                         <ExamActionMenu
@@ -559,26 +610,24 @@ export default function ExamsPage() {
                         />
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground bg-muted/30 p-2 rounded-md">
-                      <span className="flex items-center gap-1">
-                        <Users className="h-3 w-3 text-primary/60" />
-                        Standard {exam.class_name}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <BookOpen className="h-3 w-3 text-primary/60" />
-                        {exam.subject_name}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <CalendarClock className="h-3 w-3 text-primary/60" />
-                        {dt.date} {dt.time}
-                      </span>
+
+                    <div className="grid grid-cols-1 gap-2 text-xs text-slate-600 font-medium bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        <span>Standard {exam.class_name} • {exam.subject_name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CalendarClock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        <span>{dt.date} {dt.time}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between pt-1">
+
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100">
                       <Badge variant={getStatusVariant(exam.computed_status)}>
                         {exam.computed_status ? exam.computed_status.charAt(0).toUpperCase() + exam.computed_status.slice(1) : "Unknown"}
                       </Badge>
-                      <span className="text-xs text-muted-foreground bg-primary/5 px-2 py-1 rounded-md">
-                        Total: <strong className="text-primary">{exam.total_score}</strong>
+                      <span className="text-xs font-semibold text-slate-600 bg-slate-100/80 px-2.5 py-1 rounded-lg border border-slate-200/50">
+                        Total: <strong className="text-slate-900">{exam.total_score}</strong>
                       </span>
                     </div>
                   </div>

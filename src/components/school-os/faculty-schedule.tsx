@@ -56,11 +56,7 @@ export function FacultySchedule({ faculty }: Props) {
   }, [faculty?.staff_id]);
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center py-10">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return null;
   }
 
   // Sort periods

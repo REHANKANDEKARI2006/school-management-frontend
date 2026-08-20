@@ -6,7 +6,8 @@ import {
   GraduationCap, 
   UserSquare2, 
   ClipboardCheck, 
-  IndianRupee 
+  IndianRupee,
+  CalendarOff
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ interface StatsBarProps {
     attendance: { present: number; total: number; pendingClasses: number };
     feesMonth: number;
     totalFees?: number;
+    pendingLeaves?: number;
   };
   isHoliday?: boolean;
 }
@@ -120,6 +122,15 @@ export const AdminStatsBar = ({ stats, isHoliday }: StatsBarProps) => {
         icon={IndianRupee}
         iconColor="text-rose-600"
         iconBg="bg-rose-50"
+      />
+      <AdminStatsCard
+        title="Pending Leaves"
+        value={stats?.pendingLeaves ?? 0}
+        secondaryLabel="Awaiting approval"
+        icon={CalendarOff}
+        iconColor="text-purple-600"
+        iconBg="bg-purple-50"
+        className="md:hidden"
       />
     </div>
   );

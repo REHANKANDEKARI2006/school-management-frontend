@@ -51,18 +51,18 @@ export function FacultyDetails({ faculty }: Props) {
   };
 
   return (
-    <div className="space-y-8 pb-8 bg-slate-50/20 dark:bg-slate-900/10 rounded-lg min-h-[400px]">
+    <div className="space-y-4 sm:space-y-8 pb-4 sm:pb-8 bg-slate-50/20 dark:bg-slate-900/10 rounded-lg min-h-[300px]">
       {/* HEADER INFO (Always Visible) */}
-      <div className="flex flex-col md:flex-row items-center text-center md:text-left gap-8 pt-4 px-4 sm:px-8 pb-4">
+      <div className="flex flex-col md:flex-row items-center text-center md:text-left gap-3 sm:gap-8 pt-2 sm:pt-4 px-3 sm:px-8 pb-2 sm:pb-4">
         <div className="relative">
-          <Avatar className="h-32 w-32 ring-4 ring-white dark:ring-slate-800 shadow-xl bg-background shrink-0">
+          <Avatar className="h-20 w-20 sm:h-32 sm:w-32 ring-4 ring-white dark:ring-slate-800 shadow-xl bg-background shrink-0">
             <AvatarImage src={faculty.profile_url} alt={name} className="object-cover h-full w-full" />
-            <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-indigo-500 to-purple-500 text-white leading-none">
+            <AvatarFallback className="text-xl sm:text-3xl font-bold bg-gradient-to-br from-indigo-500 to-purple-500 text-white leading-none">
               {fallback}
             </AvatarFallback>
           </Avatar>
           <div className="absolute -bottom-1 -right-1">
-             <Badge variant={getStatusVariant(status)} className="h-4 w-4 rounded-full p-0 flex items-center justify-center border-2 border-white dark:border-slate-800" title={status}>
+             <Badge variant={getStatusVariant(status)} className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-full p-0 flex items-center justify-center border-2 border-white dark:border-slate-800" title={status}>
                 <span className="sr-only">{status}</span>
              </Badge>
           </div>
@@ -70,7 +70,7 @@ export function FacultyDetails({ faculty }: Props) {
         
         <div className="flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-3 gap-y-1">
-            <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
               {name}
             </h2>
             <Badge variant={getStatusVariant(status)} className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-sm rounded-full bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800">
@@ -78,7 +78,7 @@ export function FacultyDetails({ faculty }: Props) {
             </Badge>
           </div>
           
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-5 gap-y-1.5 text-sm text-slate-500 dark:text-slate-400 font-medium">
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-5 gap-y-1.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
             <div className="flex items-center gap-1.5">
               <KeyRound className="h-3.5 w-3.5 opacity-60" />
               <span className="tracking-tight">{faculty.staff_id ? `#FAC-${String(faculty.staff_id).padStart(4, "0")}` : "No ID Assigned"}</span>
@@ -86,7 +86,7 @@ export function FacultyDetails({ faculty }: Props) {
             {faculty.email && (
               <div className="flex items-center gap-1.5 hover:text-indigo-600 transition-colors">
                 <Mail className="h-3.5 w-3.5 opacity-60" />
-                <a href={`mailto:${faculty.email}`} className="hover:underline hover:text-indigo-600 transition-colors">
+                <a href={`mailto:${faculty.email}`} className="hover:underline hover:text-indigo-600 transition-colors truncate max-w-[200px] sm:max-w-none">
                   {faculty.email}
                 </a>
               </div>
@@ -99,18 +99,16 @@ export function FacultyDetails({ faculty }: Props) {
         </div>
       </div>
 
-      <div className="px-4 sm:px-8 pb-4">
-        <Tabs defaultValue="overview" className="w-full space-y-6">
-          <TabsList className="bg-slate-200/50 dark:bg-slate-800/50 p-1.5 h-12 w-full justify-start md:w-auto rounded-xl backdrop-blur-sm shadow-inner">
-            <TabsTrigger value="overview" className="rounded-md px-3 sm:px-5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm transition-all h-9 gap-2">
-              <Info className="h-4 w-4" />
-              <span className="hidden sm:inline">Profile Overview</span>
-              <span className="sm:hidden text-[11px]">Overview</span>
+      <div className="px-3 sm:px-8 pb-4">
+        <Tabs defaultValue="overview" className="w-full space-y-4 sm:space-y-6">
+          <TabsList className="bg-slate-200/50 dark:bg-slate-800/50 p-1 sm:p-1.5 h-10 sm:h-12 w-full justify-start md:w-auto rounded-xl backdrop-blur-sm shadow-inner overflow-x-auto">
+            <TabsTrigger value="overview" className="rounded-md px-3 sm:px-5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm transition-all h-8 sm:h-9 gap-2 text-xs sm:text-sm">
+              <Info className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span>Profile Overview</span>
             </TabsTrigger>
-            <TabsTrigger value="schedule" className="rounded-md px-3 sm:px-5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm transition-all h-9 gap-2">
-              <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Weekly Schedule</span>
-              <span className="sm:hidden text-[11px]">Schedule</span>
+            <TabsTrigger value="schedule" className="rounded-md px-3 sm:px-5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm transition-all h-8 sm:h-9 gap-2 text-xs sm:text-sm">
+              <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span>Weekly Schedule</span>
             </TabsTrigger>
           </TabsList>
 

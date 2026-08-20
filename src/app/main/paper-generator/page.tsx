@@ -101,71 +101,81 @@ export default function PaperGeneratorLandingPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-2 sm:pb-0 animate-in fade-in duration-300">
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Question Paper Generator</h1>
-          <p className="text-muted-foreground text-sm">Create, manage and print beautifully formatted question papers.</p>
+        <div className="hidden md:block">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Question Paper Generator</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Create, manage and print beautifully formatted question papers.</p>
         </div>
-        <Button id="create-new-paper-btn" onClick={() => handleCreateNew()}>
-          <Plus className="mr-2 h-4 w-4" />
+        <Button
+          id="create-new-paper-btn"
+          onClick={() => handleCreateNew()}
+          className="w-full sm:w-auto h-11 sm:h-10 text-xs sm:text-sm font-bold bg-[#3335e3] hover:bg-[#3335e3]/90 text-white rounded-xl shadow-sm gap-2"
+        >
+          <Plus className="h-4 w-4" />
           Create New Paper
         </Button>
       </div>
 
       {/* ── Quick Start ── */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-            Quick Start Templates
+      <Card className="rounded-2xl border-slate-200/80 shadow-sm overflow-hidden">
+        <CardHeader className="pb-3 border-b border-slate-100/80 bg-slate-50/50">
+          <CardTitle className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <Zap className="h-3.5 w-3.5 text-[#3335e3]" /> Quick Start Templates
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <CardContent className="p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
           {QUICK_TEMPLATES.map(t => (
             <button
               key={t.key}
               id={`quick-start-${t.key}`}
               onClick={() => handleCreateNew(t.key)}
-              className="flex flex-col items-start gap-1 rounded-lg border p-4 text-left hover:bg-muted transition-colors"
+              className="h-full flex flex-col justify-between items-start gap-2 rounded-xl border border-slate-200 p-3.5 sm:p-4 text-left hover:border-[#3335e3]/40 hover:bg-indigo-50/30 transition-all group bg-white shadow-2xs"
             >
-              <t.icon className="h-5 w-5 text-primary mb-1" />
-              <p className="font-semibold text-sm">{t.label}</p>
-              <p className="text-xs text-muted-foreground">{t.desc}</p>
-              <Badge variant="secondary" className="mt-1 text-xs">{t.marks}</Badge>
+              <div className="space-y-1.5 w-full">
+                <div className="h-8 w-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#3335e3] group-hover:scale-105 transition-transform">
+                  <t.icon className="h-4 w-4" />
+                </div>
+                <p className="font-bold text-xs sm:text-sm text-slate-800 leading-tight">{t.label}</p>
+                <p className="text-[11px] text-slate-400 line-clamp-1">{t.desc}</p>
+              </div>
+              <Badge variant="secondary" className="mt-1 text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200/60 rounded-md px-2 py-0.5">
+                {t.marks}
+              </Badge>
             </button>
           ))}
         </CardContent>
       </Card>
 
       {/* ── Saved Papers ── */}
-      <Card>
-        <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4">
+      <Card className="rounded-2xl border-slate-200/80 shadow-sm overflow-hidden">
+        <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
           <div>
-            <CardTitle>Saved Papers</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-base sm:text-lg font-black text-slate-900">Saved Papers</CardTitle>
+            <CardDescription className="text-xs text-slate-500">
               {filtered.length} paper{filtered.length !== 1 ? "s" : ""} found
             </CardDescription>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
             <div className="relative w-full sm:w-[200px]">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
               <Input
                 id="paper-search-input"
                 placeholder="Search by subject…"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-8 h-9 w-full"
+                className="pl-9 h-10 sm:h-9 w-full text-xs rounded-xl border-slate-200 focus:ring-2 focus:ring-[#3335e3]/20"
               />
             </div>
             <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-full sm:w-[140px] h-9">
+              <SelectTrigger className="w-full sm:w-[140px] h-10 sm:h-9 text-xs rounded-xl border-slate-200 font-semibold">
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="all" className="text-xs">All Types</SelectItem>
                 {Object.entries(EXAM_TYPE_LABELS).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                  <SelectItem key={k} value={k} className="text-xs">{v}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -176,74 +186,149 @@ export default function PaperGeneratorLandingPage() {
           {loading ? (
             <PageSkeleton />
           ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <FileText className="h-10 w-10 text-muted-foreground/40 mb-3" />
-              <p className="text-muted-foreground font-medium">No papers yet</p>
-              <p className="text-muted-foreground/60 text-sm mt-1">Click "Create New Paper" to get started</p>
+            <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+              <FileText className="h-10 w-10 text-slate-300 mb-3" />
+              <p className="text-slate-700 font-bold text-sm">No papers found</p>
+              <p className="text-slate-400 text-xs mt-1">Click "Create New Paper" to get started</p>
             </div>
           ) : (
-            <div className="divide-y">
-              {filtered.map(p => (
-                <div
-                  key={p.paper_id}
-                  id={`paper-row-${p.paper_id}`}
-                  onClick={() => handleOpen(p.paper_id)}
-                  className="flex flex-col sm:flex-row sm:items-center gap-4 px-4 sm:px-6 py-4 hover:bg-muted/50 cursor-pointer group transition-colors"
-                >
-                  <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
-                    <Layers className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5 sm:mt-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm truncate">
-                          {p.title || `Class ${p.class_name} — ${p.subject}`}
-                        </span>
-                        <Badge variant="outline" className="text-xs">
-                          {EXAM_TYPE_LABELS[p.exam_type] || p.exam_type}
-                        </Badge>
-                        {p.status === "draft" && (
-                          <Badge variant="secondary" className="text-xs">Draft</Badge>
-                        )}
+            <>
+              {/* Mobile View — Cards Layout */}
+              <div className="sm:hidden divide-y divide-slate-100">
+                {filtered.map(p => (
+                  <div
+                    key={p.paper_id}
+                    id={`paper-row-${p.paper_id}`}
+                    onClick={() => handleOpen(p.paper_id)}
+                    className="p-4 space-y-3 hover:bg-slate-50/80 active:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    {/* Top Row: Icon + Title + Badges */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        <div className="h-8 w-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#3335e3] shrink-0 mt-0.5">
+                          <Layers className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-bold text-xs text-slate-900 leading-snug truncate">
+                            {p.title || `Class ${p.class_name} — ${p.subject}`}
+                          </h3>
+                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            <Badge variant="outline" className="text-[10px] font-bold text-slate-600 border-slate-200 px-2 py-0">
+                              {EXAM_TYPE_LABELS[p.exam_type] || p.exam_type}
+                            </Badge>
+                            {p.status === "draft" && (
+                              <Badge variant="secondary" className="text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0">
+                                Draft
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
-                        <span>Std {p.class_name}{p.section ? `-${p.section}` : ""}</span>
-                        <span className="hidden sm:inline">·</span>
-                        <span>{p.total_marks} Marks</span>
-                        {p.exam_date && <><span className="hidden sm:inline">·</span><span>{formatDate(p.exam_date)}</span></>}
-                        <span className="hidden sm:inline">·</span>
-                        <span className="flex items-center gap-1 w-full sm:w-auto mt-1 sm:mt-0">
-                          <Clock className="h-3 w-3" />{formatDate(p.updated_at)}
-                        </span>
+                    </div>
+
+                    {/* Middle Row: Class, Marks, Date info */}
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
+                      <span>Std {p.class_name}{p.section ? `-${p.section}` : ""} · {p.total_marks} Marks</span>
+                      <span className="flex items-center gap-1 text-slate-400">
+                        <Clock className="h-3 w-3" />{formatDate(p.updated_at)}
+                      </span>
+                    </div>
+
+                    {/* Bottom Action Row: Copy, Delete, Expand Chevron */}
+                    <div className="flex items-center justify-between pt-1">
+                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          id={`reuse-paper-${p.paper_id}`}
+                          disabled={dupeId === p.paper_id}
+                          onClick={e => handleDuplicate(p.paper_id, e)}
+                          title="Duplicate"
+                          className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-[#3335e3] hover:border-[#3335e3]/30 text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-2xs"
+                        >
+                          <Copy className="h-3.5 w-3.5" /> Duplicate
+                        </button>
+                        <button
+                          type="button"
+                          id={`delete-paper-${p.paper_id}`}
+                          onClick={e => handleDelete(p.paper_id, e)}
+                          title="Delete"
+                          className="h-9 w-9 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 flex items-center justify-center active:scale-95 transition-all shadow-2xs"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs font-bold text-[#3335e3]">
+                        Edit Paper <ChevronRight className="h-4 w-4" />
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 mt-2 sm:mt-0 pl-9 sm:pl-0">
-                    <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                      <Button
-                        size="icon" variant="ghost"
-                        id={`reuse-paper-${p.paper_id}`}
-                        disabled={dupeId === p.paper_id}
-                        onClick={e => handleDuplicate(p.paper_id, e)}
-                        title="Duplicate"
-                        className="h-8 w-8"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        size="icon" variant="ghost"
-                        id={`delete-paper-${p.paper_id}`}
-                        onClick={e => handleDelete(p.paper_id, e)}
-                        title="Delete"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                ))}
+              </div>
+
+              {/* Desktop View — Table Row Layout (Pixel-Identical) */}
+              <div className="hidden sm:block divide-y divide-slate-100">
+                {filtered.map(p => (
+                  <div
+                    key={p.paper_id}
+                    id={`paper-row-${p.paper_id}`}
+                    onClick={() => handleOpen(p.paper_id)}
+                    className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-slate-50/80 cursor-pointer group transition-colors"
+                  >
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <Layers className="h-5 w-5 text-slate-400 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-sm text-slate-900 truncate">
+                            {p.title || `Class ${p.class_name} — ${p.subject}`}
+                          </span>
+                          <Badge variant="outline" className="text-xs">
+                            {EXAM_TYPE_LABELS[p.exam_type] || p.exam_type}
+                          </Badge>
+                          {p.status === "draft" && (
+                            <Badge variant="secondary" className="text-xs">Draft</Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 flex-wrap">
+                          <span>Std {p.class_name}{p.section ? `-${p.section}` : ""}</span>
+                          <span>·</span>
+                          <span>{p.total_marks} Marks</span>
+                          {p.exam_date && <><span>·</span><span>{formatDate(p.exam_date)}</span></>}
+                          <span>·</span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />{formatDate(p.updated_at)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                        <Button
+                          size="icon" variant="ghost"
+                          id={`reuse-paper-${p.paper_id}`}
+                          disabled={dupeId === p.paper_id}
+                          onClick={e => handleDuplicate(p.paper_id, e)}
+                          title="Duplicate"
+                          className="h-8 w-8 text-slate-500 hover:text-[#3335e3]"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="icon" variant="ghost"
+                          id={`delete-paper-${p.paper_id}`}
+                          onClick={e => handleDelete(p.paper_id, e)}
+                          title="Delete"
+                          className="h-8 w-8 text-slate-400 hover:text-red-600"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-slate-400" />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

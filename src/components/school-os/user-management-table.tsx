@@ -387,8 +387,8 @@ export function UserManagementTable({ role_code, title, description }: UserTable
                             disabled={resending === user.user_id}
                             className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
                           >
-                            <RefreshCw className={`h-2.5 w-2.5 ${resending === user.user_id ? "animate-spin" : ""}`} />
-                            {resending === user.user_id ? "RESENDING…" : "RESEND"}
+                            <RefreshCw className="h-2.5 w-2.5" />
+                            RESEND
                           </button>
                         </div>
                       ) : (
@@ -620,11 +620,7 @@ export function UserManagementTable({ role_code, title, description }: UserTable
                 Cancel
               </Button>
               <Button type="submit" className="flex-1 order-1 sm:order-2 font-bold" disabled={submitting}>
-                {submitting ? (
-                  <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Sending…</>
-                ) : (
                   <><Mail className="mr-2 h-4 w-4" /> Send Invitation</>
-                )}
               </Button>
             </div>
           </form>

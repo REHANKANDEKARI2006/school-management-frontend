@@ -76,52 +76,52 @@ export function UpdateFeeAmountDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px] border-none shadow-2xl">
-        <DialogHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-blue-100 text-blue-700 rounded-lg">
+      <DialogContent className="sm:max-w-[400px] w-[calc(100vw-32px)] max-w-md rounded-2xl p-5 border border-slate-200/90 shadow-xl bg-white space-y-0">
+        <DialogHeader className="pb-3">
+          <div className="flex items-center gap-3 mb-1.5">
+            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl shrink-0">
               <Calculator className="h-5 w-5" />
             </div>
-            <DialogTitle className="text-xl font-black text-blue-900 tracking-tight">Update Fee Amount</DialogTitle>
+            <DialogTitle className="text-lg font-black text-slate-900 tracking-tight">Update Fee Amount</DialogTitle>
           </div>
-          <DialogDescription className="text-sm font-medium text-gray-500">
-            Modifying <span className="text-blue-600 font-bold">{categoryName}</span> for <span className="text-blue-600 font-bold">Standard {standardName}</span>. This change will sync across all sections.
+          <DialogDescription className="text-xs font-medium text-slate-500 leading-relaxed">
+            Modifying <span className="text-slate-900 font-bold">{categoryName}</span> for <span className="text-slate-900 font-bold">Standard {standardName}</span>. This change will sync across all sections.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-6 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="amount" className="text-xs font-bold text-gray-400 uppercase tracking-widest">New Annual Amount</Label>
+        <div className="py-4 space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="amount" className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">New Annual Amount</Label>
             <div className="relative">
               <Input
                 id="amount"
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="pl-9 h-14 text-xl font-black border-2 border-gray-100 focus:border-blue-500 focus:ring-0 transition-all rounded-xl"
+                className="pl-9 h-11 text-base font-bold border border-slate-200 focus:border-indigo-500 focus:ring-0 transition-all rounded-xl text-slate-900"
                 autoFocus
               />
-              <IndianRupee className="absolute left-3 top-4 h-6 w-6 text-blue-400 font-bold" />
+              <IndianRupee className="absolute left-3 top-3 h-5 w-5 text-slate-400 font-bold" />
             </div>
           </div>
         </div>
 
-        <DialogFooter className="sm:justify-start gap-2">
+        <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
           <Button
             type="button"
-            className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-100 transition-all active:scale-95"
+            variant="ghost"
+            className="w-full sm:w-auto h-11 font-bold text-slate-500 hover:bg-slate-100 rounded-xl text-xs"
+            onClick={() => onOpenChange(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            className="w-full sm:flex-1 h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-xs transition-all text-xs"
             onClick={handleUpdate}
             loading={loading}
           >
             {loading ? "Updating..." : "Save Changes"}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-12 font-bold text-gray-500 rounded-xl"
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
           </Button>
         </DialogFooter>
       </DialogContent>

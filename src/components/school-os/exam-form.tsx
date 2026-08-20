@@ -165,11 +165,7 @@ export function ExamForm({ onSubmit, exam, loading }: ExamFormProps) {
   };
 
   if (dropdownLoading) {
-    return (
-      <div className="flex justify-center items-center py-10">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return null;
   }
 
   return (

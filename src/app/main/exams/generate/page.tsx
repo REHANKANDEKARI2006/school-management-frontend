@@ -244,7 +244,7 @@ export default function GeneratePaperPage() {
               Preview
             </Button>
             <Button variant="secondary" className="w-full sm:w-auto" onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+              <Download className="mr-2 h-4 w-4" />
               Save Paper
             </Button>
             <Button className="w-full sm:w-auto" onClick={handlePrint}>

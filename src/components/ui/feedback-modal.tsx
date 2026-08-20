@@ -143,12 +143,12 @@ export function FeedbackModal({ state, onDismiss }: FeedbackModalProps) {
     >
       <DialogContent
         className={cn(
-          "sm:max-w-[380px] rounded-2xl border-none shadow-2xl",
+          "w-[calc(100vw-32px)] max-w-[380px] rounded-2xl border border-slate-200/90 shadow-xl bg-white p-5 space-y-0",
           "animate-in fade-in zoom-in-95 duration-200"
         )}
       >
         {/* Icon */}
-        <div className="flex justify-center pt-4 pb-2">
+        <div className="flex justify-center pt-2 pb-3">
           <div
             className={cn(
               "w-16 h-16 rounded-full flex items-center justify-center ring-8",
@@ -161,30 +161,30 @@ export function FeedbackModal({ state, onDismiss }: FeedbackModalProps) {
         </div>
 
         {/* Title & Message */}
-        <DialogHeader className="space-y-2 text-center px-2">
-          <DialogTitle className="text-center text-lg font-bold leading-tight">
+        <DialogHeader className="space-y-1.5 text-center px-1 pb-3">
+          <DialogTitle className="text-center text-sm sm:text-lg font-black text-slate-900 tracking-tight leading-snug whitespace-nowrap">
             {state.title}
           </DialogTitle>
           {state.message && (
-            <DialogDescription className="text-center text-sm leading-relaxed text-muted-foreground">
+            <DialogDescription className="text-center text-xs font-medium text-slate-500 leading-relaxed">
               {state.message}
             </DialogDescription>
           )}
           {state.detail && (
-            <p className="text-xs text-muted-foreground/70 text-center mt-1 leading-relaxed">
+            <p className="text-[11px] text-slate-400 text-center mt-1 leading-relaxed">
               {state.detail}
             </p>
           )}
         </DialogHeader>
 
-        {/* Actions */}
-        <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-center pb-2 mt-1">
+        {/* Actions - Side-by-side 2-column row */}
+        <DialogFooter className="grid grid-cols-2 gap-2.5 w-full pt-2">
           {cfg.showCancel && (
             <Button
               variant="outline"
               onClick={handleCancel}
               disabled={confirming}
-              className="sm:w-28 rounded-xl"
+              className="w-full h-11 rounded-2xl font-bold text-xs border-2 border-slate-200/90 text-slate-700 hover:bg-slate-50 active:scale-95 transition-all"
             >
               {state.cancelText ?? cfg.defaultCancelText}
             </Button>
@@ -193,9 +193,8 @@ export function FeedbackModal({ state, onDismiss }: FeedbackModalProps) {
             variant={cfg.confirmVariant}
             onClick={handleConfirm}
             disabled={confirming}
-            className="sm:w-28 rounded-xl gap-1.5"
+            className="w-full h-11 rounded-2xl font-bold text-xs gap-1.5 shadow-xs active:scale-95 transition-all"
           >
-            {confirming && <Loader2 className="w-4 h-4 animate-spin" />}
             {state.confirmText ?? cfg.defaultConfirmText}
           </Button>
         </DialogFooter>

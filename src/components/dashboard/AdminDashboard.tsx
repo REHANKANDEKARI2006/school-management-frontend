@@ -39,6 +39,18 @@ export const AdminDashboard = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [apiHolidays, setApiHolidays] = useState<any[]>([]);
   const [todayHolidays, setTodayHolidays] = useState<any[]>([]);
+  const [pendingLeavesCount, setPendingLeavesCount] = useState<number | null>(null);
+
+  const fetchPendingLeaves = async () => {
+    try {
+      const res = await api.get("/api/leaves/admin-stats");
+      if (res.data?.success && res.data?.data?.pending_count !== undefined) {
+        setPendingLeavesCount(Number(res.data.data.pending_count));
+      }
+    } catch (err) {
+      console.error("Failed to fetch pending leaves stats:", err);
+    }
+  };
 
   const fetchDashboardData = useCallback(async (isManualRefresh = false) => {
     if (isManualRefresh) {
@@ -48,6 +60,7 @@ export const AdminDashboard = () => {
     } else {
       setLoading(true);
     }
+    fetchPendingLeaves();
     try {
       const response = await api.get("/api/dashboard/summary");
       if (response.data.success) {
@@ -99,6 +112,7 @@ export const AdminDashboard = () => {
       fetchDashboardData(false);
     }
     fetchMonthHolidays(new Date(), setTodayHolidays);
+    fetchPendingLeaves();
   }, []);
 
   const monthKey = format(currentMonth, "yyyy-MM");
@@ -187,7 +201,7 @@ export const AdminDashboard = () => {
 
         {/* WELCOME HEADER */}
         <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100/80 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4 select-none">
-          <div className="text-left">
+          <div className="text-left hidden md:block">
             <h1 className="text-lg sm:text-xl md:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
               {roleName} Dashboard
             </h1>
@@ -200,23 +214,19 @@ export const AdminDashboard = () => {
               )}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0 w-full sm:w-auto">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 w-full sm:w-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={() => fetchDashboardData(true)}
               disabled={refreshing}
-              className="gap-1.5 border-slate-200 rounded-xl text-xs font-bold h-9 px-3.5"
+              className="gap-1.5 border-slate-200 rounded-xl text-xs font-bold h-9 px-3.5 shrink-0 order-2 sm:order-1"
             >
-              {refreshing ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <RefreshCcw className="h-3.5 w-3.5" />
-              )}
-              {refreshing ? "Refreshing..." : "Refresh"}
+              <RefreshCcw className="h-3.5 w-3.5" />
+              Refresh
             </Button>
-            <div className="flex items-center gap-2 px-3 py-2 bg-blue-50/50 border border-blue-100/50 rounded-xl text-xs font-black text-blue-650 justify-center sm:justify-start">
-              <span className="text-[11px] uppercase tracking-wide">
+            <div className="flex-1 sm:flex-initial flex items-center gap-2 px-3 py-2 bg-blue-50/50 border border-blue-100/50 rounded-xl text-xs font-black text-blue-650 justify-center sm:justify-start min-w-0 order-1 sm:order-2">
+              <span className="text-[10px] xs:text-[11px] uppercase tracking-wide whitespace-nowrap truncate">
                 {format(new Date(), "dd MMMM yyyy, EEEE")}
               </span>
             </div>
@@ -224,7 +234,7 @@ export const AdminDashboard = () => {
         </div>
 
         {/* ZONE 1 — STATS BAR */}
-        <AdminStatsBar stats={stats} isHoliday={isTodayHoliday} />
+        <AdminStatsBar stats={stats ? { ...stats, pendingLeaves: stats?.pendingLeaves ?? pendingLeavesCount ?? 0 } : undefined} isHoliday={isTodayHoliday} />
 
         {/* ZONE 2 — QUICK ACTIONS ROW */}
         <AdminQuickActions />

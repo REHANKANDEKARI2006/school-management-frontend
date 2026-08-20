@@ -13,6 +13,8 @@ import { NotificationBell } from "@/components/school-os/notification-bell";
 import { SchoolSwitcher } from "@/components/school-os/school-switcher";
 
 
+import { BottomNav } from "@/components/school-os/bottom-nav";
+
 import {
   SidebarProvider,
   Sidebar,
@@ -69,7 +71,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
           )}
 
           <div className="min-h-screen w-full flex overflow-hidden">
-            {/* SIDEBAR */}
+            {/* SIDEBAR (DESKTOP ONLY) */}
             <Sidebar collapsible="icon">
               <SidebarHeader className="p-0">
                 <HeaderLogo />
@@ -85,7 +87,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
             {/* MAIN CONTENT */}
             <div className="flex-1 flex flex-col overflow-hidden">
               <header className="sticky top-0 z-30 flex h-14 items-center gap-3 sm:gap-2 border-b bg-white px-4 sm:px-6 md:backdrop-blur md:supports-[backdrop-filter]:bg-background/60" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
-                <SidebarTrigger className="shrink-0 min-w-[40px] min-h-[40px] flex items-center justify-center" />
+                <SidebarTrigger className="hidden md:flex shrink-0 min-w-[40px] min-h-[40px] items-center justify-center" />
                 {/* Search — takes remaining space on desktop, shows icon on mobile */}
                 <SearchInput />
                 <div className="ml-auto flex items-center gap-2 sm:gap-2 shrink-0">
@@ -95,11 +97,14 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
                 </div>
               </header>
 
-              <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F8FAFC] overflow-x-hidden">
+              <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F8FAFC] overflow-x-hidden pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-6">
                 {children}
               </main>
             </div>
           </div>
+
+          {/* MOBILE BOTTOM NAVIGATION BAR */}
+          <BottomNav />
         </SidebarProvider>
         </IdCardSettingsProvider>
       </SearchProvider>

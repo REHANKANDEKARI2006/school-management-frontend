@@ -172,11 +172,7 @@ export function EventForm({ onSubmit, event, loading }: EventFormProps) {
   };
 
   if (dropdownLoading) {
-    return (
-      <div className="flex justify-center items-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -184,159 +180,166 @@ export function EventForm({ onSubmit, event, loading }: EventFormProps) {
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         
         {/* Basic Information */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-slate-900">Basic Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-               <FormField
-                 control={form.control}
-                 name="event_name"
-                 render={({ field }) => (
-                   <FormItem>
-                     <FormLabel>Event Name</FormLabel>
-                     <FormControl>
-                       <Input placeholder="e.g. Annual Sports Day" {...field} />
-                     </FormControl>
-                     <FormMessage />
-                   </FormItem>
-                 )}
-               />
-            </div>
-
+        <div className="space-y-3.5 sm:space-y-4">
+          <h3 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">Basic Information</h3>
+          <div className="space-y-3.5">
+            {/* Event Name */}
             <FormField
               control={form.control}
-              name="event_type"
+              name="event_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Event Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {EVENT_TYPES.map(type => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="venue"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Venue</FormLabel>
+                  <FormLabel className="text-xs font-semibold text-slate-700">Event Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. School Hall" {...field} />
+                    <Input placeholder="e.g. Annual Sports Day" {...field} className="h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="md:col-span-2">
+            {/* Event Type & Venue (Side-by-Side on Mobile) */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <FormField
                 control={form.control}
-                name="description"
+                name="event_type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel className="text-xs font-semibold text-slate-700">Event Type</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm truncate">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {EVENT_TYPES.map(type => (
+                          <SelectItem key={type} value={type}>{type}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="venue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-semibold text-slate-700">Venue</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Details about the event..." {...field} className="min-h-[100px] resize-none" />
+                      <Input placeholder="e.g. School Hall" {...field} className="h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm truncate" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+
+            {/* Description */}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-semibold text-slate-700">Description</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Details about the event..." {...field} className="min-h-[90px] text-xs font-medium rounded-xl bg-white border-slate-200 shadow-sm resize-none" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         </div>
 
-        {/* Schedule */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-slate-900">Schedule & Timing</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="event_start_date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Start Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        {/* Schedule & Timing */}
+        <div className="space-y-3.5 sm:space-y-4">
+          <h3 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">Schedule & Timing</h3>
+          <div className="space-y-3.5">
+            {/* Start Date & End Date (Side-by-Side on Mobile) */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <FormField
+                control={form.control}
+                name="event_start_date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel className="text-xs font-semibold text-slate-700">Start Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button variant="outline" className={cn("h-11 px-3 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm justify-between text-left", !field.value && "text-muted-foreground")}>
+                            <span className="truncate">{field.value ? format(field.value, "PP") : <span>Pick date</span>}</span>
+                            <CalendarIcon className="h-4 w-4 opacity-50 shrink-0 ml-1" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="event_end_date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>End Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="event_end_date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel className="text-xs font-semibold text-slate-700">End Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button variant="outline" className={cn("h-11 px-3 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm justify-between text-left", !field.value && "text-muted-foreground")}>
+                            <span className="truncate">{field.value ? format(field.value, "PP") : <span>Pick date</span>}</span>
+                            <CalendarIcon className="h-4 w-4 opacity-50 shrink-0 ml-1" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-            <FormField
-              control={form.control}
-              name="start_time"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Start Time</FormLabel>
-                  <FormControl>
-                    <Input type="time" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Start Time & End Time (Side-by-Side on Mobile) */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <FormField
+                control={form.control}
+                name="start_time"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-semibold text-slate-700">Start Time</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} className="h-11 px-3 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="end_time"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>End Time</FormLabel>
-                  <FormControl>
-                    <Input type="time" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="end_time"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-semibold text-slate-700">End Time</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} className="h-11 px-3 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
         </div>
 
@@ -432,7 +435,6 @@ export function EventForm({ onSubmit, event, loading }: EventFormProps) {
             className="w-full sm:w-auto" 
             disabled={loading}
           >
-            {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
             {event ? "Update Event" : "Create Event"}
           </Button>
         </div>

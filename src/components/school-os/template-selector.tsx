@@ -357,12 +357,7 @@ function TemplatePreviewModal({
 
         {/* Body */}
         <div className="flex-1 min-h-0 flex items-center justify-center bg-slate-100">
-          {loading && (
-            <div className="flex flex-col items-center gap-3 text-slate-400">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm font-medium">Generating preview…</p>
-            </div>
-          )}
+          {loading && null}
           {error && (
             <div className="flex flex-col items-center gap-3 text-red-400 p-8 text-center">
               <X className="h-8 w-8" />
@@ -439,47 +434,44 @@ export function TemplateSelector({ documentType, onClose, currentDefault, onSetD
   return (
     <div className="h-full flex flex-col bg-slate-50/60 overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b px-6 py-4 flex items-center gap-4 shrink-0">
-        <Button variant="ghost" size="sm" onClick={onClose} className="gap-2 text-slate-500 hover:text-slate-900">
+      <div className="bg-white border-b border-slate-200/80 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-4 shrink-0">
+        <Button variant="ghost" size="sm" onClick={onClose} className="h-9 px-2 text-xs font-bold text-slate-600 hover:text-slate-900 rounded-xl gap-1.5 shrink-0">
           <ChevronLeft className="h-4 w-4" /> Back to Settings
         </Button>
-        <div className="flex-1" />
-        <div className="flex items-center gap-2 text-primary">
+        <div className="flex items-center gap-2 text-indigo-600 sm:text-slate-900 font-bold text-base sm:text-lg truncate">
           {getTypeIcon(documentType)}
-          <span className="font-bold text-slate-900">{getTypeLabel(documentType)} Templates</span>
+          <span className="truncate">{getTypeLabel(documentType)} Templates</span>
         </div>
       </div>
 
-      {/* Editor Link Removed */}
-
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6 md:p-10">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-10">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Choose a Template</h2>
-            <p className="text-slate-500 text-sm font-medium">Select a design, then generate your document with real student data</p>
+          <div className="text-center mb-6 sm:mb-10">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">Choose a Template</h2>
+            <p className="text-slate-500 text-xs sm:text-sm font-medium">Select a design, then generate your document with real student data</p>
           </div>
 
           {/* Template Grid */}
-          <div className={`grid gap-6 mb-10 ${documentType === "ID_CARD" ? "grid-cols-1 sm:grid-cols-2" : documentType === "BONAFIDE" ? "grid-cols-2 md:grid-cols-4" : "grid-cols-1 sm:grid-cols-2"}`}>
+          <div className={`grid gap-4 sm:gap-6 mb-6 sm:mb-10 ${documentType === "ID_CARD" ? "grid-cols-1 sm:grid-cols-2" : documentType === "BONAFIDE" ? "grid-cols-2 md:grid-cols-4" : "grid-cols-1 sm:grid-cols-2"}`}>
             {templates.map((t) => {
               const isSelected = selectedTemplate === t.id;
               return (
                 <div
                   key={t.id}
                   onClick={() => setSelectedTemplate(t.id)}
-                  className={`group relative bg-white rounded-2xl border-2 overflow-hidden shadow-sm transition-all duration-200 text-left flex flex-col cursor-pointer
-                    ${isSelected ? "border-primary ring-4 ring-primary/10 shadow-lg shadow-primary/10" : "border-slate-200 hover:border-primary/40 hover:shadow-md"}`}
+                  className={`group relative bg-white rounded-2xl border-2 overflow-hidden shadow-xs transition-all duration-200 text-left flex flex-col cursor-pointer
+                    ${isSelected ? "border-primary ring-4 ring-primary/10 shadow-md shadow-primary/10" : "border-slate-200/80 hover:border-primary/40 hover:shadow-sm"}`}
                 >
                   {/* Preview area */}
-                  <div className="flex items-center justify-center bg-slate-50 group-hover:bg-white transition-colors p-8 min-h-[200px]">
+                  <div className="flex items-center justify-center bg-slate-50/80 group-hover:bg-white transition-colors p-4 sm:p-8 min-h-[160px] sm:min-h-[200px]">
                     {t.preview}
                   </div>
 
                   {/* Selected indicator */}
                   {isSelected && (
                     <div className="absolute top-3 right-3 z-10">
-                      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-md">
                         <Check className="h-4 w-4 text-white" />
                       </div>
                     </div>
@@ -488,18 +480,18 @@ export function TemplateSelector({ documentType, onClose, currentDefault, onSetD
                   {/* Current Default indicator */}
                   {currentDefault === t.id && (
                     <div className="absolute top-3 left-3 z-10">
-                      <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 shadow-sm border-0">
+                      <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 shadow-xs border-0 rounded-md">
                         Default
                       </Badge>
                     </div>
                   )}
 
                   {/* Info and Actions */}
-                  <div className="p-4 border-t border-slate-100 bg-white z-20">
+                  <div className="p-3.5 sm:p-4 border-t border-slate-100 bg-white z-20">
                     <div className="flex justify-between items-start">
                       <div className="flex-1 min-w-0 mr-2">
-                        <p className="font-bold text-slate-900 text-sm">{t.name}</p>
-                        <p className="text-xs text-slate-400 mt-0.5 font-medium">{t.desc}</p>
+                        <p className="font-bold text-slate-900 text-xs sm:text-sm truncate">{t.name}</p>
+                        <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 font-medium leading-snug">{t.desc}</p>
                       </div>
                       {/* Preview button */}
                       <button
@@ -508,18 +500,18 @@ export function TemplateSelector({ documentType, onClose, currentDefault, onSetD
                           setPreviewTemplateId(t.id);
                         }}
                         title="Preview template"
-                        className="shrink-0 h-8 w-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all"
+                        className="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all min-h-[36px] min-w-[36px]"
                       >
-                        <Eye className="h-3.5 w-3.5" />
+                        <Eye className="h-4 w-4" />
                       </button>
                     </div>
                     {isSelected && documentType !== "ID_CARD" && (
-                      <div className="mt-4 pt-3 border-t border-slate-100 flex gap-2">
+                      <div className="mt-3.5 sm:mt-4 pt-3 border-t border-slate-100 flex gap-2">
                         {!t.isCustom && (documentType === "BONAFIDE" || documentType === "ACHIEVEMENT") && (
                           <Button 
                             size="sm" 
                             variant="outline" 
-                            className="w-full text-xs gap-1.5 !bg-slate-50 hover:!bg-indigo-50 hover:!text-indigo-600 hover:!border-indigo-200"
+                            className="w-full h-10 text-xs font-semibold rounded-xl gap-1.5 border-slate-200 !bg-slate-50 hover:!bg-indigo-50 hover:!text-indigo-600 hover:!border-indigo-200 shadow-xs"
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditorOpenFor(t.id);
@@ -532,7 +524,7 @@ export function TemplateSelector({ documentType, onClose, currentDefault, onSetD
                           <Button 
                             size="sm" 
                             variant="outline" 
-                            className="w-full text-xs gap-1.5 !bg-red-50 hover:!bg-red-100 !text-red-600 hover:!text-red-700 !border-red-200 hover:!border-red-300"
+                            className="w-full h-10 text-xs font-semibold rounded-xl gap-1.5 !bg-red-50 hover:!bg-red-100 !text-red-600 hover:!text-red-700 !border-red-200 hover:!border-red-300 shadow-xs"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteCustomTemplate(t.id);
@@ -550,7 +542,7 @@ export function TemplateSelector({ documentType, onClose, currentDefault, onSetD
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 pb-4 sm:pb-0">
             {onSetDefault && (
               <Button
                 size="lg"
@@ -558,9 +550,9 @@ export function TemplateSelector({ documentType, onClose, currentDefault, onSetD
                 onClick={() => {
                   if (selectedTemplate) onSetDefault(selectedTemplate);
                 }}
-                className="h-12 px-10 font-bold gap-2 rounded-xl shadow-lg shadow-primary/20 disabled:opacity-40 w-full sm:w-auto"
+                className="h-11 sm:h-12 px-6 sm:px-10 font-bold gap-2 rounded-xl shadow-md shadow-primary/20 disabled:opacity-40 w-full sm:w-auto text-xs sm:text-sm"
               >
-                <Check className="h-5 w-5" />
+                <Check className="h-4 w-4 sm:h-5 sm:w-5" />
                 {selectedTemplate === currentDefault ? "Currently Active Default" : "Set as Default Template"}
               </Button>
             )}
@@ -570,9 +562,9 @@ export function TemplateSelector({ documentType, onClose, currentDefault, onSetD
               variant="outline"
               disabled={!selectedTemplate}
               onClick={() => setStudentDialogOpen(true)}
-              className="h-12 px-8 font-bold gap-2 rounded-xl w-full sm:w-auto !bg-white hover:!bg-slate-50 border-slate-200 !text-slate-850 hover:!text-slate-900"
+              className="h-11 sm:h-12 px-6 sm:px-8 font-bold gap-2 rounded-xl w-full sm:w-auto !bg-white hover:!bg-slate-50 border-slate-200 text-xs sm:text-sm text-slate-800"
             >
-              <Users className="h-5 w-5" />
+              <Users className="h-4 w-4 sm:h-5 sm:w-5" />
               Generate Test Document
             </Button>
           </div>
@@ -761,9 +753,7 @@ function StudentPickerDialog({ documentType, templateId, onClose }: { documentTy
 
         {/* List */}
         <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
-          {loading ? (
-            <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-          ) : filtered.length === 0 ? (
+          {loading ? null : filtered.length === 0 ? (
             <div className="text-center py-16 text-slate-400 text-sm font-medium">No students found</div>
           ) : (
             filtered.map(s => {
@@ -800,7 +790,7 @@ function StudentPickerDialog({ documentType, templateId, onClose }: { documentTy
             disabled={selected.size === 0 || generating}
             className="flex-1 font-bold gap-2"
           >
-            {generating ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating…</> : <><Download className="h-4 w-4" /> Generate PDF ({selected.size})</>}
+            <><Download className="h-4 w-4" /> Generate PDF ({selected.size})</>
           </Button>
         </div>
       </div>

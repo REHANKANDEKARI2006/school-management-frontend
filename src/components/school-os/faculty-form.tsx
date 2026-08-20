@@ -243,7 +243,7 @@ export function FacultyForm({ mode, initialData, departments, subjects, onSubmit
 
             <div className="flex gap-2">
               <Button type="button" size="sm" onClick={handleConfirmCrop} disabled={isUploading}>
-                {isUploading ? "Uploading…" : "✓ Confirm & Upload"}
+                {isUploading ? <><Loader2 className="h-4 w-4 animate-spin text-primary-foreground" /> Uploading…</> : "✓ Confirm & Upload"}
               </Button>
               <Button
                 type="button" size="sm" variant="outline"
@@ -476,7 +476,7 @@ export function FacultyForm({ mode, initialData, departments, subjects, onSubmit
 
         </div>
 
-        <Button type="submit" className="w-full mt-2" loading={form.formState.isSubmitting}>
+        <Button type="submit" className="w-full mt-4 h-11 sm:h-10 text-sm font-bold rounded-xl sm:rounded-lg shadow-sm" loading={form.formState.isSubmitting}>
           {mode === "add" ? "Add Faculty & Send Invitation" : "Update Faculty"}
         </Button>
 

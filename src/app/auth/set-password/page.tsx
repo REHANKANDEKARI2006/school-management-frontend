@@ -113,12 +113,7 @@ function SetPasswordForm() {
   // ── States ─────────────────────────────────────────────────────────────
 
   if (verifying) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Verifying your invitation link…</p>
-      </div>
-    );
+    return null;
   }
 
   if (error) {
@@ -355,11 +350,7 @@ function SetPasswordForm() {
             className="w-full h-12 rounded-xl text-base font-bold gap-2"
             disabled={submitting || passwordsMismatch}
           >
-            {submitting ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Setting password…</>
-            ) : (
-              <>Activate My Account <ArrowRight className="h-4 w-4" /></>
-            )}
+            <>Activate My Account <ArrowRight className="h-4 w-4" /></>
           </Button>
 
           <p className="text-center text-xs text-muted-foreground">
@@ -383,11 +374,7 @@ function SetPasswordForm() {
 export default function SetPasswordPage() {
   return (
     <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      }
+      fallback={null}
     >
       <SetPasswordForm />
     </Suspense>

@@ -229,40 +229,42 @@ export default function ConfigureQuestionsStep({
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300">
+    <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300">
       {/* Header Card */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-8 space-y-4">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-8 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-black bg-[#3335e3]/10 text-[#3335e3] px-3 py-1 rounded-full uppercase tracking-wider">
-                Section {sectionLetter}
-              </span>
-              <h1 className="text-xl font-black text-slate-900 tracking-tight">
+            <div className="space-y-1.5">
+              <div>
+                <span className="inline-block text-[10px] sm:text-xs font-black bg-[#3335e3]/10 text-[#3335e3] px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full uppercase tracking-wider whitespace-nowrap shrink-0">
+                  Section {sectionLetter}
+                </span>
+              </div>
+              <h1 className="text-base sm:text-xl font-black text-slate-900 tracking-tight leading-normal">
                 Configure Questions in Section {sectionLetter}
               </h1>
             </div>
             {sectionTitle && (
-              <p className="text-sm font-semibold text-slate-600 mt-1">
+              <p className="text-xs sm:text-sm font-semibold text-slate-600 mt-1">
                 {sectionTitle}
               </p>
             )}
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-1">
               Define question headings, types, marks, and any choice/matrix settings for this section.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:gap-3">
             {sectionMarksBudget > 0 && (
-              <div className={`border rounded-xl px-4 py-2.5 text-center ${
+              <div className={`border rounded-xl p-2.5 sm:px-4 sm:py-2.5 text-center ${
                 isBudgetExceeded
                   ? "bg-red-50 border-red-200"
                   : sectionTotalMarks === sectionMarksBudget
                     ? "bg-emerald-50 border-emerald-200"
                     : "bg-slate-50 border-slate-200"
               }`}>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Marks Budget</p>
-                <p className={`text-lg font-black ${
+                <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Marks Budget</p>
+                <p className={`text-base sm:text-lg font-black ${
                   isBudgetExceeded
                     ? "text-red-600"
                     : sectionTotalMarks === sectionMarksBudget
@@ -273,202 +275,337 @@ export default function ConfigureQuestionsStep({
                 </p>
               </div>
             )}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-center">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Paper Target</p>
-              <p className="text-lg font-black text-slate-800">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 sm:px-4 sm:py-2.5 text-center">
+              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Paper Target</p>
+              <p className="text-base sm:text-lg font-black text-slate-800">
                 {totalAssignedMarks} / {paper.total_marks}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
-          <span>Configuring Section {activeSectionIdx + 1} of {paper.sections.length}</span>
-          <span className="flex items-center gap-1.5 text-emerald-600">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 text-[11px] sm:text-xs font-semibold text-slate-500">
+          <span className="whitespace-nowrap">Configuring Section {activeSectionIdx + 1} of {paper.sections.length}</span>
+          <span className="flex items-center gap-1.5 text-emerald-600 whitespace-nowrap">
             <CheckCircle2 size={13} /> {configs.length} Question{configs.length !== 1 ? "s" : ""} Defined
           </span>
         </div>
       </div>
 
-      {/* Questions Table */}
+      {/* Questions Table / Card Container */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Layers className="h-5 w-5 text-[#3335e3]" />
-            <h2 className="text-base font-black text-slate-800">Question Structure</h2>
+            <Layers className="h-4 w-4 sm:h-5 sm:w-5 text-[#3335e3]" />
+            <h2 className="text-sm sm:text-base font-black text-slate-800">Question Structure</h2>
           </div>
-          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+          <span className="text-[11px] sm:text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
             {configs.length} Question{configs.length !== 1 ? "s" : ""}
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-           {configs.length === 0 ? (
-            /* Empty State — No questions defined yet */
-            <div className="py-16 px-8 flex flex-col items-center justify-center text-center">
-              <div className="h-14 w-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-                <FileQuestion className="h-7 w-7 text-slate-400" />
-              </div>
-              <h3 className="text-sm font-black text-slate-700 mb-1">No Question Types Defined</h3>
-              <p className="text-xs text-slate-400 font-medium max-w-sm mb-5">
-                Start by adding question types to this section. Each type defines the heading, format, quantity, and marks per question.
-              </p>
-              <button
-                type="button"
-                onClick={handleAddConfig}
-                disabled={isBudgetFull}
-                className={`flex items-center gap-2 h-10 px-6 rounded-xl text-xs font-bold shadow-sm transition-all ${
-                  isBudgetFull
-                    ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                    : "bg-[#3335e3] hover:bg-[#3335e3]/90 text-white"
-                }`}
-              >
-                <Plus className="h-4 w-4" /> Add Question Type
-              </button>
+        {configs.length === 0 ? (
+          /* Empty State — No questions defined yet */
+          <div className="py-12 sm:py-16 px-4 sm:px-8 flex flex-col items-center justify-center text-center">
+            <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-3 sm:mb-4">
+              <FileQuestion className="h-6 w-6 sm:h-7 sm:w-7 text-slate-400" />
             </div>
-          ) : (
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-black text-slate-500 uppercase tracking-wider">
-                <th className="py-3 px-3 w-10 text-center">#</th>
-                <th className="py-3 px-3" style={{ minWidth: 200 }}>Question Heading</th>
-                <th className="py-3 px-3 w-44">Question Type</th>
-                <th className="py-3 px-3 w-24 text-center">Marks</th>
-                <th className="py-3 px-3 w-16 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+            <h3 className="text-xs sm:text-sm font-black text-slate-700 mb-1">No Question Types Defined</h3>
+            <p className="text-[11px] sm:text-xs text-slate-400 font-medium max-w-sm mb-5">
+              Start by adding question types to this section. Each type defines the heading, format, quantity, and marks per question.
+            </p>
+            <button
+              type="button"
+              onClick={handleAddConfig}
+              disabled={isBudgetFull}
+              className={`w-full sm:w-auto flex items-center justify-center gap-2 h-11 sm:h-10 px-6 rounded-xl text-xs font-bold shadow-2xs transition-all ${
+                isBudgetFull
+                  ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                  : "bg-[#3335e3] hover:bg-[#3335e3]/90 text-white"
+              }`}
+            >
+              <Plus className="h-4 w-4" /> Add Question Type
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* ── Mobile View: Cards Layout (No Table Cutoff) ── */}
+            <div className="md:hidden divide-y divide-slate-100 p-3 space-y-3">
               {configs.map((cfg, idx) => {
                 const badge = BADGE_COLORS[idx % BADGE_COLORS.length];
                 const typeInfo = BOARD_QUESTION_TYPES.find((t) => t.key === cfg.question_type);
                 const effectiveMarks = getEffectiveMarks(cfg);
 
                 return (
-                  <tr
+                  <div
                     key={cfg.id}
-                    className="group transition-colors hover:bg-slate-50/80"
+                    className="bg-slate-50/60 rounded-2xl border border-slate-200/80 p-4 space-y-3"
                   >
-                    {/* Row Number + Reorder */}
-                    <td className="py-3 px-3 text-center">
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span className={`text-xs font-black ${badge.text}`}>Q{idx + 1}</span>
-                        <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            type="button"
-                            disabled={idx === 0}
-                            onClick={() => handleMoveConfig(idx, idx - 1)}
-                            className="text-slate-400 hover:text-slate-700 disabled:opacity-20 p-0.5"
-                          >
-                            <ArrowUp size={10} />
-                          </button>
-                          <button
-                            type="button"
-                            disabled={idx === configs.length - 1}
-                            onClick={() => handleMoveConfig(idx, idx + 1)}
-                            className="text-slate-400 hover:text-slate-700 disabled:opacity-20 p-0.5"
-                          >
-                            <ArrowDown size={10} />
-                          </button>
-                        </div>
+                    {/* Header Row: Q# Badge + Actions */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${badge.bg} ${badge.text} ${badge.border} border`}>
+                          Q{idx + 1}
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-400">
+                          {typeInfo?.emoji} {typeInfo?.label}
+                        </span>
                       </div>
-                    </td>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          onClick={() => handleMoveConfig(idx, idx - 1)}
+                          className="p-1.5 text-slate-400 hover:text-slate-700 bg-white border border-slate-200 rounded-lg disabled:opacity-20"
+                          title="Move Up"
+                        >
+                          <ArrowUp size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={idx === configs.length - 1}
+                          onClick={() => handleMoveConfig(idx, idx + 1)}
+                          className="p-1.5 text-slate-400 hover:text-slate-700 bg-white border border-slate-200 rounded-lg disabled:opacity-20"
+                          title="Move Down"
+                        >
+                          <ArrowDown size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteConfig(idx)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 bg-white border border-slate-200 transition-colors ml-1"
+                          title="Delete Question"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
 
-                    {/* Heading */}
-                    <td className="py-3 px-3">
+                    {/* Question Heading (Full Width) */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                        Question Heading
+                      </label>
                       <input
                         type="text"
                         value={cfg.heading}
                         onChange={(e) => handleUpdateConfig(idx, { heading: e.target.value })}
                         placeholder={`e.g. ${typeInfo?.label || "Question Heading"}`}
-                        className="w-full h-9 px-3 text-sm font-semibold border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3] transition-all"
+                        className="w-full h-10 px-3 text-xs font-semibold border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3] transition-all shadow-2xs"
                       />
-                    </td>
+                    </div>
 
-                    {/* Question Type Dropdown */}
-                    <td className="py-3 px-3">
-                      <select
-                        value={cfg.question_type}
-                        onChange={(e) => {
-                          const newType = e.target.value;
-                          const newInfo = BOARD_QUESTION_TYPES.find((t) => t.key === newType);
-                          handleUpdateConfig(idx, {
-                            question_type: newType,
-                            heading: cfg.heading || (newInfo?.label || newType),
-                          });
-                        }}
-                        className="w-full h-9 px-2 text-xs font-bold border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3] transition-all appearance-none cursor-pointer"
-                      >
-                        {BOARD_QUESTION_TYPES.map((t) => (
-                          <option key={t.key} value={t.key}>
-                            {t.emoji} {t.label}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
+                    {/* Bottom Row: Question Type Dropdown (Full Visible Width) + Marks */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                          Question Type
+                        </label>
+                        <select
+                          value={cfg.question_type}
+                          onChange={(e) => {
+                            const newType = e.target.value;
+                            const newInfo = BOARD_QUESTION_TYPES.find((t) => t.key === newType);
+                            handleUpdateConfig(idx, {
+                              question_type: newType,
+                              heading: cfg.heading || (newInfo?.label || newType),
+                            });
+                          }}
+                          className="w-full h-10 px-3 text-xs font-bold border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3] transition-all cursor-pointer shadow-2xs"
+                        >
+                          {BOARD_QUESTION_TYPES.map((t) => (
+                            <option key={t.key} value={t.key}>
+                              {t.emoji} {t.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
-                    {/* Marks (editable) */}
-                    <td className="py-3 px-3 text-center">
-                      <input
-                        type="number"
-                        min={1}
-                        max={999}
-                        value={effectiveMarks || ""}
-                        onKeyDown={(e) => {
-                          if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-                            e.preventDefault();
-                          }
-                        }}
-                        onWheel={(e) => e.currentTarget.blur()}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === "") {
-                            handleUpdateConfig(idx, { marks_per_question: 0 });
-                          } else {
-                            const parsed = parseInt(val, 10);
-                            if (!isNaN(parsed)) {
-                              handleUpdateConfig(idx, { marks_per_question: parsed });
-                            }
-                          }
-                        }}
-                        className="w-16 h-9 text-xs font-black text-center border border-emerald-200 rounded-lg bg-emerald-50 text-emerald-700 focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3] transition-all mx-auto [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                    </td>
-
-                    {/* Actions */}
-                    <td className="py-3 px-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteConfig(idx)}
-                        className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                        title="Delete Question"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                          Marks
+                        </label>
+                        <div className="relative w-full">
+                          <input
+                            type="number"
+                            min={1}
+                            max={999}
+                            value={effectiveMarks || ""}
+                            onKeyDown={(e) => {
+                              if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                                e.preventDefault();
+                              }
+                            }}
+                            onWheel={(e) => e.currentTarget.blur()}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === "") {
+                                handleUpdateConfig(idx, { marks_per_question: 0 });
+                              } else {
+                                const parsedVal = parseInt(val, 10);
+                                if (!isNaN(parsedVal)) {
+                                  handleUpdateConfig(idx, { marks_per_question: parsedVal });
+                                }
+                              }
+                            }}
+                            className="w-full h-10 pl-3 pr-14 text-xs font-black border border-emerald-200 rounded-xl bg-emerald-50 text-emerald-700 focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3] transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none shadow-2xs"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-600/70 pointer-events-none">
+                            Marks
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
-          )}
-        </div>
+            </div>
+
+            {/* ── Desktop View: Table Layout (Pixel-Identical) ── */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                    <th className="py-3 px-3 w-10 text-center">#</th>
+                    <th className="py-3 px-3" style={{ minWidth: 200 }}>Question Heading</th>
+                    <th className="py-3 px-3 w-44">Question Type</th>
+                    <th className="py-3 px-3 w-24 text-center">Marks</th>
+                    <th className="py-3 px-3 w-16 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {configs.map((cfg, idx) => {
+                    const badge = BADGE_COLORS[idx % BADGE_COLORS.length];
+                    const typeInfo = BOARD_QUESTION_TYPES.find((t) => t.key === cfg.question_type);
+                    const effectiveMarks = getEffectiveMarks(cfg);
+
+                    return (
+                      <tr
+                        key={cfg.id}
+                        className="group transition-colors hover:bg-slate-50/80"
+                      >
+                        {/* Row Number + Reorder */}
+                        <td className="py-3 px-3 text-center">
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className={`text-xs font-black ${badge.text}`}>Q{idx + 1}</span>
+                            <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                type="button"
+                                disabled={idx === 0}
+                                onClick={() => handleMoveConfig(idx, idx - 1)}
+                                className="text-slate-400 hover:text-slate-700 disabled:opacity-20 p-0.5"
+                              >
+                                <ArrowUp size={10} />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={idx === configs.length - 1}
+                                onClick={() => handleMoveConfig(idx, idx + 1)}
+                                className="text-slate-400 hover:text-slate-700 disabled:opacity-20 p-0.5"
+                              >
+                                <ArrowDown size={10} />
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Heading */}
+                        <td className="py-3 px-3">
+                          <input
+                            type="text"
+                            value={cfg.heading}
+                            onChange={(e) => handleUpdateConfig(idx, { heading: e.target.value })}
+                            placeholder={`e.g. ${typeInfo?.label || "Question Heading"}`}
+                            className="w-full h-9 px-3 text-sm font-semibold border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3] transition-all"
+                          />
+                        </td>
+
+                        {/* Question Type Dropdown */}
+                        <td className="py-3 px-3">
+                          <select
+                            value={cfg.question_type}
+                            onChange={(e) => {
+                              const newType = e.target.value;
+                              const newInfo = BOARD_QUESTION_TYPES.find((t) => t.key === newType);
+                              handleUpdateConfig(idx, {
+                                question_type: newType,
+                                heading: cfg.heading || (newInfo?.label || newType),
+                              });
+                            }}
+                            className="w-full h-9 px-2 text-xs font-bold border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3] transition-all appearance-none cursor-pointer"
+                          >
+                            {BOARD_QUESTION_TYPES.map((t) => (
+                              <option key={t.key} value={t.key}>
+                                {t.emoji} {t.label}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+
+                        {/* Marks (editable) */}
+                        <td className="py-3 px-3 text-center">
+                          <input
+                            type="number"
+                            min={1}
+                            max={999}
+                            value={effectiveMarks || ""}
+                            onKeyDown={(e) => {
+                              if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                                e.preventDefault();
+                              }
+                            }}
+                            onWheel={(e) => e.currentTarget.blur()}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === "") {
+                                handleUpdateConfig(idx, { marks_per_question: 0 });
+                              } else {
+                                const parsedVal = parseInt(val, 10);
+                                if (!isNaN(parsedVal)) {
+                                  handleUpdateConfig(idx, { marks_per_question: parsedVal });
+                                }
+                              }
+                            }}
+                            className="w-16 h-9 text-xs font-black text-center border border-emerald-200 rounded-lg bg-emerald-50 text-emerald-700 focus:outline-none focus:ring-2 focus:ring-[#3335e3]/20 focus:border-[#3335e3] transition-all mx-auto [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-3 px-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteConfig(idx)}
+                            className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            title="Delete Question"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
 
         {/* Budget exceeded warning */}
         {isBudgetExceeded && (
           <div className="mx-4 mt-3 flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 text-xs font-bold text-red-700 animate-in fade-in">
             <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
-            Section marks ({sectionTotalMarks}) exceed the allocated budget of {sectionMarksBudget} marks. Please reduce questions or marks.
+            <span>Section marks ({sectionTotalMarks}) exceed budget of {sectionMarksBudget}M. Please reduce questions or marks.</span>
           </div>
         )}
 
         {/* Add Question Type Button (shown only when there are existing configs) */}
         {configs.length > 0 && (
-          <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+          <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <button
               type="button"
               onClick={handleAddConfig}
               disabled={isBudgetFull}
-              className={`flex items-center gap-2 h-10 px-5 bg-white border rounded-xl text-xs font-bold shadow-sm transition-all ${
+              className={`flex items-center justify-center gap-2 h-11 sm:h-10 px-5 bg-white border rounded-xl text-xs font-bold shadow-2xs transition-all w-full sm:w-auto ${
                 isBudgetFull
                   ? "border-slate-200 text-slate-400 cursor-not-allowed opacity-60"
                   : "border-slate-300 hover:border-[#3335e3] hover:text-[#3335e3] text-slate-700"
@@ -476,7 +613,7 @@ export default function ConfigureQuestionsStep({
             >
               <Plus className="h-4 w-4" /> Add Question Type
             </button>
-            <p className="text-xs text-slate-400 font-medium">
+            <p className="text-[11px] sm:text-xs text-slate-400 font-medium text-center sm:text-right">
               {isBudgetFull
                 ? `Section marks budget (${sectionMarksBudget}M) is fully allocated.`
                 : "Define question headings and types. Sub-questions are configured in the next step."
@@ -485,8 +622,6 @@ export default function ConfigureQuestionsStep({
           </div>
         )}
       </div>
-
-
     </div>
   );
 }

@@ -181,17 +181,8 @@ export function EventCertificateDialog({ event }: EventCertificateDialogProps) {
                   className="flex-1 gap-2"
                   disabled={downloading}
                 >
-                  {downloading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Downloading...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4" />
-                      Download
-                    </>
-                  )}
+                  <Download className="h-4 w-4" />
+                  Download
                 </Button>
                 <Button onClick={handlePrint} className="flex-1">Print Certificate</Button>
               </div>

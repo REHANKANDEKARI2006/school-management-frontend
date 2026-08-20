@@ -5,6 +5,7 @@ import axios from "@/lib/axios";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -40,11 +41,12 @@ const classSchema = z.object({
 export type ClassFormData = z.infer<typeof classSchema>;
 
 interface ClassFormProps {
-  onSubmit: (data: ClassFormData) => void;
+  onSubmit?: (data: ClassFormData) => void;
   classData?: any;
+  readOnly?: boolean;
 }
 
-export function ClassForm({ onSubmit, classData }: ClassFormProps) {
+export function ClassForm({ onSubmit, classData, readOnly = false }: ClassFormProps) {
   const [sections, setSections] = React.useState<any[]>([]);
   const [teachers, setTeachers] = React.useState<any[]>([]);
   const [classesList, setClassesList] = React.useState<any[]>([]);
@@ -52,24 +54,24 @@ export function ClassForm({ onSubmit, classData }: ClassFormProps) {
   const form = useForm<ClassFormData>({
     resolver: zodResolver(classSchema),
     defaultValues: {
-      class_name: classData?.name || "",
+      class_name: classData?.class_name || classData?.name || "",
       section_id: classData?.section_id
         ? String(classData.section_id)
         : "",
       staff_id: classData?.staff_id
         ? String(classData.staff_id)
         : "",
-      room_number: classData?.roomNumber || "",
+      room_number: classData?.room_number || classData?.roomNumber || "",
     },
   });
 
   React.useEffect(() => {
     if (classData) {
       form.reset({
-        class_name: classData.name || "",
+        class_name: classData.class_name || classData.name || "",
         section_id: classData.section_id ? String(classData.section_id) : "",
         staff_id: classData.staff_id ? String(classData.staff_id) : "",
-        room_number: classData.roomNumber || "",
+        room_number: classData.room_number || classData.roomNumber || "",
       });
     } else {
       form.reset({
@@ -136,7 +138,7 @@ export function ClassForm({ onSubmit, classData }: ClassFormProps) {
               await axios.post("/api/classes", data);
             }
 
-            onSubmit(data); // existing success flow (toast + refresh)
+            if (onSubmit) onSubmit(data); // existing success flow (toast + refresh)
           } catch (err: any) {
             const errorMessage = err.response?.data?.message || "Failed to save class";
             console.warn("⚠️ Validation error during class save:", errorMessage);
@@ -153,17 +155,17 @@ export function ClassForm({ onSubmit, classData }: ClassFormProps) {
         })}
         className="space-y-4"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-10 gap-3.5">
           {/* CLASS NAME */}
           <FormField
             control={form.control}
             name="class_name"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Class/Standard</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select standard" />
+              <FormItem className="col-span-5 space-y-1.5">
+                <FormLabel className="text-xs font-bold text-slate-700 dark:text-slate-300">Class/Standard</FormLabel>
+                <Select disabled={readOnly} value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className={cn("h-11 rounded-xl border-slate-200 bg-slate-50/50 disabled:opacity-80 disabled:cursor-not-allowed", readOnly && "[&>svg]:hidden flex items-center justify-between")}>
+                    <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
                     {STANDARD_OPTIONS.map((opt) => (
@@ -183,18 +185,15 @@ export function ClassForm({ onSubmit, classData }: ClassFormProps) {
             control={form.control}
             name="section_id"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Section</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select section" />
+              <FormItem className="col-span-5 space-y-1.5">
+                <FormLabel className="text-xs font-bold text-slate-700 dark:text-slate-300">Section</FormLabel>
+                <Select disabled={readOnly} value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className={cn("h-11 rounded-xl border-slate-200 bg-slate-50/50 disabled:opacity-80 disabled:cursor-not-allowed", readOnly && "[&>svg]:hidden flex items-center justify-between")}>
+                    <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
                     {sections.map((s) => (
-                      <SelectItem
-                        key={s.section_id}
-                        value={String(s.section_id)}
-                      >
+                      <SelectItem key={s.section_id} value={String(s.section_id)}>
                         {s.section_name}
                       </SelectItem>
                     ))}
@@ -210,10 +209,10 @@ export function ClassForm({ onSubmit, classData }: ClassFormProps) {
             control={form.control}
             name="staff_id"
             render={({ field }) => (
-              <FormItem className="md:col-span-2">
-                <FormLabel>Class Teacher</FormLabel>
-                <Select value={field.value || ""} onValueChange={field.onChange}>
-                  <SelectTrigger>
+              <FormItem className="col-span-6 space-y-1.5">
+                <FormLabel className="text-xs font-bold text-slate-700 dark:text-slate-300">Class Teacher</FormLabel>
+                <Select disabled={readOnly} value={field.value || ""} onValueChange={field.onChange}>
+                  <SelectTrigger className={cn("h-11 rounded-xl border-slate-200 bg-slate-50/50 disabled:opacity-80 disabled:cursor-not-allowed", readOnly && "[&>svg]:hidden flex items-center justify-between")}>
                     <SelectValue placeholder="Select teacher" />
                   </SelectTrigger>
                   <SelectContent>
@@ -237,10 +236,10 @@ export function ClassForm({ onSubmit, classData }: ClassFormProps) {
             control={form.control}
             name="room_number"
             render={({ field }) => (
-              <FormItem className="md:col-span-2">
-                <FormLabel>Room Number</FormLabel>
+              <FormItem className="col-span-4 space-y-1.5">
+                <FormLabel className="text-xs font-bold text-slate-700 dark:text-slate-300">Room Number</FormLabel>
                 <FormControl>
-                  <Input placeholder="301" {...field} />
+                  <Input disabled={readOnly} placeholder="301" className="h-11 rounded-xl border-slate-200 bg-slate-50/50 font-semibold text-slate-900 disabled:opacity-80 disabled:cursor-not-allowed" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -248,9 +247,11 @@ export function ClassForm({ onSubmit, classData }: ClassFormProps) {
           />
         </div>
 
-        <Button type="submit" className="w-full" loading={form.formState.isSubmitting}>
-          {classData ? "Update Class" : "Create Class"}
-        </Button>
+        {!readOnly && (
+          <Button type="submit" className="w-full mt-4 h-11 text-sm font-bold rounded-xl shadow-sm" loading={form.formState.isSubmitting}>
+            {classData ? "Update Class" : "Create Class"}
+          </Button>
+        )}
       </form>
     </Form>
   );

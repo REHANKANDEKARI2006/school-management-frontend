@@ -273,46 +273,50 @@ export default function BulkDocumentsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto pb-4 sm:pb-12">
       {/* ── HEADER ── */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b pb-5">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Printer className="h-7 w-7 text-blue-600" />
-            Bulk Document Generator
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Generate high-res ID Cards, Bonafide Certificates, and Marksheets in bulk with background progress tracking.
-          </p>
+      <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 hidden md:flex">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 shrink-0">
+            <Printer className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
+              Bulk Document Generator
+            </h1>
+            <p className="text-xs sm:text-sm font-medium text-slate-500 mt-0.5">
+              Generate high-res ID Cards, Bonafide Certificates, and Marksheets in bulk with background progress tracking.
+            </p>
+          </div>
         </div>
       </div>
 
       {/* ── ACTIVE JOB PROGRESS BANNER ── */}
       {activeJob && (
-        <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 shadow-md">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Badge variant={activeJob.status === "completed" ? "completed" : activeJob.status === "failed" ? "destructive" : "default"} className="px-3 py-1 text-xs font-bold uppercase tracking-wider">
+        <Card className="border-2 border-indigo-200 bg-gradient-to-r from-indigo-50/60 to-blue-50/60 shadow-xs rounded-2xl overflow-hidden">
+          <CardHeader className="p-4 pb-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Badge variant={activeJob.status === "completed" ? "completed" : activeJob.status === "failed" ? "destructive" : "default"} className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider shrink-0">
                   {activeJob.status}
                 </Badge>
-                <CardTitle className="text-lg font-bold text-slate-800">
+                <CardTitle className="text-sm font-black text-slate-900 truncate">
                   Bulk {activeJob.documentType?.replace(/_/g, " ")} Generation
                 </CardTitle>
               </div>
-              <span className="text-xs font-mono font-semibold text-slate-500">
+              <span className="text-xs font-mono font-bold text-slate-500 shrink-0">
                 Job #{activeJob.jobId}
               </span>
             </div>
-            <CardDescription className="text-xs text-slate-600">
+            <CardDescription className="text-xs font-medium text-slate-600">
               Scope: <strong className="capitalize">{activeJob.scopeType?.replace(/_/g, " ")}</strong> • Total Students: <strong>{activeJob.totalCount}</strong>
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-4">
+          <CardContent className="p-4 pt-2 space-y-3">
             {/* Progress Bar */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs font-semibold text-slate-700">
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs font-bold text-slate-700">
                 <span>
                   {activeJob.status === "completed"
                     ? "All documents rendered!"
@@ -320,7 +324,7 @@ export default function BulkDocumentsPage() {
                     ? "Job failed"
                     : `Rendering ${activeJob.progressCount} of ${activeJob.totalCount} documents...`}
                 </span>
-                <span>
+                <span className="font-mono">
                   {activeJob.totalCount > 0
                     ? `${Math.round((activeJob.progressCount / activeJob.totalCount) * 100)}%`
                     : "0%"}
@@ -328,28 +332,28 @@ export default function BulkDocumentsPage() {
               </div>
               <Progress
                 value={activeJob.totalCount > 0 ? (activeJob.progressCount / activeJob.totalCount) * 100 : 0}
-                className="h-3 bg-slate-200"
+                className="h-2.5 bg-slate-200 rounded-full"
               />
             </div>
 
             {/* Completed Actions */}
             {activeJob.status === "completed" && activeJob.outputFileUrl && (
-              <div className="pt-2 flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-lg border border-emerald-200">
-                <div className="flex items-center gap-2 text-emerald-700 font-medium text-sm">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                  PDF document bundle ready for download
+              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-emerald-200">
+                <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>PDF document bundle ready for download</span>
                   {activeJob.fileSizeBytes && (
-                    <span className="text-xs text-slate-500 font-mono">
+                    <span className="text-[10px] text-slate-400 font-mono">
                       ({(activeJob.fileSizeBytes / (1024 * 1024)).toFixed(2)} MB)
                     </span>
                   )}
                 </div>
                 <Button
                   asChild
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-10 rounded-xl shadow-xs"
                 >
                   <a href={getDownloadUrl(activeJob.jobId)} target="_blank" rel="noopener noreferrer">
-                    <Download className="h-4 w-4 mr-2" />
+                    <Download className="h-4 w-4 mr-1.5" />
                     Download Final PDF
                   </a>
                 </Button>
@@ -358,13 +362,13 @@ export default function BulkDocumentsPage() {
 
             {/* Skipped Students Warning */}
             {activeJob.skippedStudents && activeJob.skippedStudents.length > 0 && (
-              <Alert variant="warning" className="bg-amber-50 border-amber-200">
+              <Alert variant="warning" className="bg-amber-50 border-amber-200 rounded-xl p-3">
                 <AlertCircle className="h-4 w-4 text-amber-600" />
-                <AlertTitle className="text-amber-800 font-semibold text-sm">
+                <AlertTitle className="text-amber-800 font-bold text-xs">
                   {activeJob.skippedStudents.length} student(s) required fallbacks or details
                 </AlertTitle>
                 <AlertDescription className="text-xs text-amber-700 mt-1">
-                  <ul className="list-disc pl-4 space-y-1">
+                  <ul className="list-disc pl-4 space-y-1 text-[11px]">
                     {activeJob.skippedStudents.map((s: any, idx: number) => (
                       <li key={idx}>
                         <strong>{s.student_name}</strong> (ID: {s.student_id}): {s.reason}
@@ -379,127 +383,127 @@ export default function BulkDocumentsPage() {
       )}
 
       {/* ── GENERATION CONFIGURATION FORM ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
 
         {/* 1. DOCUMENT TYPE SELECTOR */}
-        <Card className="lg:col-span-1 border-slate-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
-              <FileText className="h-5 w-5 text-blue-600" />
+        <Card className="lg:col-span-1 border-slate-200/80 shadow-xs rounded-2xl overflow-hidden bg-white">
+          <CardHeader className="p-4 pb-3 border-b border-slate-100">
+            <CardTitle className="text-sm font-black text-slate-900 flex items-center gap-2">
+              <FileText className="h-4.5 w-4.5 text-indigo-600" />
               1. Document Type
             </CardTitle>
-            <CardDescription className="text-xs">
+            <CardDescription className="text-xs font-medium text-slate-500">
               Select which document layout to generate.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="p-4 space-y-3">
             {/* ID Card Option */}
             <div
               onClick={() => setDocumentType("id_card")}
-              className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+              className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
                 documentType === "id_card"
-                  ? "border-blue-600 bg-blue-50/60 text-blue-900 shadow-sm"
+                  ? "border-indigo-600 bg-indigo-50/60 text-indigo-900 shadow-2xs"
                   : "border-slate-200 hover:border-slate-300 bg-white"
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2.5 rounded-lg ${documentType === "id_card" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"}`}>
+                  <div className={`p-2.5 rounded-xl ${documentType === "id_card" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600"}`}>
                     <CreditCard className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm">Student ID Cards</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">5×2 Grid on A4 Landscape (10/page)</p>
+                    <h3 className="font-bold text-xs text-slate-900">Student ID Cards</h3>
+                    <p className="text-[11px] text-slate-500 font-medium mt-0.5">5×2 Grid on A4 Landscape (10/page)</p>
                   </div>
                 </div>
-                {documentType === "id_card" && <Check className="h-5 w-5 text-blue-600" />}
+                {documentType === "id_card" && <Check className="h-5 w-5 text-indigo-600 font-bold" />}
               </div>
             </div>
 
             {/* Bonafide Certificate Option */}
             <div
               onClick={() => setDocumentType("bonafide")}
-              className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+              className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
                 documentType === "bonafide"
-                  ? "border-blue-600 bg-blue-50/60 text-blue-900 shadow-sm"
+                  ? "border-indigo-600 bg-indigo-50/60 text-indigo-900 shadow-2xs"
                   : "border-slate-200 hover:border-slate-300 bg-white"
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2.5 rounded-lg ${documentType === "bonafide" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"}`}>
+                  <div className={`p-2.5 rounded-xl ${documentType === "bonafide" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600"}`}>
                     <FileCheck className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm">Bonafide Certificate</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">Formal Certificate (1 per A4 page)</p>
+                    <h3 className="font-bold text-xs text-slate-900">Bonafide Certificate</h3>
+                    <p className="text-[11px] text-slate-500 font-medium mt-0.5">Formal Certificate (1 per A4 page)</p>
                   </div>
                 </div>
-                {documentType === "bonafide" && <Check className="h-5 w-5 text-blue-600" />}
+                {documentType === "bonafide" && <Check className="h-5 w-5 text-indigo-600 font-bold" />}
               </div>
             </div>
 
             {/* Certificate of Recognition Option */}
             <div
               onClick={() => setDocumentType("certificate")}
-              className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+              className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
                 documentType === "certificate"
-                  ? "border-blue-600 bg-blue-50/60 text-blue-900 shadow-sm"
+                  ? "border-indigo-600 bg-indigo-50/60 text-indigo-900 shadow-2xs"
                   : "border-slate-200 hover:border-slate-300 bg-white"
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2.5 rounded-lg ${documentType === "certificate" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"}`}>
+                  <div className={`p-2.5 rounded-xl ${documentType === "certificate" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600"}`}>
                     <Award className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm">Certificate of Recognition</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">Achievement Certificate (1 per A4 Landscape page)</p>
+                    <h3 className="font-bold text-xs text-slate-900">Certificate of Recognition</h3>
+                    <p className="text-[11px] text-slate-500 font-medium mt-0.5">Achievement Certificate (1 per A4 Landscape page)</p>
                   </div>
                 </div>
-                {documentType === "certificate" && <Check className="h-5 w-5 text-blue-600" />}
+                {documentType === "certificate" && <Check className="h-5 w-5 text-indigo-600 font-bold" />}
               </div>
             </div>
 
             {/* ID Card Print Layout Mode Selector (Appears ONLY when ID Card is selected) */}
             {documentType === "id_card" && (
-              <div className="mt-4 pt-4 border-t border-slate-200 space-y-2.5">
+              <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-blue-600" />
+                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
                     ID Card Layout Mode
                   </label>
-                  <span className="text-[10px] bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full border border-indigo-100">
                     {layoutType === "grid" ? "10 Cards / Page" : "1 Card / Page"}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 bg-slate-100/80 p-1 rounded-xl">
                   <button
                     type="button"
                     onClick={() => setLayoutType("grid")}
-                    className={`p-3 rounded-xl border text-left transition-all ${
+                    className={`py-2 px-2.5 rounded-lg text-center transition-all ${
                       layoutType === "grid"
-                        ? "border-blue-600 bg-blue-50/80 text-blue-900 font-bold ring-2 ring-blue-600/20 shadow-sm"
-                        : "border-slate-200 hover:border-slate-300 bg-slate-50/50 text-slate-600"
+                        ? "bg-white text-indigo-900 font-extrabold shadow-xs border border-slate-200/80"
+                        : "text-slate-600 hover:text-slate-900 font-bold"
                     }`}
                   >
-                    <div className="text-xs font-bold">Grid Layout</div>
-                    <div className="text-[11px] text-slate-500 font-normal mt-0.5">10 cards / A4 Landscape</div>
+                    <div className="text-xs">Grid Layout</div>
+                    <div className="text-[9px] text-slate-400 font-medium">10 / Page</div>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setLayoutType("single")}
-                    className={`p-3 rounded-xl border text-left transition-all ${
+                    className={`py-2 px-2.5 rounded-lg text-center transition-all ${
                       layoutType === "single"
-                        ? "border-blue-600 bg-blue-50/80 text-blue-900 font-bold ring-2 ring-blue-600/20 shadow-sm"
-                        : "border-slate-200 hover:border-slate-300 bg-slate-50/50 text-slate-600"
+                        ? "bg-white text-indigo-900 font-extrabold shadow-xs border border-slate-200/80"
+                        : "text-slate-600 hover:text-slate-900 font-bold"
                     }`}
                   >
-                    <div className="text-xs font-bold">Single Card</div>
-                    <div className="text-[11px] text-slate-500 font-normal mt-0.5">1 card per page</div>
+                    <div className="text-xs">Single Card</div>
+                    <div className="text-[9px] text-slate-400 font-medium">1 / Page</div>
                   </button>
                 </div>
               </div>
@@ -508,32 +512,32 @@ export default function BulkDocumentsPage() {
         </Card>
 
         {/* 2. SCOPE SELECTOR & TARGET DEFINITION */}
-        <Card className="lg:col-span-2 border-slate-200 shadow-sm flex flex-col justify-between">
+        <Card className="lg:col-span-2 border-slate-200/80 shadow-xs rounded-2xl overflow-hidden bg-white flex flex-col justify-between">
           <div>
-            <CardHeader>
-              <CardTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
-                <Users className="h-5 w-5 text-blue-600" />
+            <CardHeader className="p-4 pb-3 border-b border-slate-100">
+              <CardTitle className="text-sm font-black text-slate-900 flex items-center gap-2">
+                <Users className="h-4.5 w-4.5 text-indigo-600" />
                 2. Scope & Target Selection
               </CardTitle>
-              <CardDescription className="text-xs">
+              <CardDescription className="text-xs font-medium text-slate-500">
                 Choose whether to generate for the entire school, a specific class, or selected individual students.
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-5">
+            <CardContent className="p-4 space-y-4">
               {/* Scope Radio Tabs */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 {/* Whole School */}
                 <button
                   type="button"
                   onClick={() => setScopeType("whole_school")}
-                  className={`p-3 rounded-lg text-left border flex flex-col items-center justify-center text-center transition-all ${
+                  className={`p-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
                     scopeType === "whole_school"
-                      ? "border-blue-600 bg-blue-50 text-blue-900 font-bold"
-                      : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                      ? "border-2 border-indigo-600 bg-indigo-50 text-indigo-900 font-extrabold shadow-2xs"
+                      : "border-slate-200 hover:bg-slate-50 text-slate-700 font-bold"
                   }`}
                 >
-                  <School className="h-5 w-5 mb-1 text-blue-600" />
+                  <School className="h-5 w-5 mb-1 text-indigo-600" />
                   <span className="text-xs">Whole School</span>
                 </button>
 
@@ -541,13 +545,13 @@ export default function BulkDocumentsPage() {
                 <button
                   type="button"
                   onClick={() => setScopeType("class")}
-                  className={`p-3 rounded-lg text-left border flex flex-col items-center justify-center text-center transition-all ${
+                  className={`p-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
                     scopeType === "class"
-                      ? "border-blue-600 bg-blue-50 text-blue-900 font-bold"
-                      : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                      ? "border-2 border-indigo-600 bg-indigo-50 text-indigo-900 font-extrabold shadow-2xs"
+                      : "border-slate-200 hover:bg-slate-50 text-slate-700 font-bold"
                   }`}
                 >
-                  <Users className="h-5 w-5 mb-1 text-blue-600" />
+                  <Users className="h-5 w-5 mb-1 text-indigo-600" />
                   <span className="text-xs">Specific Class</span>
                 </button>
 
@@ -555,13 +559,13 @@ export default function BulkDocumentsPage() {
                 <button
                   type="button"
                   onClick={() => setScopeType("specific_students")}
-                  className={`p-3 rounded-lg text-left border flex flex-col items-center justify-center text-center transition-all ${
+                  className={`p-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
                     scopeType === "specific_students"
-                      ? "border-blue-600 bg-blue-50 text-blue-900 font-bold"
-                      : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                      ? "border-2 border-indigo-600 bg-indigo-50 text-indigo-900 font-extrabold shadow-2xs"
+                      : "border-slate-200 hover:bg-slate-50 text-slate-700 font-bold"
                   }`}
                 >
-                  <UserCheck className="h-5 w-5 mb-1 text-blue-600" />
+                  <UserCheck className="h-5 w-5 mb-1 text-indigo-600" />
                   <span className="text-xs">Selected Students</span>
                 </button>
               </div>
@@ -570,21 +574,25 @@ export default function BulkDocumentsPage() {
 
               {/* A. WHOLE SCHOOL INFO */}
               {scopeType === "whole_school" && (
-                <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-600 space-y-1">
-                  <p className="font-semibold text-slate-800 flex items-center gap-1.5">
-                    <Sparkles className="h-4 w-4 text-blue-600" />
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/90 text-xs text-slate-600 space-y-1">
+                  <p className="font-extrabold text-slate-800 flex items-center gap-1.5">
+                    <Sparkles className="h-4 w-4 text-indigo-600" />
                     Generating for Whole School
                   </p>
-                  <p>All active enrolled students across all classes and sections will be included, sorted alphabetically by class & section for orderly distribution.</p>
+                  <p className="text-[11px] font-medium text-slate-500 leading-relaxed">
+                    All active enrolled students across all classes and sections will be included, sorted alphabetically by class & section for orderly distribution.
+                  </p>
                 </div>
               )}
 
               {/* B. CLASS DROPDOWN */}
               {scopeType === "class" && (
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-700">Select Class & Section</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                    Select Class & Section
+                  </label>
                   <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                    <SelectTrigger className="w-full bg-white">
+                    <SelectTrigger className="w-full h-11 rounded-xl border-slate-200 text-xs font-bold text-slate-900 bg-white">
                       <SelectValue placeholder="-- Choose Class --" />
                     </SelectTrigger>
                     <SelectContent>
@@ -600,15 +608,15 @@ export default function BulkDocumentsPage() {
 
               {/* C. SPECIFIC STUDENTS MULTI-SELECT LIST */}
               {scopeType === "specific_students" && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3">
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
                     <div className="relative flex-1">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                      <Search className="absolute left-3 top-3 h-3.5 w-3.5 text-slate-400" />
                       <Input
                         placeholder="Search student by name or ID..."
                         value={studentSearch}
                         onChange={e => setStudentSearch(e.target.value)}
-                        className="pl-9 h-9 text-xs"
+                        className="pl-9 h-10 text-xs border-slate-200 rounded-xl bg-white focus:border-indigo-500"
                       />
                     </div>
                     <Button
@@ -616,7 +624,7 @@ export default function BulkDocumentsPage() {
                       variant="outline"
                       size="sm"
                       onClick={toggleSelectAllStudents}
-                      className="text-xs h-9 shrink-0"
+                      className="text-xs h-10 px-3 font-bold rounded-xl border-slate-200 shrink-0"
                     >
                       {selectedStudentIds.length === filteredStudents.length && filteredStudents.length > 0
                         ? "Deselect All"
@@ -624,11 +632,11 @@ export default function BulkDocumentsPage() {
                     </Button>
                   </div>
 
-                  <div className="border rounded-lg max-h-56 overflow-y-auto divide-y bg-white">
+                  <div className="border border-slate-200/90 rounded-2xl max-h-56 overflow-y-auto divide-y divide-slate-100 bg-white">
                     {loadingData ? (
-                      <div className="p-4 text-center text-xs text-slate-400">Loading students...</div>
+                      <div className="p-4 text-center text-xs text-slate-400 italic">Loading students...</div>
                     ) : filteredStudents.length === 0 ? (
-                      <div className="p-4 text-center text-xs text-slate-400">No students found.</div>
+                      <div className="p-4 text-center text-xs text-slate-400 italic">No students found.</div>
                     ) : (
                       filteredStudents.map(s => {
                         const sId = s.student_id || s.id;
@@ -638,13 +646,17 @@ export default function BulkDocumentsPage() {
                             key={sId}
                             onClick={() => toggleStudentSelect(sId)}
                             className={`p-2.5 flex items-center justify-between text-xs cursor-pointer hover:bg-slate-50 transition-colors ${
-                              isChecked ? "bg-blue-50/50" : ""
+                              isChecked ? "bg-indigo-50/40" : ""
                             }`}
                           >
                             <div className="flex items-center gap-3">
-                              <Checkbox checked={isChecked} onCheckedChange={() => toggleStudentSelect(sId)} />
+                              <Checkbox
+                                checked={isChecked}
+                                onCheckedChange={() => toggleStudentSelect(sId)}
+                                onClick={(e) => e.stopPropagation()}
+                              />
                               <div>
-                                <span className="font-semibold text-slate-800">
+                                <span className="font-bold text-slate-900">
                                   {s.stu_first_name} {s.stu_last_name}
                                 </span>
                                 <span className="text-slate-400 ml-2 font-mono text-[10px]">
@@ -652,7 +664,7 @@ export default function BulkDocumentsPage() {
                                 </span>
                               </div>
                             </div>
-                            <Badge variant="outline" className="text-[10px]">
+                            <Badge variant="outline" className="text-[10px] font-bold border-slate-200 text-slate-600">
                               Class {s.class_name || '—'} {s.section_name || ''}
                             </Badge>
                           </div>
@@ -661,54 +673,118 @@ export default function BulkDocumentsPage() {
                     )}
                   </div>
 
-                  <div className="text-xs text-slate-500 font-medium text-right">
-                    Selected: <strong>{selectedStudentIds.length}</strong> student(s)
+                  <div className="text-xs text-slate-500 font-bold text-right">
+                    Selected: <strong className="text-indigo-700">{selectedStudentIds.length}</strong> student(s)
                   </div>
                 </div>
               )}
             </CardContent>
           </div>
 
-          <CardFooter className="pt-4 border-t bg-slate-50/50 rounded-b-xl">
+          <CardFooter className="p-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl">
             <Button
               onClick={handleGenerate}
               disabled={isSubmitting || (activeJob && activeJob.status === "processing")}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 shadow-sm"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 rounded-2xl shadow-md flex items-center justify-center gap-2 text-xs transition-all active:scale-95"
             >
-              {isSubmitting ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Submitting Job...
-                </>
-              ) : (
-                <>
-                  <Printer className="h-4 w-4 mr-2" />
-                  Start Bulk Generation
-                </>
-              )}
+              <Printer className="h-4 w-4 mr-1" />
+              Start Bulk Generation
             </Button>
           </CardFooter>
         </Card>
       </div>
 
-      {/* ── RECENT BULK JOBS HISTORY TABLE ── */}
-      <Card className="border-slate-200 shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between">
+      {/* ── RECENT BULK JOBS HISTORY ── */}
+      <Card className="border-slate-200/80 shadow-xs rounded-2xl overflow-hidden bg-white">
+        <CardHeader className="p-4 pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
-              <Clock className="h-5 w-5 text-slate-600" />
+            <CardTitle className="text-sm font-black text-slate-900 flex items-center gap-2">
+              <Clock className="h-4.5 w-4.5 text-slate-600" />
               Recent Generation History
             </CardTitle>
-            <CardDescription className="text-xs">
+            <CardDescription className="text-xs font-medium text-slate-500">
               View past document generation jobs and access download links.
             </CardDescription>
           </div>
-          <Button variant="ghost" size="sm" onClick={fetchJobHistory} className="h-8 text-xs">
-            <RefreshCw className="h-3.5 w-3.5 mr-1" />
+          <Button variant="ghost" size="sm" onClick={fetchJobHistory} className="h-9 px-3 text-xs font-bold rounded-xl border border-slate-200/80 hover:bg-slate-50">
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
             Refresh
           </Button>
         </CardHeader>
-        <CardContent>
+
+        {/* Mobile History Card List (Strictly sm:hidden) */}
+        <div className="sm:hidden space-y-3 p-4">
+          {loadingHistory ? (
+            <div className="text-center py-8 text-xs text-slate-400 italic">Loading job history...</div>
+          ) : jobHistory.length === 0 ? (
+            <div className="text-center py-8 text-xs text-slate-400 italic">No bulk document jobs generated yet.</div>
+          ) : (
+            jobHistory.map((job) => (
+              <div key={job.job_id} className="bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-2xs space-y-2.5">
+                {/* Top Row: Job ID + Document Type + Status Badge */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-mono text-[11px] font-extrabold text-slate-400">#{job.job_id}</span>
+                    <span className="text-xs font-black text-slate-900 truncate">
+                      {job.document_type?.replace(/_/g, " ")}
+                    </span>
+                  </div>
+                  <Badge
+                    variant={
+                      job.status === "completed"
+                        ? "completed"
+                        : job.status === "failed"
+                        ? "destructive"
+                        : "default"
+                    }
+                    className="text-[9px] uppercase font-extrabold px-2 py-0.5 rounded-lg shrink-0"
+                  >
+                    {job.status}
+                  </Badge>
+                </div>
+
+                {/* Middle Row: Scope + Created Date */}
+                <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium border-t border-slate-100 pt-2">
+                  <span className="capitalize font-bold text-slate-700">
+                    Scope: {job.scope_type?.replace(/_/g, " ")}
+                  </span>
+                  <span className="font-mono text-[10px] text-slate-400">
+                    {new Date(job.created_at).toLocaleString('en-GB')}
+                  </span>
+                </div>
+
+                {/* Progress Count & Progress Bar */}
+                <div className="space-y-1 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                  <div className="flex justify-between text-[10px] font-bold text-slate-600">
+                    <span>Rendered Progress</span>
+                    <span className="font-mono">{job.progress_count} / {job.total_count}</span>
+                  </div>
+                  <Progress
+                    value={job.total_count > 0 ? (job.progress_count / job.total_count) * 100 : 0}
+                    className="h-1.5 bg-slate-200"
+                  />
+                </div>
+
+                {/* Action Row: Download Link / Status */}
+                {job.output_file_url ? (
+                  <Button asChild size="sm" variant="outline" className="w-full h-9 text-xs font-bold text-indigo-600 hover:text-indigo-700 border-indigo-200 bg-indigo-50/40 rounded-xl flex items-center justify-center gap-1.5 active:scale-95">
+                    <a href={getDownloadUrl(job.job_id)} target="_blank" rel="noopener noreferrer">
+                      <Download className="h-3.5 w-3.5" />
+                      <span>Download PDF Bundle</span>
+                    </a>
+                  </Button>
+                ) : (
+                  <div className="text-center py-1 text-[11px] text-slate-400 italic font-medium">
+                    {job.status === "failed" ? "Generation failed" : "Processing in background..."}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop History Table View (100% Untouched for Desktop) */}
+        <CardContent className="hidden sm:block">
           <Table>
             <TableHeader>
               <TableRow className="bg-slate-50 text-xs">

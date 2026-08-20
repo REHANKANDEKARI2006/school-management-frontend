@@ -638,7 +638,7 @@ export function ExamTimetablePreview({
       </Button>
 
       {/* Preview card */}
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden p-6 min-h-[750px] flex flex-col justify-between">
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden p-2.5 xs:p-3 sm:p-6 min-h-0 sm:min-h-[750px] flex flex-col justify-between">
 
         <div className="space-y-4">
           {/* School header */}
@@ -648,35 +648,35 @@ export function ExamTimetablePreview({
               <img
                 src={logoUrl}
                 alt="School Logo"
-                className="h-16 w-16 object-contain"
+                className="h-14 sm:h-16 w-14 sm:w-16 object-contain"
               />
             ) : (
               <div
-                className="h-16 w-16 rounded-full flex items-center justify-center"
+                className="h-14 sm:h-16 w-14 sm:w-16 rounded-full flex items-center justify-center"
                 style={{ background: `${primaryColor}10`, border: `2px solid ${primaryColor}30` }}
               >
-                <GraduationCap className="h-8 w-8" style={{ color: primaryColor }} />
+                <GraduationCap className="h-7 sm:h-8 w-7 sm:w-8" style={{ color: primaryColor }} />
               </div>
             )}
           </div>
-          <h2 className="text-base font-black text-black uppercase tracking-wide leading-tight">
+          <h2 className="text-sm sm:text-base font-black text-black uppercase tracking-wide leading-tight">
             {schoolName}
           </h2>
           {orgName && (
-            <p className="text-[11px] font-medium text-slate-500 mt-0.5">
+            <p className="text-[10px] sm:text-[11px] font-medium text-slate-500 mt-0.5">
               {orgName}
             </p>
           )}
-          <div className="border-t-2 border-black w-full mt-3" />
+          <div className="border-t-2 border-black w-full mt-2.5 sm:mt-3" />
         </div>
 
         {/* Exam title block */}
         <div className="text-center space-y-1">
-          <h3 className="font-black text-black text-lg uppercase tracking-wider">
+          <h3 className="font-black text-black text-base sm:text-lg uppercase tracking-wider">
             {examName || <span className="text-slate-400 italic font-normal text-sm">Enter exam name…</span>}
           </h3>
           {cleanSubtitle && (
-            <p className="text-xs text-slate-600 font-medium">
+            <p className="text-[11px] sm:text-xs text-slate-600 font-medium">
               {cleanSubtitle}
             </p>
           )}
@@ -693,16 +693,28 @@ export function ExamTimetablePreview({
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto border rounded-lg border-slate-200">
-            <table className="w-full text-xs border-collapse">
+          <div className="w-full overflow-hidden border rounded-lg border-slate-200">
+            <table className="w-full text-xs border-collapse table-fixed sm:table-auto">
               <thead>
                 <tr className="bg-black text-white">
-                  {["SR. NO.", "DATE", "DAY", "SUBJECT", "START", "END", "DURATION"].map((h) => (
+                  {[
+                    { label: "SR.", fullLabel: "SR. NO.", className: "w-[7%] sm:w-auto" },
+                    { label: "DATE", fullLabel: "DATE", className: "w-[17%] sm:w-auto" },
+                    { label: "DAY", fullLabel: "DAY", className: "w-[15%] sm:w-auto" },
+                    { label: "SUBJECT", fullLabel: "SUBJECT", className: "w-[27%] sm:w-auto" },
+                    { label: "START", fullLabel: "START", className: "w-[11%] sm:w-auto" },
+                    { label: "END", fullLabel: "END", className: "w-[11%] sm:w-auto" },
+                    { label: "DUR.", fullLabel: "DURATION", className: "w-[12%] sm:w-auto" },
+                  ].map((h) => (
                     <th
-                      key={h}
-                      className="px-3 py-2.5 text-[9.5px] font-bold text-center border border-black uppercase tracking-wider"
+                      key={h.fullLabel}
+                      className={cn(
+                        "px-0.5 sm:px-3 py-1.5 sm:py-2.5 text-[7.5px] xs:text-[8.5px] sm:text-[9.5px] font-bold text-center border border-black uppercase tracking-wider overflow-hidden",
+                        h.className
+                      )}
                     >
-                      {h}
+                      <span className="sm:hidden">{h.label}</span>
+                      <span className="hidden sm:inline">{h.fullLabel}</span>
                     </th>
                   ))}
                 </tr>
@@ -721,23 +733,23 @@ export function ExamTimetablePreview({
                         !hasSubject && !hasDate && "opacity-30"
                       )}
                     >
-                      <td className="px-3 py-2.5 border border-slate-200 font-medium text-slate-500">{idx + 1}</td>
-                      <td className="px-3 py-2.5 border border-slate-200 font-semibold text-black">
+                      <td className="px-0.5 sm:px-3 py-1.5 sm:py-2.5 border border-slate-200 font-medium text-slate-500 text-[8px] xs:text-[9px] sm:text-xs text-center">{idx + 1}</td>
+                      <td className="px-0.5 sm:px-3 py-1.5 sm:py-2.5 border border-slate-200 font-semibold text-black text-[8px] xs:text-[9px] sm:text-xs leading-tight text-center">
                         {hasDate ? formatDisplayDate(row.date) : "—"}
                       </td>
-                      <td className="px-3 py-2.5 border border-slate-200 text-slate-600 font-medium">
+                      <td className="px-0.5 sm:px-3 py-1.5 sm:py-2.5 border border-slate-200 text-slate-600 font-medium text-[8px] xs:text-[9px] sm:text-xs leading-tight text-center">
                         {hasDate ? getDayName(row.date) : "—"}
                       </td>
-                      <td className="px-3 py-2.5 border border-slate-200 font-bold text-black">
+                      <td className="px-0.5 sm:px-3 py-1.5 sm:py-2.5 border border-slate-200 font-bold text-black text-[8px] xs:text-[9px] sm:text-xs leading-tight break-words text-center">
                         {hasSubject ? row.subject_name : "—"}
                       </td>
-                      <td className="px-3 py-2.5 border border-slate-200 text-slate-600 font-medium">
+                      <td className="px-0.5 sm:px-3 py-1.5 sm:py-2.5 border border-slate-200 text-slate-600 font-medium text-[8px] xs:text-[9px] sm:text-xs leading-tight whitespace-nowrap text-center">
                         {row.start_time ? formatTime(row.start_time) : "—"}
                       </td>
-                      <td className="px-3 py-2.5 border border-slate-200 text-slate-600 font-medium">
+                      <td className="px-0.5 sm:px-3 py-1.5 sm:py-2.5 border border-slate-200 text-slate-600 font-medium text-[8px] xs:text-[9px] sm:text-xs leading-tight whitespace-nowrap text-center">
                         {row.end_time ? formatTime(row.end_time) : "—"}
                       </td>
-                      <td className="px-3 py-2.5 border border-slate-200 font-semibold text-slate-700">
+                      <td className="px-0.5 sm:px-3 py-1.5 sm:py-2.5 border border-slate-200 font-semibold text-slate-700 text-[8px] xs:text-[9px] sm:text-xs leading-tight text-center">
                         {row.start_time && row.end_time ? formatDuration(row.start_time, row.end_time) : "—"}
                       </td>
                     </tr>
@@ -790,7 +802,7 @@ export function ExamTimetablePreview({
         {/* Bottom content wrapper */}
         <div className="space-y-4 mt-auto pt-4">
           {/* Signatures */}
-          <div className="flex justify-between items-center px-12">
+          <div className="flex justify-between items-center px-4 sm:px-12">
             <div className="text-center w-[35%]">
               <div className="border-t border-slate-600 pt-1 text-[11px] font-bold text-black">Class Teacher</div>
               <div className="text-[9px] text-slate-500">Signature</div>

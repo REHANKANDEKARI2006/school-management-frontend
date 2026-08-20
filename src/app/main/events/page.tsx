@@ -214,7 +214,120 @@ export default function EventsPage() {
 
   return (
     <>
-      <Card>
+      {/* ── Mobile Layout (< md) ── */}
+      <div className="block md:hidden space-y-4 pb-6">
+        {/* Header */}
+        <div className="space-y-1 hidden">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+            Events & Activities
+          </h1>
+          <p className="text-xs font-medium text-slate-500">
+            Manage school events, class participation, and scheduling
+          </p>
+        </div>
+
+        {/* Create Event Button */}
+        {isAdmin && (
+          <Button
+            onClick={openNewDialog}
+            className="w-full h-11 font-bold rounded-xl shadow-sm text-xs justify-center flex items-center gap-2 active:scale-95 transition-all"
+          >
+            <PlusCircle className="h-4 w-4" />
+            Create Event
+          </Button>
+        )}
+
+        {/* Content Area */}
+        {loading ? (
+          <PageSkeleton rows={3} />
+        ) : filteredEvents.length === 0 ? (
+          <Card className="border border-slate-100 shadow-sm rounded-2xl bg-white p-8 text-center flex flex-col items-center justify-center gap-3">
+            <div className="h-12 w-12 rounded-2xl bg-slate-100/80 text-slate-400 flex items-center justify-center">
+              <CalendarIcon className="h-6 w-6 text-slate-400" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-slate-700">No events found.</p>
+              <p className="text-xs text-slate-400">Create your first event to get started.</p>
+            </div>
+          </Card>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {filteredEvents.map((event) => (
+              <div
+                key={event.event_id}
+                onClick={() => openDetailWithTab(event, "overview")}
+                className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:border-slate-300 transition-all cursor-pointer space-y-3.5"
+              >
+                <div className="flex justify-between items-start gap-3">
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900 leading-snug">
+                      {event.event_name}
+                    </h3>
+                    <p className="text-xs font-medium text-slate-500 mt-0.5">
+                      {event.event_type}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Badge variant={getStatusVariant(event.computed_status)} className="text-[10px] font-bold px-2 py-0.5 rounded-lg">
+                      {event.computed_status || "Scheduled"}
+                    </Badge>
+
+                    {!isStudent && (
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {!isTeacher && (
+                              <DropdownMenuItem onClick={() => openEditDialog(event)}>Edit Details</DropdownMenuItem>
+                            )}
+                            {!isTeacher && (
+                              <DropdownMenuItem onClick={() => openCertificateDialog(event)}>Certificates</DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => openDetailWithTab(event, "photos")}>Gallery</DropdownMenuItem>
+                            {!isTeacher && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(event)}>Delete Event</DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-100 p-2.5 rounded-xl">
+                  <span className="flex items-center gap-1.5">
+                    <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
+                    {event.event_start_date ? format(new Date(event.event_start_date), "MMM d, yyyy") : "TBD"}
+                  </span>
+                  <span className="text-slate-300">•</span>
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                    {event.venue || "Campus"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between pt-0.5 text-xs text-slate-500 font-medium">
+                  <span>Class Participation</span>
+                  <span className="font-bold text-slate-700">
+                    {event.classes_submitted}/{event.class_count || 0} classes
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Desktop Layout (>= md) ── */}
+      <Card className="hidden md:block">
         <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
             <CardTitle>Events & Activities</CardTitle>
@@ -335,76 +448,6 @@ export default function EventsPage() {
               </TableBody>
             </Table>
           </div>
-
-          {/* Mobile List View */}
-          <div className="md:hidden flex flex-col gap-3 p-4 bg-muted/10">
-            {loading ? (
-              <PageSkeleton rows={3} />
-            ) : filteredEvents.length === 0 ? (
-              <p className="text-center text-muted-foreground py-10 text-sm">No events found.</p>
-            ) : (
-              filteredEvents.map((event) => (
-                <div 
-                  key={event.event_id} 
-                  onClick={() => openDetailWithTab(event, "overview")}
-                  className="bg-background border rounded-xl p-4 shadow-sm relative space-y-3"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-semibold text-sm">{event.event_name}</p>
-                      <p className="text-xs text-muted-foreground">{event.event_type}</p>
-                    </div>
-                    {!isStudent && (
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {!isTeacher && (
-                              <DropdownMenuItem onClick={() => openEditDialog(event)}>Edit Details</DropdownMenuItem>
-                            )}
-                            {!isTeacher && (
-                              <DropdownMenuItem onClick={() => openCertificateDialog(event)}>Certificates</DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => openDetailWithTab(event, "photos")}>Gallery</DropdownMenuItem>
-                            {!isTeacher && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(event)}>Delete Event</DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground bg-muted/30 p-2 rounded-md">
-                     <span className="flex items-center gap-1">
-                        <CalendarIcon className="h-3 w-3" />
-                        {event.event_start_date ? format(new Date(event.event_start_date), "MMM d") : "TBD"}
-                     </span>
-                     <span className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {event.venue || "Campus"}
-                     </span>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <Badge variant={getStatusVariant(event.computed_status)}>
-                      {event.computed_status || "Scheduled"}
-                    </Badge>
-                    <span className="text-[10px] text-muted-foreground">
-                       Participation: <strong>{event.classes_submitted}/{event.class_count || 0}</strong>
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
         </CardContent>
       </Card>
 
@@ -508,10 +551,7 @@ function EventDetailDialog({ eventId, onMarkAttendance, isAdmin, currentStaffId,
   };
 
   if (loading || !eventData) {
-    return <div className="p-20 flex flex-col items-center gap-4">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      <p className="text-sm text-muted-foreground">Loading event details...</p>
-    </div>;
+    return null;
   }
 
   return (

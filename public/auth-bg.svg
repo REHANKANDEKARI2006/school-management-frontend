@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1400" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Master Background Gradient -->
+    <linearGradient id="bg-canvas" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D9EBFF"/>
+      <stop offset="35%" stop-color="#EAF3FF"/>
+      <stop offset="70%" stop-color="#EFF7FF"/>
+      <stop offset="100%" stop-color="#C2DCFE"/>
+    </linearGradient>
+
+    <!-- Main Fluid Left Wave -->
+    <linearGradient id="left-wave-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#93C5FD" stop-opacity="0.55"/>
+      <stop offset="45%" stop-color="#BAE6FD" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.15"/>
+    </linearGradient>
+
+    <!-- Secondary Wave Ribbon (Left) -->
+    <linearGradient id="left-ribbon-grad" x1="0%" y1="0%" x2="100%" y2="80%">
+      <stop offset="0%" stop-color="#60A5FA" stop-opacity="0.3"/>
+      <stop offset="50%" stop-color="#93C5FD" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.6"/>
+    </linearGradient>
+
+    <!-- Right Flowing Wave -->
+    <linearGradient id="right-wave-grad" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#BAE6FD" stop-opacity="0.5"/>
+      <stop offset="60%" stop-color="#DBEAFE" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#93C5FD" stop-opacity="0.45"/>
+    </linearGradient>
+
+    <!-- Translucent White Waves -->
+    <linearGradient id="trans-white" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.75"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+    </linearGradient>
+
+    <!-- Subtle Dot Pattern -->
+    <pattern id="dot-pattern" x="0" y="0" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="4" cy="4" r="1.75" fill="#88B8F2" fill-opacity="0.45"/>
+    </pattern>
+
+    <pattern id="dot-pattern-light" x="0" y="0" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="4" cy="4" r="1.75" fill="#FFFFFF" fill-opacity="0.65"/>
+    </pattern>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="800" height="1400" fill="url(#bg-canvas)"/>
+
+  <!-- Top-Left Subtle Dot Grid -->
+  <rect x="24" y="30" width="154" height="198" fill="url(#dot-pattern)"/>
+  <rect x="24" y="30" width="132" height="154" fill="url(#dot-pattern-light)"/>
+
+  <!-- Ambient Glow Behind Elements -->
+  <circle cx="720" cy="180" r="320" fill="#FFFFFF" opacity="0.45" filter="blur(80px)"/>
+  <circle cx="120" cy="1250" r="340" fill="#93C5FD" opacity="0.35" filter="blur(90px)"/>
+
+  <!-- Left Fluid Sweeping Wave Flow -->
+  <path d="M-60,-20 C240,120 280,480 110,760 C-30,980 -50,1180 -80,1420 L-60,1420 L-60,-20 Z" fill="url(#left-wave-grad)"/>
+
+  <!-- Elegant Inner Wave Layer (Left Ribbon) -->
+  <path d="M-80,0 C320,180 340,560 160,860 C10,1100 80,1320 140,1420 L-80,1420 Z" fill="url(#left-ribbon-grad)"/>
+
+  <!-- Delicate White Arc Wave Highlight (Left) -->
+  <path d="M-80,20 C280,220 300,540 140,820 C-10,1050 40,1280 80,1420 L-80,1420 Z" fill="url(#trans-white)"/>
+
+  <!-- Thin Arc Contour Lines (Left Depth) -->
+  <path d="M-40,60 C300,240 320,580 150,880 C5,1120 70,1340 110,1420" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-opacity="0.5"/>
+  <path d="M-30,120 C340,300 350,640 190,940 C35,1180 110,1380 150,1420" fill="none" stroke="#93C5FD" stroke-width="1.2" stroke-opacity="0.35"/>
+
+  <!-- Right & Bottom Sweeping Fluid Waves -->
+  <path d="M880,150 C620,380 480,780 680,1120 C780,1280 840,1360 900,1420 L900,150 Z" fill="url(#right-wave-grad)"/>
+
+  <!-- Right Soft White Wave Overlay -->
+  <path d="M880,0 C640,260 540,660 760,1020 C870,1200 880,1320 900,1420 L900,0 Z" fill="url(#trans-white)"/>
+
+  <!-- Thin Arc Contour Lines (Right Depth) -->
+  <path d="M880,80 C620,340 520,720 730,1080 C840,1260 860,1360 880,1420" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-opacity="0.45"/>
+  <path d="M880,180 C660,420 570,800 770,1140 C860,1290 880,1380 880,1420" fill="none" stroke="#60A5FA" stroke-width="1" stroke-opacity="0.25"/>
+
+  <!-- Bottom-Right Dot Matrix -->
+  <rect x="620" y="1120" width="176" height="220" fill="url(#dot-pattern)"/>
+  <rect x="642" y="1142" width="154" height="198" fill="url(#dot-pattern-light)"/>
+</svg>

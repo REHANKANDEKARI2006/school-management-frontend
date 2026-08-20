@@ -190,11 +190,7 @@ export function GradeEntryForm({ exam, onSave }: GradeEntryFormProps) {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return null;
   }
 
   if (studentGrades.length === 0) {
@@ -290,7 +286,6 @@ export function GradeEntryForm({ exam, onSave }: GradeEntryFormProps) {
             disabled={saving}
             className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium flex items-center justify-center gap-2"
           >
-            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
             Final Submit & Lock
           </Button>
         </div>

@@ -23,8 +23,16 @@ import autoTable from 'jspdf-autotable';
 import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AttendanceSummaryDialog } from "@/components/school-os/attendance-summary-dialog";
 import { cn } from "@/lib/utils";
 
@@ -96,14 +104,13 @@ const StudentAttendanceView = () => {
   const attendancePercentage = total > 0 ? Math.round((presentCount / total) * 100) : 0;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <CalendarDays className="h-6 w-6 text-primary" />
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="space-y-1">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
             My Attendance
           </h1>
-          <p className="text-sm text-slate-500">Track your daily attendance and subject-wise records.</p>
+          <p className="text-sm text-muted-foreground">Track your daily attendance and subject-wise records.</p>
         </div>
       </div>
 
@@ -211,6 +218,109 @@ const StudentAttendanceView = () => {
 };
 
 /* -------------------------------------------------------------------------- */
+/*                 START SESSION FORM COMPONENT (MOBILE MODAL)                 */
+/* -------------------------------------------------------------------------- */
+
+function StartSessionModalForm({ onSuccess }: { onSuccess: (classId: string, subjectId: string) => void }) {
+  const { toast } = useToast();
+  const [selectedClassId, setSelectedClassId] = React.useState<string | null>(null);
+  const [selectedSubjectId, setSelectedSubjectId] = React.useState<string | null>(null);
+  const [classes, setClasses] = React.useState<any[]>([]);
+  const [subjects, setSubjects] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    const fetchClasses = async () => {
+      try {
+        const classesRes = await axios.get("/api/classes/class-enrollments/list");
+        if (classesRes.data?.data) {
+          setClasses(classesRes.data.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch classes", err);
+      }
+    };
+    fetchClasses();
+  }, []);
+
+  React.useEffect(() => {
+    if (!selectedClassId) {
+      setSubjects([]);
+      setSelectedSubjectId(null);
+      return;
+    }
+
+    const fetchSubjectsForClass = async () => {
+      try {
+        const subjectsRes = await axios.get("/api/subjects", {
+          params: { class_id: selectedClassId }
+        });
+        if (subjectsRes.data?.success) {
+          setSubjects(subjectsRes.data.data);
+          setSelectedSubjectId(null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch subjects for class", err);
+      }
+    };
+    fetchSubjectsForClass();
+  }, [selectedClassId]);
+
+  const handleStartSession = () => {
+    if (!selectedClassId || !selectedSubjectId) {
+      toast({
+        title: "Selection Incomplete",
+        description: "Please select both a class and a subject to start.",
+        variant: "destructive",
+      });
+      return;
+    }
+    onSuccess(selectedClassId, selectedSubjectId);
+  };
+
+  return (
+    <div className="grid gap-4 mt-2">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-1.5">
+          <Label htmlFor="modal-class-select" className="text-xs font-semibold text-slate-700">Class</Label>
+          <Select onValueChange={setSelectedClassId}>
+            <SelectTrigger id="modal-class-select" className="h-11 rounded-xl border-slate-200 text-xs font-semibold bg-slate-50/40">
+              <SelectValue placeholder="Select class" />
+            </SelectTrigger>
+            <SelectContent>
+              {classes.map(c => (
+                <SelectItem key={c.class_id} value={c.class_id}>{c.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid gap-1.5">
+          <Label htmlFor="modal-subject-select" className="text-xs font-semibold text-slate-700">Subject</Label>
+          <Select onValueChange={setSelectedSubjectId} disabled={!selectedClassId}>
+            <SelectTrigger id="modal-subject-select" className="h-11 rounded-xl border-slate-200 text-xs font-semibold bg-slate-50/40 disabled:opacity-60">
+              <SelectValue placeholder={selectedClassId ? "Select subject" : "Select class first"} />
+            </SelectTrigger>
+            <SelectContent>
+              {subjects.map(s => (
+                <SelectItem key={s.subject_id} value={s.subject_id}>{s.subject_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <Button 
+        onClick={handleStartSession} 
+        disabled={!selectedClassId || !selectedSubjectId}
+        className="w-full h-12 font-bold rounded-xl shadow-md text-sm mt-1"
+      >
+        Start Session
+      </Button>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /*                        MAIN DASHBOARD PAGE                                 */
 /* -------------------------------------------------------------------------- */
 
@@ -233,6 +343,7 @@ export default function AttendanceDashboardPage() {
   const [isExporting, setIsExporting] = React.useState<string | null>(null);
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
   const [isSummaryOpen, setIsSummaryOpen] = React.useState(false);
+  const [isNewSessionModalOpen, setIsNewSessionModalOpen] = React.useState(false);
   const [expandedClasses, setExpandedClasses] = React.useState<Record<string, boolean>>({});
   const [isHoliday, setIsHoliday] = React.useState(false);
   const [holidayNames, setHolidayNames] = React.useState<string[]>([]);
@@ -460,25 +571,93 @@ export default function AttendanceDashboardPage() {
 
   return (
     <RouteGuard allowedRoles={[...ADMIN_GROUP, ROLE.TEACHER, ROLE.CLASS_TEACHER]}>
-      <div className="container mx-auto py-8 px-4 space-y-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-          <div className="space-y-1 px-1">
-            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2 tracking-tight">
-              <BarChart className="h-6 w-6 text-primary" />
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="space-y-1 hidden md:block">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
               Attendance Dashboard
             </h1>
-            <p className="text-sm text-slate-500 font-medium">Overview of daily student and faculty presence</p>
+            <p className="text-sm text-muted-foreground">Overview of daily student and faculty presence</p>
           </div>
 
-          <div className="flex flex-col xs:flex-row items-center gap-3 w-full sm:w-auto">
+          {/* Mobile View Date & Action Controls (< sm) */}
+          <div className="flex sm:hidden flex-col gap-2.5 w-full mt-2">
+            <div className="grid grid-cols-2 gap-2.5 w-full">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full h-11 px-3 text-xs font-semibold bg-white border-slate-200 shadow-sm rounded-xl justify-start">
+                    <CalendarDays className="mr-1.5 h-4 w-4 text-slate-400 shrink-0" />
+                    <span className="truncate">{format(selectedDate, "MMM d, yyyy")}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(d) => d && setSelectedDate(d)}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {isTeacher ? (
+                <div className="flex bg-slate-100/80 p-1 rounded-xl items-center gap-1 h-11 shadow-inner w-full">
+                  <button
+                    onClick={() => setSelectedDate(new Date())}
+                    className={cn(
+                      "flex-1 h-9 rounded-lg text-xs font-semibold transition-all",
+                      format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")
+                        ? "bg-white text-primary shadow-sm font-bold"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    Today
+                  </button>
+                  <button
+                    onClick={() => {
+                      const yesterday = new Date();
+                      yesterday.setDate(yesterday.getDate() - 1);
+                      setSelectedDate(yesterday);
+                    }}
+                    className={cn(
+                      "flex-1 h-9 rounded-lg text-xs font-semibold transition-all",
+                      format(selectedDate, "yyyy-MM-dd") === format(new Date(Date.now() - 86400000), "yyyy-MM-dd")
+                        ? "bg-white text-primary shadow-sm font-bold"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    Yesterday
+                  </button>
+                </div>
+              ) : (
+                <div className="w-full h-11 bg-white rounded-xl border border-slate-200 shadow-sm flex items-center justify-center text-xs font-bold text-slate-700">
+                  {format(selectedDate, "EEEE")}
+                </div>
+              )}
+            </div>
+
+            {!isTeacher && (
+              <Button
+                onClick={() => setIsNewSessionModalOpen(true)}
+                disabled={isHoliday}
+                className="w-full h-11 font-bold rounded-xl shadow-sm text-sm"
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Take Attendance
+              </Button>
+            )}
+          </div>
+
+          {/* Desktop View Date & Action Controls (>= sm) */}
+          <div className="hidden sm:flex flex-row items-center gap-3 w-auto">
             {isTeacher && (
-              <div className="flex bg-slate-100/80 p-1 rounded-xl items-center gap-1 h-10 shadow-inner mr-1">
+              <div className="flex bg-slate-100/80 p-1 rounded-xl items-center gap-1 h-9 shadow-inner">
                 <button
                   onClick={() => setSelectedDate(new Date())}
                   className={cn(
-                    "px-4 h-8 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all",
+                    "px-3 h-7 rounded-lg text-xs font-semibold transition-all",
                     format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")
-                      ? "bg-white text-indigo-600 shadow-sm"
+                      ? "bg-white text-primary shadow-sm font-bold"
                       : "text-slate-500 hover:text-slate-800"
                   )}
                 >
@@ -491,9 +670,9 @@ export default function AttendanceDashboardPage() {
                     setSelectedDate(yesterday);
                   }}
                   className={cn(
-                    "px-4 h-8 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all",
+                    "px-3 h-7 rounded-lg text-xs font-semibold transition-all",
                     format(selectedDate, "yyyy-MM-dd") === format(new Date(Date.now() - 86400000), "yyyy-MM-dd")
-                      ? "bg-white text-indigo-600 shadow-sm"
+                      ? "bg-white text-primary shadow-sm font-bold"
                       : "text-slate-500 hover:text-slate-800"
                   )}
                 >
@@ -504,7 +683,7 @@ export default function AttendanceDashboardPage() {
 
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full xs:w-[180px] sm:w-[220px] justify-start text-left font-bold text-[11px] h-10 border-slate-100 shadow-sm bg-white rounded-xl">
+                <Button variant="outline" className="h-9 px-3 text-xs font-semibold bg-white border-slate-200 shadow-sm">
                   <CalendarDays className="mr-2 h-4 w-4 text-slate-400" />
                   {format(selectedDate, "PPP")}
                 </Button>
@@ -523,7 +702,7 @@ export default function AttendanceDashboardPage() {
               <Button
                 onClick={() => router.push('/main/attendance/new')}
                 disabled={isHoliday}
-                className="w-full xs:w-auto h-10 px-6 rounded-xl font-bold text-[11px] uppercase tracking-wider"
+                className="w-full sm:w-auto h-9 font-semibold"
               >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Take Attendance
@@ -574,7 +753,19 @@ export default function AttendanceDashboardPage() {
               <Users className="h-12 w-12 text-muted-foreground opacity-20" />
               <h3 className="text-xl font-bold text-slate-800">No Sessions Found</h3>
               <p className="text-[11px] font-bold text-slate-400 uppercase">No attendance has been taken for this date yet.</p>
-              <Button variant="outline" onClick={() => router.push('/main/attendance/new')} className="rounded-xl border-slate-200">Start New Session</Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (typeof window !== "undefined" && window.innerWidth < 640) {
+                    setIsNewSessionModalOpen(true);
+                  } else {
+                    router.push('/main/attendance/new');
+                  }
+                }}
+                className="rounded-xl border-slate-200"
+              >
+                Start New Session
+              </Button>
             </div>
           </Card>
         ) : (
@@ -698,7 +889,7 @@ export default function AttendanceDashboardPage() {
                           onClick={() => handleFullDayExport(cls, 'excel')}
                           className="flex-1 h-8 text-[10px] font-bold uppercase tracking-wider bg-white"
                         >
-                          {isExporting === classKey ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5 mr-1" />}
+                          <FileSpreadsheet className="h-3.5 w-3.5 mr-1" />
                           Excel
                         </Button>
                         <Button
@@ -708,7 +899,7 @@ export default function AttendanceDashboardPage() {
                           onClick={() => handleFullDayExport(cls, 'pdf')}
                           className="flex-1 h-8 text-[10px] font-bold uppercase tracking-wider bg-white"
                         >
-                          {isExporting === classKey ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3.5 w-3.5 mr-1" />}
+                          <FileText className="h-3.5 w-3.5 mr-1" />
                           PDF
                         </Button>
                         <Button
@@ -718,7 +909,7 @@ export default function AttendanceDashboardPage() {
                           onClick={() => handleFullDayExport(cls, 'whatsapp')}
                           className="flex-1 h-8 text-[10px] font-bold uppercase tracking-wider bg-white"
                         >
-                          {isExporting === classKey ? <Loader2 className="h-3 w-3 animate-spin" /> : <Share2 className="h-3.5 w-3.5 mr-1" />}
+                          <Share2 className="h-3.5 w-3.5 mr-1" />
                           Share
                         </Button>
                       </div>
@@ -734,6 +925,22 @@ export default function AttendanceDashboardPage() {
           {selectedSummary && (
             <AttendanceSummaryDialog {...selectedSummary} />
           )}
+        </Dialog>
+
+        <Dialog open={isNewSessionModalOpen} onOpenChange={setIsNewSessionModalOpen}>
+          <DialogContent className="w-[92vw] sm:max-w-lg max-h-[85vh] overflow-y-auto p-5 sm:p-6 rounded-3xl border-slate-100/80 shadow-2xl">
+            <DialogHeader className="pb-2">
+              <DialogTitle className="text-xl font-bold tracking-tight text-slate-900">Start Attendance Session</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">Select a class and a subject to begin taking attendance.</DialogDescription>
+            </DialogHeader>
+
+            <StartSessionModalForm
+              onSuccess={(classId, subjectId) => {
+                setIsNewSessionModalOpen(false);
+                router.push(`/main/attendance/${classId}/${subjectId}`);
+              }}
+            />
+          </DialogContent>
         </Dialog>
 
       </div>
@@ -762,8 +969,11 @@ function MonthlyAttendanceReportCard({ roleId, isStudentOrGuardian }: { roleId: 
       setFetchingClasses(true);
       try {
         const res = await axios.get("/api/classes/class-enrollments/list");
-        if (res.data.data) {
+        if (res.data?.data) {
           setClasses(res.data.data);
+          if (res.data.data.length > 0 && !selectedClass) {
+            setSelectedClass(String(res.data.data[0].class_id));
+          }
         }
       } catch (error) {
         console.error("Failed to fetch classes", error);
@@ -790,13 +1000,11 @@ function MonthlyAttendanceReportCard({ roleId, isStudentOrGuardian }: { roleId: 
         { responseType: 'blob' }
       );
 
-      // Create a link to download the PDF
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       
-      // Get filename from header or fallback
       const contentDisposition = response.headers['content-disposition'];
       let fileName = `Monthly_Attendance_${selectedMonth}_${selectedYear}.pdf`;
       if (contentDisposition) {
@@ -804,14 +1012,12 @@ function MonthlyAttendanceReportCard({ roleId, isStudentOrGuardian }: { roleId: 
         if (fileNameMatch?.[1]) fileName = fileNameMatch[1].replace(/["']/g, '');
       }
       
-      // Ensure extension
       if (!fileName.toLowerCase().endsWith('.pdf')) fileName += '.pdf';
       
       link.setAttribute('download', fileName);
       document.body.appendChild(link);
       link.click();
       
-      // Cleanup
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
@@ -840,66 +1046,95 @@ function MonthlyAttendanceReportCard({ roleId, isStudentOrGuardian }: { roleId: 
 
   return (
     <Card className="shadow-sm border-slate-100 rounded-xl overflow-hidden transition-all hover:shadow-md">
-      <CardHeader className="bg-slate-50/50 border-b p-6">
-        <div className="flex items-center gap-4">
-          <div className="p-2.5 bg-primary/10 rounded-xl shrink-0">
+      <CardHeader className="bg-slate-50/50 border-b p-4 sm:p-6">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
             <FileText className="h-5 w-5 text-primary" />
           </div>
-          <div>
-            <CardTitle className="text-lg font-bold text-slate-800">Monthly Attendance Report</CardTitle>
-            <CardDescription className="text-sm text-slate-500">Generate comprehensive attendance records for your class.</CardDescription>
+          <div className="space-y-0.5">
+            <CardTitle className="text-lg font-bold tracking-tight text-slate-900">Monthly Attendance Report</CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">Generate comprehensive attendance records for your class.</CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-6">
-        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-4 items-end">
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-0.5">Academic Class</label>
-            <select 
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              className="w-full h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-primary/10 transition-all appearance-none cursor-pointer"
-            >
-              <option value="">Select Class</option>
-              {classes.map(c => (
-                <option key={c.class_id} value={c.class_id}>{c.label}</option>
-              ))}
-            </select>
+      <CardContent className="p-4 sm:p-6">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-4 items-end">
+          {/* Academic Class Dropdown */}
+          <div className="order-3 lg:order-1 col-span-1 space-y-1.5">
+            <label className="text-xs font-semibold text-slate-700">Academic Class</label>
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger className="h-11 sm:h-9 bg-slate-50/50 rounded-xl sm:rounded-md border-slate-200 text-xs sm:text-sm font-semibold">
+                <SelectValue placeholder="Select Class" />
+              </SelectTrigger>
+              <SelectContent>
+                {classes.map((c) => (
+                  <SelectItem key={c.class_id} value={String(c.class_id)}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-0.5">Month</label>
-            <select 
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-full h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-primary/10 transition-all appearance-none cursor-pointer"
-            >
-              {months.map(m => (
-                <option key={m.value} value={m.value}>{m.label}</option>
-              ))}
-            </select>
+          {/* Section Dropdown */}
+          <div className="order-4 lg:order-2 col-span-1 space-y-1.5">
+            <label className="text-xs font-semibold text-slate-700">Section</label>
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger className="h-11 sm:h-9 bg-slate-50/50 rounded-xl sm:rounded-md border-slate-200 text-xs sm:text-sm font-semibold">
+                <SelectValue placeholder="All Sections" />
+              </SelectTrigger>
+              <SelectContent>
+                {classes.map((c) => (
+                  <SelectItem key={`sec-${c.class_id}`} value={String(c.class_id)}>
+                    {c.label.includes("-") ? `Sec ${c.label.split("-")[1].trim()}` : c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-0.5">Year</label>
-            <select 
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="w-full h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-primary/10 transition-all appearance-none cursor-pointer"
-            >
-              {years.map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+          {/* Month Dropdown */}
+          <div className="order-2 lg:order-3 col-span-1 space-y-1.5">
+            <label className="text-xs font-semibold text-slate-700">Month</label>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="h-11 sm:h-9 bg-slate-50/50 rounded-xl sm:rounded-md border-slate-200 text-xs sm:text-sm font-semibold">
+                <SelectValue placeholder="Select Month" />
+              </SelectTrigger>
+              <SelectContent>
+                {months.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
+          {/* Year Dropdown */}
+          <div className="order-1 lg:order-4 col-span-1 space-y-1.5">
+            <label className="text-xs font-semibold text-slate-700">Year</label>
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="h-11 sm:h-9 bg-slate-50/50 rounded-xl sm:rounded-md border-slate-200 text-xs sm:text-sm font-semibold">
+                <SelectValue placeholder="Select Year" />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map((y) => (
+                  <SelectItem key={y} value={y}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Generate Sheet Button */}
           <Button 
             onClick={handleGeneratePDF}
             disabled={loading || !selectedClass}
-            className="h-10 bg-primary hover:bg-primary/90 text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
+            className="order-5 lg:order-5 col-span-2 lg:col-span-1 w-full h-11 sm:h-9 rounded-xl sm:rounded-md font-bold text-xs shadow-sm"
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            {loading ? "Generating..." : "Generate Sheet"}
+            <Download className="mr-2 h-4 w-4" />
+            Generate Sheet
           </Button>
         </div>
       </CardContent>

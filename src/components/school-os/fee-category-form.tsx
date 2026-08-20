@@ -49,17 +49,17 @@ export function FeeCategoryForm({ onSubmit, category }: FeeCategoryFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3.5 pt-1">
         <FormField
           control={form.control}
           name="name"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Category Name</FormLabel>
+            <FormItem className="space-y-1.5">
+              <FormLabel className="text-xs font-bold text-slate-700">Category Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Tuition Fee" {...field} />
+                <Input placeholder="e.g. Tuition Fee" className="h-11 text-xs font-bold text-slate-900 border-slate-200 focus:border-indigo-500 rounded-xl bg-white" {...field} />
               </FormControl>
-              <FormMessage />
+              <FormMessage className="text-[10px]" />
             </FormItem>
           )}
         />
@@ -67,12 +67,12 @@ export function FeeCategoryForm({ onSubmit, category }: FeeCategoryFormProps) {
           control={form.control}
           name="description"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
+            <FormItem className="space-y-1.5">
+              <FormLabel className="text-xs font-bold text-slate-700">Description</FormLabel>
               <FormControl>
-                <Textarea placeholder="A short description of the fee category." {...field} />
+                <Textarea placeholder="A short description of the fee category." className="text-xs font-medium text-slate-900 border-slate-200 focus:border-indigo-500 rounded-xl bg-white min-h-[80px]" {...field} />
               </FormControl>
-              <FormMessage />
+              <FormMessage className="text-[10px]" />
             </FormItem>
           )}
         />
@@ -80,10 +80,10 @@ export function FeeCategoryForm({ onSubmit, category }: FeeCategoryFormProps) {
           control={form.control}
           name="allowInstallments"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+            <FormItem className="flex flex-row items-center justify-between rounded-xl border border-slate-200/90 p-3 shadow-2xs bg-slate-50/50 space-y-0">
               <div className="space-y-0.5">
-                <FormLabel>Allow Installments</FormLabel>
-                <FormDescription>
+                <FormLabel className="text-xs font-bold text-slate-800">Allow Installments</FormLabel>
+                <FormDescription className="text-[11px] font-medium text-slate-400">
                   Can this fee be paid in installments?
                 </FormDescription>
               </div>
@@ -96,7 +96,7 @@ export function FeeCategoryForm({ onSubmit, category }: FeeCategoryFormProps) {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" loading={form.formState.isSubmitting}>
+        <Button type="submit" className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 mt-2" loading={form.formState.isSubmitting}>
           {category ? "Update Category" : "Create Category"}
         </Button>
       </form>

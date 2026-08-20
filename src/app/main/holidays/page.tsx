@@ -12,7 +12,8 @@ import {
   RefreshCcw,
   Check,
   X,
-  MoreHorizontal
+  MoreHorizontal,
+  Loader2
 } from "lucide-react";
 
 import {
@@ -205,8 +206,114 @@ export default function HolidaysPage() {
   if (loading) return <PageSkeleton rows={10} />;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <Card>
+    <div className="space-y-4 animate-in fade-in duration-500 pb-6">
+      {/* ── Mobile Layout (< md) ── */}
+      <div className="block md:hidden space-y-4">
+        {/* Header */}
+        <div className="space-y-1 hidden">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+            Academic Holidays
+          </h1>
+          <p className="text-xs font-medium text-slate-500">
+            Manage national, state, and school holidays
+          </p>
+        </div>
+
+        {/* Add Holiday Button */}
+        <Button
+          onClick={handleOpenAdd}
+          className="w-full h-11 font-bold rounded-xl shadow-sm text-xs justify-center flex items-center gap-2 active:scale-95 transition-all"
+        >
+          <PlusCircle className="h-4 w-4" />
+          Add Holiday
+        </Button>
+
+        {/* Content Area */}
+        {loading ? (
+          <PageSkeleton rows={3} />
+        ) : filteredHolidays.length === 0 ? (
+          <Card className="border border-slate-100 shadow-sm rounded-2xl bg-white p-8 text-center flex flex-col items-center justify-center gap-3">
+            <div className="h-12 w-12 rounded-2xl bg-slate-100/80 text-slate-400 flex items-center justify-center">
+              <Globe className="h-6 w-6 text-slate-400" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-slate-700">No holidays found.</p>
+              <p className="text-xs text-slate-400">Add custom or school holidays to get started.</p>
+            </div>
+          </Card>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {filteredHolidays.map((h, idx) => (
+              <div
+                key={`${h.id}-${idx}`}
+                className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
+              >
+                <div className="flex justify-between items-start gap-3">
+                  <div className="flex gap-3 items-center">
+                    <div className="flex flex-col items-center justify-center bg-slate-100 rounded-2xl w-13 h-13 border border-slate-200/60 shrink-0 p-2">
+                      <span className="text-sm font-black text-slate-900 leading-none">{format(new Date(h.date), "dd")}</span>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">{format(new Date(h.date), "MMM")}</span>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm text-slate-900 leading-snug">{h.name}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge
+                          variant="outline"
+                          className={`
+                            rounded-md px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider
+                            ${h.category.toLowerCase() === 'national' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : ''}
+                            ${h.category.toLowerCase() === 'maharashtra' ? 'bg-orange-50 text-orange-700 border-orange-100' : ''}
+                            ${h.category.toLowerCase() === 'karnataka' ? 'bg-sky-50 text-sky-700 border-sky-100' : ''}
+                            ${h.category.toLowerCase() === 'school holiday' ? 'bg-rose-50 text-rose-700 border-rose-100' : ''}
+                          `}
+                        >
+                          {h.category}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  {h.source !== 'Google' && (
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(h)}>Edit Holiday</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(h)}>Delete Holiday</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )}
+                </div>
+
+                {h.description && (
+                  <p className="text-xs font-medium text-slate-600 bg-slate-50 border border-slate-100 p-2.5 rounded-xl line-clamp-2">
+                    {h.description}
+                  </p>
+                )}
+
+                <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs text-slate-500 font-medium">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    {h.source === 'System' ? 'Annual Recurring' : `Year: ${format(new Date(h.date), "yyyy")}`}
+                  </span>
+                  {(h.source === 'System' || h.is_recurring) && (
+                    <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[9px] font-bold py-0.5 px-2 rounded-lg uppercase">
+                      Recurring
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Desktop Layout (>= md) ── */}
+      <Card className="hidden md:block">
         <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
             <CardTitle>Academic Holidays</CardTitle>
@@ -315,156 +422,97 @@ export default function HolidaysPage() {
               </TableBody>
             </Table>
           </div>
-
-          {/* Mobile View */}
-          <div className="md:hidden flex flex-col gap-3 p-4 bg-muted/10">
-            {filteredHolidays.length === 0 ? (
-                <p className="text-center text-muted-foreground py-10 text-sm">No holidays found.</p>
-            ) : (
-                filteredHolidays.map((h, idx) => (
-                    <div key={`${h.id}-${idx}`} className="bg-background border rounded-xl p-4 shadow-sm relative space-y-3">
-                        <div className="flex justify-between items-start">
-                            <div className="flex gap-3 items-center">
-                                <div className="flex flex-col items-center justify-center bg-muted rounded-xl w-14 h-14 border">
-                                    <span className="text-sm font-black text-slate-900 leading-none">{format(new Date(h.date), "dd")}</span>
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">{format(new Date(h.date), "MMM")}</span>
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-slate-900 leading-tight">{h.name}</h3>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <Badge 
-                                            variant="outline" 
-                                            className={`
-                                                rounded-md px-1.5 py-0 text-[8px] font-bold uppercase tracking-tighter
-                                                ${h.category.toLowerCase() === 'national' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : ''}
-                                                ${h.category.toLowerCase() === 'maharashtra' ? 'bg-orange-50 text-orange-700 border-orange-100' : ''}
-                                                ${h.category.toLowerCase() === 'karnataka' ? 'bg-sky-50 text-sky-700 border-sky-100' : ''}
-                                                ${h.category.toLowerCase() === 'school holiday' ? 'bg-rose-50 text-rose-700 border-rose-100' : ''}
-                                            `}
-                                        >
-                                            {h.category}
-                                        </Badge>
-                                    </div>
-                                </div>
-                            </div>
-                            {h.source !== 'Google' && (
-                              <div onClick={(e) => e.stopPropagation()}>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100">
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleEdit(h)}>Edit Holiday</DropdownMenuItem>
-                                    <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(h)}>Delete Holiday</DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            )}
-                        </div>
-                        {h.description && (
-                            <p className="text-xs text-muted-foreground bg-muted/30 p-2 rounded-lg line-clamp-2">
-                                {h.description}
-                            </p>
-                        )}
-                        <div className="flex items-center justify-between pt-1 border-t border-slate-50">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                {h.source === 'System' ? 'Annual Recurring' : `Year: ${format(new Date(h.date), "yyyy")}`}
-                            </span>
-                            {(h.source === 'System' || h.is_recurring) && (
-                                <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 text-[8px] font-black py-0 px-2 rounded-full uppercase">Recurring</Badge>
-                            )}
-                        </div>
-                    </div>
-                ))
-            )}
-          </div>
         </CardContent>
       </Card>
 
       {/* ADD/EDIT MODAL */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="w-[94vw] sm:max-w-[425px] rounded-2xl left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%]">
-          <DialogHeader>
-            <DialogTitle>
+        <DialogContent className="w-[92vw] sm:max-w-lg max-h-[90vh] p-0 border shadow-2xl rounded-2xl flex flex-col overflow-hidden left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%]">
+          <DialogHeader className="p-5 pb-4 sm:p-6 sm:pb-4 bg-slate-50/50 border-b shrink-0">
+            <DialogTitle className="text-lg sm:text-xl font-bold text-slate-900">
               {editingId ? 'Edit Holiday' : 'Add Custom Holiday'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-0.5">
               Setup specific dates for school observance.
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-            <div className="space-y-2">
-              <Label>Holiday Name</Label>
-              <Input 
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                placeholder="e.g. Founder's Day"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Date</Label>
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 sm:space-y-5">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700">Holiday Name</Label>
                 <Input 
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  placeholder="e.g. Founder's Day"
                   required
+                  className="h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Category</Label>
-                <Select 
-                  value={formData.category} 
-                  onValueChange={(val) => setFormData({...formData, category: val})}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Maharashtra">Maharashtra</SelectItem>
-                    <SelectItem value="Karnataka">Karnataka</SelectItem>
-                    <SelectItem value="School Holiday">School Holiday</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
 
-            <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
-              <div className="space-y-0.5">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <RefreshCcw className="h-3.5 w-3.5 text-muted-foreground" />
-                  Recurring Every Year
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700">Date</Label>
+                  <Input 
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    required
+                    className="h-11 px-3 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700">Category</Label>
+                  <Select 
+                    value={formData.category} 
+                    onValueChange={(val) => setFormData({...formData, category: val})}
+                  >
+                    <SelectTrigger className="h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm truncate">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Maharashtra">Maharashtra</SelectItem>
+                      <SelectItem value="Karnataka">Karnataka</SelectItem>
+                      <SelectItem value="School Holiday">School Holiday</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3.5 border border-slate-200/80 rounded-xl bg-slate-50/70 shadow-sm">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    <RefreshCcw className="h-3.5 w-3.5 text-slate-500" />
+                    Recurring Every Year
+                  </Label>
+                  <p className="text-[10.5px] text-slate-500 font-medium">Automatically repeat on this day/month</p>
+                </div>
+                <Switch 
+                  checked={formData.is_recurring}
+                  onCheckedChange={(checked) => setFormData({...formData, is_recurring: checked})}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700">
+                  Description <span className="font-normal text-slate-400">(Optional)</span>
                 </Label>
-                <p className="text-[10px] text-muted-foreground">Automatically repeat on this day/month</p>
+                <Textarea 
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  placeholder="Short note about the holiday..."
+                  className="min-h-[90px] text-xs font-medium rounded-xl bg-white border-slate-200 shadow-sm resize-none"
+                />
               </div>
-              <Switch 
-                checked={formData.is_recurring}
-                onCheckedChange={(checked) => setFormData({...formData, is_recurring: checked})}
-              />
             </div>
 
-            <div className="space-y-2">
-              <Label>Description (Optional)</Label>
-              <Textarea 
-                value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-                placeholder="Short note about the holiday..."
-                className="min-h-[100px] resize-none"
-              />
-            </div>
-
-            <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
+            <DialogFooter className="p-4 sm:p-6 pt-3 bg-slate-50/50 border-t flex-col-reverse sm:flex-row gap-2 shrink-0">
+              <Button type="button" variant="outline" onClick={() => setModalOpen(false)} className="w-full sm:w-auto h-11 rounded-xl text-xs font-bold border-slate-200">
                 Cancel
               </Button>
-              <Button type="submit" disabled={saving}>
-                {saving ? "Saving..." : (editingId ? 'Update Holiday' : 'Save Holiday')}
+              <Button type="submit" disabled={saving} className="w-full sm:w-auto h-11 rounded-xl text-xs font-bold shadow-sm">
+                {editingId ? 'Update Holiday' : 'Save Holiday'}
               </Button>
             </DialogFooter>
           </form>

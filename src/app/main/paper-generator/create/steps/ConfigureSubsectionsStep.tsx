@@ -366,32 +366,36 @@ export default function ConfigureSubsectionsStep({
   const totalAssignedMarks = getTotalAssignedMarks(paper);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300">
+    <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300">
       {/* Header & Section Marks Summary */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-8 space-y-4">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-8 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-black bg-[#3335e3]/10 text-[#3335e3] px-3 py-1 rounded-full uppercase tracking-wider">
-                Section {sectionLetter}
-              </span>
-              <h1 className="text-xl font-black text-slate-900 tracking-tight">
+            <div className="space-y-1.5">
+              <div>
+                <span className="inline-block text-[10px] sm:text-xs font-black bg-[#3335e3]/10 text-[#3335e3] px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full uppercase tracking-wider whitespace-nowrap shrink-0">
+                  Section {sectionLetter}
+                </span>
+              </div>
+              <h1 className="text-base sm:text-xl font-black text-slate-900 tracking-tight leading-normal">
                 Configure Subsections for Section {sectionLetter}
               </h1>
             </div>
-            <p className="text-sm font-semibold text-slate-600 mt-1">
-              {sectionTitle}
-            </p>
+            {sectionTitle && (
+              <p className="text-xs sm:text-sm font-semibold text-slate-600 mt-1">
+                {sectionTitle}
+              </p>
+            )}
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-center">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Section Marks</p>
-              <p className="text-lg font-black text-[#3335e3]">{sectionTotalMarks} Marks</p>
+          <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:gap-3">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 sm:px-4 sm:py-2.5 text-center">
+              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Section Marks</p>
+              <p className="text-base sm:text-lg font-black text-[#3335e3]">{sectionTotalMarks} Marks</p>
             </div>
-            <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-center">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Paper Target</p>
-              <p className="text-lg font-black text-slate-800">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 sm:px-4 sm:py-2.5 text-center">
+              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Paper Target</p>
+              <p className="text-base sm:text-lg font-black text-slate-800">
                 {totalAssignedMarks} / {paper.total_marks}
               </p>
             </div>
@@ -399,255 +403,269 @@ export default function ConfigureSubsectionsStep({
         </div>
 
         {/* Section Progress & Info */}
-        <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
-          <span>Configuring Section {activeSectionIdx + 1} of {paper.sections.length}</span>
-          <span className="flex items-center gap-1.5 text-emerald-600">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 text-[11px] sm:text-xs font-semibold text-slate-500">
+          <span className="whitespace-nowrap">Configuring Section {activeSectionIdx + 1} of {paper.sections.length}</span>
+          <span className="flex items-center gap-1.5 text-emerald-600 whitespace-nowrap">
             <CheckCircle2 size={13} /> {subsectionGroups.length} Subsection Group{subsectionGroups.length !== 1 ? "s" : ""}
           </span>
         </div>
       </div>
 
       {/* Subsections List (Question Type Groups) */}
-      <div className="space-y-6">
-        {subsectionGroups.map((group, groupIdx) => {
-          const isCollapsed = collapsedSubsections[group.id] ?? true;
-          const groupMarks = group.questions.reduce((sum, q) => sum + (q.marks || 0), 0);
-          const typeInfo = BOARD_QUESTION_TYPES.find((t) => t.key === group.type);
-          // Check for attempt_any from question_data
-          const attemptAny = group.questions[0]?.question_data?.attempt_any;
-          const effectiveMarks = attemptAny && attemptAny > 0
-            ? attemptAny * (group.questions[0]?.marks || 1)
-            : groupMarks;
+      <div className="space-y-4 sm:space-y-6">
+        {subsectionGroups.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-8 sm:p-12 flex flex-col items-center justify-center text-center shadow-2xs">
+            <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-3 text-slate-400">
+              <Layers className="h-6 w-6 sm:h-7 sm:w-7" />
+            </div>
+            <h3 className="text-xs sm:text-sm font-black text-slate-700 mb-1">No Subsections Configured</h3>
+            <p className="text-[11px] sm:text-xs text-slate-400 font-medium max-w-sm">
+              Configure question types in Step 3 to generate subsection groups for this section.
+            </p>
+          </div>
+        ) : (
+          <>
+            {subsectionGroups.map((group, groupIdx) => {
+              const isCollapsed = collapsedSubsections[group.id] ?? true;
+              const groupMarks = group.questions.reduce((sum, q) => sum + (q.marks || 0), 0);
+              const typeInfo = BOARD_QUESTION_TYPES.find((t) => t.key === group.type);
+              // Check for attempt_any from question_data
+              const attemptAny = group.questions[0]?.question_data?.attempt_any;
+              const effectiveMarks = attemptAny && attemptAny > 0
+                ? attemptAny * (group.questions[0]?.marks || 1)
+                : groupMarks;
 
-          return (
-            <div
-              key={group.id || groupIdx}
-              className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden transition-all"
-            >
-              {/* Subsection Header Bar */}
-              <div className="p-4 sm:p-5 bg-slate-50/80 border-b border-slate-200/60 space-y-3">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleCollapse(group.id)}
-                      className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
-                    >
-                      {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
-                    </button>
-                    <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
-                      <div className="relative flex-1 max-w-sm">
-                        <EditableSubsectionTitle
-                          value={group.label}
-                          onChange={(newLabel) => {
-                            const nextGroups = [...subsectionGroups];
-                            nextGroups[groupIdx] = {
-                              ...group,
-                              label: newLabel,
-                            };
-                            updateSectionQuestions(nextGroups);
-                          }}
-                        />
+              return (
+                <div
+                  key={group.id || groupIdx}
+                  className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden transition-all"
+                >
+                  {/* Subsection Header Bar */}
+                  <div className="p-3.5 sm:p-5 bg-slate-50/80 border-b border-slate-200/60 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleCollapse(group.id)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors shrink-0"
+                        >
+                          {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+                        </button>
+                        <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                          <div className="relative flex-1 min-w-[160px] max-w-sm">
+                            <EditableSubsectionTitle
+                              value={group.label}
+                              onChange={(newLabel) => {
+                                const nextGroups = [...subsectionGroups];
+                                nextGroups[groupIdx] = {
+                                  ...group,
+                                  label: newLabel,
+                                };
+                                updateSectionQuestions(nextGroups);
+                              }}
+                            />
+                          </div>
+                          <span className="text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider shrink-0">
+                            {typeInfo?.emoji || "✏️"} {group.type}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider shrink-0">
-                        {typeInfo?.emoji || "✏️"} {group.type}
-                      </span>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
+                        {/* Attempt Any Controls */}
+                        {(() => {
+                          const validOptions = getValidAttemptAnyOptions(groupMarks, group.questions.length);
+                          const hasAttemptAny = attemptAny && attemptAny > 0;
+                          const marksPerQuestion = hasAttemptAny && attemptAny ? groupMarks / attemptAny : 0;
+
+                          return (
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleAttemptAny(groupIdx, !hasAttemptAny)}
+                                disabled={!hasAttemptAny && validOptions.length === 0}
+                                className={`p-1 rounded-lg transition-colors ${
+                                  hasAttemptAny
+                                    ? "text-[#3335e3] hover:text-[#3335e3]/80"
+                                    : validOptions.length === 0
+                                      ? "text-slate-300 cursor-not-allowed"
+                                      : "text-slate-400 hover:text-slate-600"
+                                }`}
+                                title={hasAttemptAny ? "Disable attempt-any choice" : group.questions.length <= 1 ? "Add at least 2 questions to enable choice" : "Enable attempt-any choice"}
+                              >
+                                {hasAttemptAny ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
+                              </button>
+                              {hasAttemptAny ? (
+                                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                                  <span className="text-slate-400">Any</span>
+                                  <select
+                                    value={attemptAny}
+                                    onChange={(e) => handleSetAttemptAny(groupIdx, parseInt(e.target.value))}
+                                    className="h-7 px-2 text-xs font-black text-center border border-indigo-200 rounded-lg bg-indigo-50 focus:outline-none focus:ring-1 focus:ring-[#3335e3] appearance-none cursor-pointer"
+                                  >
+                                    {validOptions.map((n) => (
+                                      <option key={n} value={n}>
+                                        {n}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <span className="text-slate-400">of {group.questions.length}</span>
+                                  <span className="text-[10px] font-bold text-slate-400 ml-1 hidden sm:inline">
+                                    ({group.questions[0]?.marks || 1}M each)
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-[10px] font-medium text-slate-400">
+                                  {group.questions.length <= 1
+                                    ? "Need 2+ questions"
+                                    : "Attempt Any"
+                                  }
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        <span className={`text-xs font-black px-3 py-1 rounded-full shadow-2xs ${
+                          attemptAny && attemptAny > 0
+                            ? "text-amber-700 bg-amber-50 border border-amber-200"
+                            : "text-slate-700 bg-white border border-slate-200"
+                        }`}>
+                          {effectiveMarks} Marks
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0">
-                    {/* Attempt Any Controls */}
-                    {(() => {
-                      const validOptions = getValidAttemptAnyOptions(groupMarks, group.questions.length);
-                      const hasAttemptAny = attemptAny && attemptAny > 0;
-                      const marksPerQuestion = hasAttemptAny && attemptAny ? groupMarks / attemptAny : 0;
+                  {/* Subsection Body (Questions List) */}
+                  {!isCollapsed && (
+                    <div className="p-3.5 sm:p-6 space-y-4 sm:space-y-6">
+                      {/* Uneven Mark Distribution / Question Count Alert */}
+                      {(() => {
+                        const attemptAny = group.questions[0]?.question_data?.attempt_any;
+                        const currentQMarks = group.questions[0]?.marks || 1;
+                        const targetGroupMarks = group.target_marks || (attemptAny && attemptAny > 0 ? attemptAny * currentQMarks : group.questions.reduce((sum, q) => sum + (q.marks || 0), 0));
+                        const divisor = (attemptAny && attemptAny > 0) ? attemptAny : group.questions.length;
+                        const qCount = group.questions.length;
+                        const isUneven = divisor > 0 && targetGroupMarks > 0 && (targetGroupMarks % divisor !== 0);
+                        const sharePerQ = divisor > 0 ? (targetGroupMarks / divisor) : 0;
 
-                      return (
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleAttemptAny(groupIdx, !hasAttemptAny)}
-                            disabled={!hasAttemptAny && validOptions.length === 0}
-                            className={`p-1 rounded-lg transition-colors ${
-                              hasAttemptAny
-                                ? "text-[#3335e3] hover:text-[#3335e3]/80"
-                                : validOptions.length === 0
-                                  ? "text-slate-300 cursor-not-allowed"
-                                  : "text-slate-400 hover:text-slate-600"
-                            }`}
-                            title={hasAttemptAny ? "Disable attempt-any choice" : group.questions.length <= 1 ? "Add at least 2 questions to enable choice" : "Enable attempt-any choice"}
-                          >
-                            {hasAttemptAny ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
-                          </button>
-                          {hasAttemptAny ? (
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
-                              <span className="text-slate-400">Any</span>
-                              <select
-                                value={attemptAny}
-                                onChange={(e) => handleSetAttemptAny(groupIdx, parseInt(e.target.value))}
-                                className="h-7 px-2 text-xs font-black text-center border border-indigo-200 rounded-lg bg-indigo-50 focus:outline-none focus:ring-1 focus:ring-[#3335e3] appearance-none cursor-pointer"
+                        if (!isUneven) return null;
+
+                        return (
+                          <div className="bg-amber-50 border-2 border-amber-300/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-3 animate-in fade-in duration-200">
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 bg-amber-100 rounded-xl text-amber-700 shrink-0 mt-0.5">
+                                <AlertCircle className="h-5 w-5" />
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <h4 className="text-xs sm:text-sm font-black text-amber-950 flex items-center gap-2">
+                                  Uneven Mark Distribution Alert
+                                </h4>
+                                <p className="text-xs font-semibold text-amber-900 leading-relaxed">
+                                  The allocated budget of <strong className="font-black underline">{targetGroupMarks} Marks</strong> cannot be evenly split across <strong className="font-black">{attemptAny && attemptAny > 0 ? `${attemptAny} attempted` : `${qCount}`} questions</strong> ({sharePerQ.toFixed(2)} Marks each).
+                                </p>
+                                <p className="text-xs text-amber-800 font-medium">
+                                  Please delete a question to restore equal mark distribution (e.g. {Math.max(1, divisor - 1)} question{divisor - 1 !== 1 ? "s" : ""} = {(targetGroupMarks / Math.max(1, divisor - 1)).toFixed(0)}M each).
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="pt-2 border-t border-amber-200/80 flex items-center justify-start">
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteQuestion(groupIdx, qCount - 1)}
+                                className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-2xs transition-all cursor-pointer"
                               >
-                                {validOptions.map((n) => (
-                                  <option key={n} value={n}>
-                                    {n}
-                                  </option>
-                                ))}
-                              </select>
-                              <span className="text-slate-400">of {group.questions.length}</span>
-                              <span className="text-[10px] font-bold text-slate-400 ml-1">
-                                ({group.questions[0]?.marks || 1}M each)
-                              </span>
+                                <Trash2 className="h-3.5 w-3.5" /> Delete Question (Q.{groupIdx + 1}.{qCount})
+                              </button>
                             </div>
-                          ) : (
-                            <span className="text-[10px] font-medium text-slate-400">
-                              {group.questions.length <= 1
-                                ? "Need 2+ questions"
-                                : "Attempt Any"
-                              }
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })()}
-
-                    <span className={`text-xs font-black px-3 py-1 rounded-full shadow-2xs ${
-                      attemptAny && attemptAny > 0
-                        ? "text-amber-700 bg-amber-50 border border-amber-200"
-                        : "text-slate-700 bg-white border border-slate-200"
-                    }`}>
-                      {effectiveMarks} Marks
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Subsection Body (Questions List) */}
-              {!isCollapsed && (
-                <div className="p-6 space-y-6">
-                  {/* Uneven Mark Distribution / Question Count Alert */}
-                  {(() => {
-                    const attemptAny = group.questions[0]?.question_data?.attempt_any;
-                    const currentQMarks = group.questions[0]?.marks || 1;
-                    const targetGroupMarks = group.target_marks || (attemptAny && attemptAny > 0 ? attemptAny * currentQMarks : group.questions.reduce((sum, q) => sum + (q.marks || 0), 0));
-                    const divisor = (attemptAny && attemptAny > 0) ? attemptAny : group.questions.length;
-                    const qCount = group.questions.length;
-                    const isUneven = divisor > 0 && targetGroupMarks > 0 && (targetGroupMarks % divisor !== 0);
-                    const sharePerQ = divisor > 0 ? (targetGroupMarks / divisor) : 0;
-
-                    if (!isUneven) return null;
-
-                    return (
-                      <div className="bg-amber-50 border-2 border-amber-300/80 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3 animate-in fade-in duration-200">
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 bg-amber-100 rounded-xl text-amber-700 shrink-0 mt-0.5">
-                            <AlertCircle className="h-5 w-5" />
                           </div>
-                          <div className="flex-1 space-y-1">
-                            <h4 className="text-sm font-black text-amber-950 flex items-center gap-2">
-                              Uneven Mark Distribution Alert
-                            </h4>
-                            <p className="text-xs font-semibold text-amber-900 leading-relaxed">
-                              The allocated budget of <strong className="font-black underline">{targetGroupMarks} Marks</strong> cannot be evenly split across <strong className="font-black">{attemptAny && attemptAny > 0 ? `${attemptAny} attempted` : `${qCount}`} questions</strong> ({sharePerQ.toFixed(2)} Marks each).
-                            </p>
-                            <p className="text-xs text-amber-800 font-medium">
-                              Please delete a question to restore equal mark distribution (e.g. {Math.max(1, divisor - 1)} question{divisor - 1 !== 1 ? "s" : ""} = {(targetGroupMarks / Math.max(1, divisor - 1)).toFixed(0)}M each).
-                            </p>
-                          </div>
-                        </div>
+                        );
+                      })()}
 
-                        <div className="pt-2 border-t border-amber-200/80 flex items-center justify-start">
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteQuestion(groupIdx, qCount - 1)}
-                            className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer"
+                      {group.questions.map((q, qIdx) => {
+                        const qNumberLabel = `${groupIdx + 1}.${qIdx + 1}`;
+
+                        return (
+                          <div
+                            key={getQuestionKey(q)}
+                            className="bg-slate-50/50 rounded-2xl border border-slate-200/80 p-3.5 sm:p-5 space-y-4 relative hover:border-[#3335e3]/40 transition-all"
                           >
-                            <Trash2 className="h-3.5 w-3.5" /> Delete Question (Q.{groupIdx + 1}.{qCount})
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })()}
+                            {/* Question Sub-Header */}
+                            <div className="flex items-center justify-between gap-4 border-b border-slate-200/60 pb-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-black bg-[#3335e3] text-white px-2.5 py-0.5 rounded-lg shadow-2xs">
+                                  Q.{qNumberLabel}
+                                </span>
+                                <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wide">
+                                  {typeInfo?.label || group.type}
+                                </span>
+                              </div>
 
-                  {group.questions.map((q, qIdx) => {
-                    const qNumberLabel = `${groupIdx + 1}.${qIdx + 1}`;
-
-                    return (
-                      <div
-                        key={getQuestionKey(q)}
-                        className="bg-slate-50/50 rounded-2xl border border-slate-200/80 p-5 space-y-4 relative hover:border-[#3335e3]/40 transition-all"
-                      >
-                        {/* Question Sub-Header */}
-                        <div className="flex items-center justify-between gap-4 border-b border-slate-200/60 pb-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-black bg-[#3335e3] text-white px-2.5 py-0.5 rounded-lg shadow-2xs">
-                              Q.{qNumberLabel}
-                            </span>
-                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                              {typeInfo?.label || group.type}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2 py-1">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase">Marks:</span>
-                              <input
-                                type="number"
-                                min={1}
-                                max={50}
-                                value={q.marks || ""}
-                                onKeyDown={(e) => {
-                                  if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-                                    e.preventDefault();
-                                  }
-                                }}
-                                onWheel={(e) => e.currentTarget.blur()}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  if (val === "") {
-                                    handleUpdateQuestion(groupIdx, qIdx, { marks: 0 });
-                                  } else {
-                                    const parsed = parseInt(val, 10);
-                                    if (!isNaN(parsed)) {
-                                      handleUpdateQuestion(groupIdx, qIdx, { marks: parsed });
-                                    }
-                                  }
-                                }}
-                                className="w-12 h-6 text-xs font-black text-center focus:outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                              />
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2 py-1">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase">Marks:</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={50}
+                                    value={q.marks || ""}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                                        e.preventDefault();
+                                      }
+                                    }}
+                                    onWheel={(e) => e.currentTarget.blur()}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      if (val === "") {
+                                        handleUpdateQuestion(groupIdx, qIdx, { marks: 0 });
+                                      } else {
+                                        const parsed = parseInt(val, 10);
+                                        if (!isNaN(parsed)) {
+                                          handleUpdateQuestion(groupIdx, qIdx, { marks: parsed });
+                                        }
+                                      }
+                                    }}
+                                    className="w-12 h-6 text-xs font-black text-center focus:outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteQuestion(groupIdx, qIdx)}
+                                  className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-slate-200/50 transition-colors"
+                                  title="Delete Question"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </div>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteQuestion(groupIdx, qIdx)}
-                              className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-slate-200/50 transition-colors"
-                              title="Delete Question"
-                            >
-                              <Trash2 size={15} />
-                            </button>
+
+                            {/* Reused Question Form Component */}
+                            <QuestionForm
+                              q={q}
+                              onChange={(updates) => handleUpdateQuestion(groupIdx, qIdx, updates)}
+                            />
                           </div>
-                        </div>
+                        );
+                      })}
 
-                        {/* Reused Question Form Component */}
-                        <QuestionForm
-                          q={q}
-                          onChange={(updates) => handleUpdateQuestion(groupIdx, qIdx, updates)}
-                        />
-                      </div>
-                    );
-                  })}
-
-                  {/* Add Question Button within Subsection */}
-                  <button
-                    type="button"
-                    onClick={() => handleAddQuestionToSubsection(groupIdx)}
-                    className="w-full flex items-center justify-center gap-2 h-10 border border-dashed border-slate-300 hover:border-[#3335e3] hover:text-[#3335e3] rounded-xl text-xs font-bold text-slate-700 bg-white transition-all shadow-2xs"
-                  >
-                    <Plus size={15} /> Add Question to Subsection {groupIdx + 1}
-                  </button>
+                      {/* Add Question Button within Subsection */}
+                      <button
+                        type="button"
+                        onClick={() => handleAddQuestionToSubsection(groupIdx)}
+                        className="w-full flex items-center justify-center gap-2 h-11 sm:h-10 border border-dashed border-slate-300 hover:border-[#3335e3] hover:text-[#3335e3] rounded-xl text-xs font-bold text-slate-700 bg-white transition-all shadow-2xs"
+                      >
+                        <Plus size={15} /> Add Question to Subsection {groupIdx + 1}
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          );
-        })}
+              );
+            })}
+          </>
+        )}
       </div>
     </div>
   );

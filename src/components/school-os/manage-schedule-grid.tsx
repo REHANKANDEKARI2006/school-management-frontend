@@ -14,9 +14,10 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Trash2, PlusCircle, Clock, Pencil, Check, X } from "lucide-react";
+import { Trash2, PlusCircle, Clock, Pencil, Check, X, CalendarDays, ChevronDown } from "lucide-react";
 import axios from "@/lib/axios";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface ManageScheduleGridProps {
     onSave: (classId: number, scheduleArray: any[]) => Promise<void>;
@@ -65,6 +66,8 @@ export function ManageScheduleGrid({ onSave, existingSchedules = [] }: ManageSch
     const [staffList, setStaffList] = React.useState<any[]>([]);
 
     const [selectedClass, setSelectedClass] = React.useState<string>("");
+    const [selectedDayTab, setSelectedDayTab] = React.useState<number>(1);
+    const [expandedPeriod, setExpandedPeriod] = React.useState<number | null>(null);
     const [gridData, setGridData] = React.useState<Record<string, any>>({});
     const [isSaving, setIsSaving] = React.useState(false);
 
@@ -349,16 +352,41 @@ export function ManageScheduleGrid({ onSave, existingSchedules = [] }: ManageSch
 
     // ── Render ────────────────────────────────────────────────────────────────
     return (
-        <Card className="border shadow-none">
-            <CardHeader className="bg-muted/30">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                        <CardTitle className="text-xl">Weekly Schedule Builder</CardTitle>
-                        <CardDescription>Select a class to design their timetable. Click the ✏️ icon on any period to adjust its time.</CardDescription>
+        <Card className="border-none shadow-sm overflow-hidden bg-white dark:bg-slate-900 rounded-2xl">
+            <CardHeader className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3.5">
+                    <div className="space-y-0.5">
+                        <CardTitle className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Weekly Schedule Builder</CardTitle>
+                        <CardDescription className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Select a class to design their timetable. Click the ✏️ icon on any period to adjust its time.</CardDescription>
                     </div>
-                    <div className="flex items-center gap-3 w-full sm:w-auto">
+
+                    {/* Mobile View Controls (< sm: side-by-side 2-column grid) */}
+                    <div className="grid sm:hidden grid-cols-2 gap-2.5 w-full mt-1">
                         <Select value={selectedClass} onValueChange={setSelectedClass}>
-                            <SelectTrigger className="w-full sm:w-[250px] bg-background">
+                            <SelectTrigger className="w-full h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm">
+                                <SelectValue placeholder="Select a Class" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {classes.map(c => (
+                                    <SelectItem key={c.class_id} value={c.class_id.toString()}>
+                                        {c.class_name}{c.section_name ? ` - ${c.section_name}` : ''}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Button 
+                            className="w-full h-11 font-bold rounded-xl shadow-sm text-xs"
+                            onClick={handleSave} 
+                            disabled={!selectedClass || isSaving}
+                        >
+                            {isSaving ? "Saving..." : "Save Schedule"}
+                        </Button>
+                    </div>
+
+                    {/* Desktop View Controls (>= sm: side-by-side flex row) */}
+                    <div className="hidden sm:flex flex-row items-center gap-3 w-auto">
+                        <Select value={selectedClass} onValueChange={setSelectedClass}>
+                            <SelectTrigger className="w-[250px] bg-background">
                                 <SelectValue placeholder="Select a Class" />
                             </SelectTrigger>
                             <SelectContent>
@@ -377,8 +405,9 @@ export function ManageScheduleGrid({ onSave, existingSchedules = [] }: ManageSch
             </CardHeader>
 
             {selectedClass ? (
-                <CardContent className="p-0 overflow-x-auto">
-                    <div className="min-w-[1000px] border-t">
+                <CardContent className="p-0 overflow-x-auto sm:overflow-visible">
+                    {/* Desktop View Table (>= sm: 100% untouched) */}
+                    <div className="hidden sm:block min-w-[1000px] border-t">
 
                         {/* Header Row */}
                         <div className="flex bg-muted/20 border-b font-medium text-sm text-muted-foreground p-3">
@@ -656,10 +685,296 @@ export function ManageScheduleGrid({ onSave, existingSchedules = [] }: ManageSch
                         </div>
 
                     </div>
+
+                    {/* Mobile View Day-Tab Selector & Single-Day Period List (< sm) */}
+                    <div className="flex sm:hidden flex-col border-t border-slate-100">
+                        {/* Day Selector Strip */}
+                        <div className="grid grid-cols-6 gap-1 p-2 bg-slate-50/50 border-b border-slate-100 select-none">
+                            {DAYS.map((day) => {
+                                const isActive = selectedDayTab === day.id;
+                                return (
+                                    <button
+                                        key={day.id}
+                                        type="button"
+                                        onClick={() => setSelectedDayTab(day.id)}
+                                        className={cn(
+                                            "w-full h-8 px-1 rounded-lg text-xs font-semibold transition-all flex items-center justify-center",
+                                            isActive
+                                                ? "bg-white text-slate-900 shadow-sm font-bold border border-slate-200/80"
+                                                : "text-slate-500 hover:text-slate-800 hover:bg-white/50"
+                                        )}
+                                    >
+                                        {day.name.substring(0, 3)}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Period List Cards for Selected Day (Collapsible Accordion) */}
+                        <div className="flex flex-col gap-2.5 p-3 bg-slate-50/20">
+                            {periodTimes.map((pt) => {
+                                const isExpanded = expandedPeriod === pt.period;
+                                const key = `${selectedDayTab}-${pt.period}`;
+                                const cell = gridData[key] || { subject_id: "", staff_id: "", is_break: false };
+                                const activeStart = cell.start_time || pt.start;
+                                const activeEnd = cell.end_time || pt.end;
+                                const isEditingCell = editingTimePeriod === pt.period && editingTargetDay === selectedDayTab;
+                                const isEditingAll = editingTimePeriod === pt.period && editingTargetDay === "all";
+
+                                const subjectObj = subjects.find(s => s.subject_id?.toString() === cell.subject_id?.toString());
+                                const staffObj = staffList.find(s => s.staff_id?.toString() === cell.staff_id?.toString());
+
+                                const subjectName = subjectObj ? subjectObj.subject_name : "";
+                                const staffName = staffObj ? `${staffObj.staff_first_name || ""} ${staffObj.staff_last_name || ""}`.trim() : "";
+
+                                let summaryText = "Not set";
+                                if (cell.is_break) {
+                                    summaryText = "Break";
+                                } else if (subjectName && staffName) {
+                                    summaryText = `${subjectName} · ${staffName}`;
+                                } else if (subjectName) {
+                                    summaryText = subjectName;
+                                } else if (staffName) {
+                                    summaryText = staffName;
+                                }
+
+                                return (
+                                    <div
+                                        key={pt.period}
+                                        className={cn(
+                                            "bg-white rounded-2xl border transition-all overflow-hidden select-none",
+                                            isExpanded
+                                                ? "border-primary/40 shadow-md ring-1 ring-primary/20"
+                                                : "border-slate-100 shadow-sm hover:border-slate-200"
+                                        )}
+                                    >
+                                        {/* Collapsed Header Bar (Clickable) */}
+                                        <div
+                                            onClick={() => setExpandedPeriod(isExpanded ? null : pt.period)}
+                                            className="p-3.5 flex items-center justify-between gap-3 cursor-pointer"
+                                        >
+                                            <div className="flex flex-col min-w-0 flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-slate-900 text-sm">Period {pt.period}</span>
+                                                    <span className="text-[11px] text-slate-400 font-semibold">• {to12h(activeStart)} – {to12h(activeEnd)}</span>
+                                                </div>
+                                                <div className="mt-0.5 truncate">
+                                                    {cell.is_break ? (
+                                                        <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 font-bold text-[9px] py-0 px-2">
+                                                            Break
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className={cn("text-xs truncate block", (subjectName || staffName) ? "text-slate-600 font-medium" : "text-slate-400")}>
+                                                            {summaryText}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                {isCustomPeriod(pt.period) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleRemovePeriod(pt.period);
+                                                        }}
+                                                        className="text-red-400 hover:text-red-600 transition-colors p-1"
+                                                        title="Remove period"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
+                                                <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-200", isExpanded && "rotate-180")} />
+                                            </div>
+                                        </div>
+
+                                        {/* Expanded Body Content */}
+                                        {isExpanded && (
+                                            <div className="p-3.5 pt-0 border-t border-slate-100 space-y-3 mt-1">
+                                                {/* Time Adjust Row */}
+                                                <div className="flex items-center justify-between gap-2 pt-2">
+                                                    <span className="text-xs font-semibold text-slate-500">Period Timing</span>
+                                                    <div className="flex items-center gap-1.5 text-xs text-slate-600 font-bold bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">
+                                                        <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                        <span>{to12h(activeStart)} – {to12h(activeEnd)}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => startEditTime(pt, selectedDayTab)}
+                                                            className="ml-1 text-slate-400 hover:text-slate-700 transition-colors"
+                                                            title="Adjust period time"
+                                                        >
+                                                            <Pencil className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Time Editing Box */}
+                                                {(isEditingCell || isEditingAll) && (
+                                                    <div className="space-y-2 bg-slate-50 p-3 rounded-xl border border-primary/20 shadow-sm">
+                                                        <div className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                                                            <span>Edit Time ({isEditingAll ? "All Days" : DAYS.find(d => d.id === selectedDayTab)?.name})</span>
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <div>
+                                                                <Label className="text-[10px] text-slate-500 font-bold">Start Time</Label>
+                                                                <Input
+                                                                    type="time"
+                                                                    value={editStart}
+                                                                    onChange={e => setEditStart(e.target.value)}
+                                                                    className="h-9 text-xs rounded-lg bg-white"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <Label className="text-[10px] text-slate-500 font-bold">End Time</Label>
+                                                                <Input
+                                                                    type="time"
+                                                                    value={editEnd}
+                                                                    onChange={e => setEditEnd(e.target.value)}
+                                                                    className="h-9 text-xs rounded-lg bg-white"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-2 pt-1 justify-end">
+                                                            <Button
+                                                                type="button"
+                                                                size="sm"
+                                                                onClick={() => confirmEditTime(pt.period)}
+                                                                className="h-8 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
+                                                            >
+                                                                <Check className="w-3.5 h-3.5 mr-1" /> Save Time
+                                                            </Button>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={cancelEditTime}
+                                                                className="h-8 text-xs font-semibold rounded-lg"
+                                                            >
+                                                                <X className="w-3.5 h-3.5 mr-1" /> Cancel
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Break Toggle */}
+                                                <div className="flex items-center justify-between py-1 border-t border-slate-100 pt-2">
+                                                    <Label htmlFor={`mobile-break-${selectedDayTab}-${pt.period}`} className="text-xs font-semibold text-slate-700 cursor-pointer">
+                                                        Set row as Break
+                                                    </Label>
+                                                    <Switch
+                                                        id={`mobile-break-${selectedDayTab}-${pt.period}`}
+                                                        checked={cell.is_break}
+                                                        onCheckedChange={(c) => markRowAsBreak(pt.period, c)}
+                                                    />
+                                                </div>
+
+                                                {/* Dropdowns or Break Badge */}
+                                                {cell.is_break ? (
+                                                    <div className="w-full py-3 flex items-center justify-center bg-orange-50/50 rounded-xl border border-orange-100">
+                                                        <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-200 font-bold text-xs py-0.5 px-2.5">
+                                                            LUNCH / BREAK
+                                                        </Badge>
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-2.5 pt-1">
+                                                        <Select
+                                                            value={cell.subject_id}
+                                                            onValueChange={(val) => handleCellChange(selectedDayTab, pt.period, "subject_id", val)}
+                                                        >
+                                                            <SelectTrigger className="w-full h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm">
+                                                                <SelectValue placeholder="Select Subject..." />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {subjects.map(s => (
+                                                                    <SelectItem key={s.subject_id} value={s.subject_id.toString()} className="text-xs">
+                                                                        {s.subject_name}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+
+                                                        <Select
+                                                            value={cell.staff_id}
+                                                            onValueChange={(val) => handleCellChange(selectedDayTab, pt.period, "staff_id", val)}
+                                                        >
+                                                            <SelectTrigger className="w-full h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm">
+                                                                <SelectValue placeholder="Select Teacher..." />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {staffList.map(s => (
+                                                                    <SelectItem key={s.staff_id} value={s.staff_id.toString()} className="text-xs">
+                                                                        {s.staff_first_name} {s.staff_last_name}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+
+                            {/* Add Period Button */}
+                            <div className="pt-2 pb-4">
+                                {showAddPeriod ? (
+                                    <div className="space-y-2.5 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                                        <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                            <Clock className="w-4 h-4 text-primary" /> New Period / Extra Lecture
+                                        </span>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <Label className="text-[10px] text-slate-500 font-bold">Start Time</Label>
+                                                <Input
+                                                    type="time"
+                                                    value={newPeriodStart}
+                                                    onChange={e => setNewPeriodStart(e.target.value)}
+                                                    className="h-10 text-xs rounded-xl bg-white"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label className="text-[10px] text-slate-500 font-bold">End Time</Label>
+                                                <Input
+                                                    type="time"
+                                                    value={newPeriodEnd}
+                                                    onChange={e => setNewPeriodEnd(e.target.value)}
+                                                    className="h-10 text-xs rounded-xl bg-white"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 pt-1">
+                                            <Button size="sm" onClick={handleAddPeriod} className="flex-1 h-10 font-bold rounded-xl text-xs">
+                                                Add Period
+                                            </Button>
+                                            <Button size="sm" variant="ghost" onClick={() => setShowAddPeriod(false)} className="h-10 text-xs font-semibold rounded-xl">
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <Button
+                                        variant="outline"
+                                        className="w-full h-11 text-xs font-bold rounded-xl border-dashed border-slate-300 shadow-sm hover:bg-slate-50 active:scale-95 transition-all"
+                                        onClick={() => setShowAddPeriod(true)}
+                                    >
+                                        <PlusCircle className="w-4 h-4 mr-2 text-slate-600" /> Add Period / Extra Lecture
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </CardContent>
             ) : (
-                <CardContent className="h-40 flex items-center justify-center text-muted-foreground">
-                    Please select a class from the dropdown above to create or edit its weekly schedule.
+                <CardContent className="py-12 px-4 flex flex-col items-center justify-center text-center select-none">
+                    <div className="bg-slate-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 border border-slate-100 shadow-sm">
+                        <CalendarDays className="h-6 w-6 text-slate-400" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-800">No class selected</p>
+                    <p className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
+                        Please select a class from the dropdown above to create or edit its weekly schedule.
+                    </p>
                 </CardContent>
             )}
         </Card>

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/school-os/logo";
-import { DotSpinner } from "@/components/ui/dot-spinner";
+import { Loader2 } from "lucide-react";
 
 export default function RootPage() {
   const router = useRouter();
@@ -18,9 +18,9 @@ export default function RootPage() {
         <Logo className="h-12 w-12 mb-1" />
         
         <div className="flex items-center justify-center gap-2.5 pt-2">
-          <DotSpinner className="h-4 w-4 text-indigo-600" />
-          <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase animate-pulse">
-            Redirecting...
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <p className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
+            Redirecting…
           </p>
         </div>
       </div>

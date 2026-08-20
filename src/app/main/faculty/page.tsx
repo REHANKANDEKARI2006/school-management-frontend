@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { PageSkeleton } from "@/components/ui/skeletons";
 import { toast } from "sonner";
+import { useFeedback } from "@/components/school-os/feedback-provider";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -101,6 +102,7 @@ function formatExpiry(dateStr: string | null) {
 
 export default function FacultyPage() {
   const { searchQuery } = useSearch();
+  const { showWarning } = useFeedback();
 
   const roleId =
     typeof window !== "undefined"
@@ -126,6 +128,23 @@ export default function FacultyPage() {
   const [selectedFaculty, setSelectedFaculty] = React.useState<any>(null);
   
   const [selectedStatus, setSelectedStatus] = React.useState<string>("all");
+  const [selectedSubject, setSelectedSubject] = React.useState<string>("all");
+
+  const [isMobile, setIsMobile] = React.useState(false);
+  const [currentPage, setCurrentPage] = React.useState(1);
+
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedStatus, selectedSubject, searchQuery]);
 
   // Details dialog
   const [detailsOpen, setDetailsOpen] = React.useState(false);
@@ -266,28 +285,40 @@ export default function FacultyPage() {
     }
   };
 
-  const handleDeactivate = async (userId: number) => {
-    if (!confirm("Are you sure you want to deactivate this faculty member?")) return;
-    try {
-      await axios.patch(`/api/auth/users/${userId}`, { is_active: false, status: 'deactivated' });
-      toast.success("Faculty member deactivated successfully");
-      fetchFaculty();
-      if (canManage) fetchInviteStatuses();
-    } catch {
-      toast.error("Failed to deactivate faculty member");
-    }
+  const handleDeactivate = (userId: number) => {
+    showWarning(
+      "Deactivate Faculty?",
+      "Are you sure you want to deactivate this faculty member?",
+      async () => {
+        try {
+          await axios.patch(`/api/auth/users/${userId}`, { is_active: false, status: 'deactivated' });
+          toast.success("Faculty member deactivated successfully");
+          fetchFaculty();
+          if (canManage) fetchInviteStatuses();
+        } catch {
+          toast.error("Failed to deactivate faculty member");
+        }
+      },
+      "Yes, Deactivate"
+    );
   };
 
-  const handleReactivate = async (userId: number) => {
-    if (!confirm("Are you sure you want to reactivate this faculty member?")) return;
-    try {
-      await axios.patch(`/api/auth/users/${userId}`, { is_active: true, status: 'active' });
-      toast.success("Faculty member reactivated successfully");
-      fetchFaculty();
-      if (canManage) fetchInviteStatuses();
-    } catch {
-      toast.error("Failed to reactivate faculty member");
-    }
+  const handleReactivate = (userId: number) => {
+    showWarning(
+      "Reactivate Faculty?",
+      "Are you sure you want to reactivate this faculty member?",
+      async () => {
+        try {
+          await axios.patch(`/api/auth/users/${userId}`, { is_active: true, status: 'active' });
+          toast.success("Faculty member reactivated successfully");
+          fetchFaculty();
+          if (canManage) fetchInviteStatuses();
+        } catch {
+          toast.error("Failed to reactivate faculty member");
+        }
+      },
+      "Yes, Reactivate"
+    );
   };
 
   const handleViewDetails = async (id: number) => {
@@ -315,6 +346,9 @@ export default function FacultyPage() {
         return f.status === selectedStatus;
       });
     }
+    if (selectedSubject !== "all") {
+      result = result.filter((f) => f.subject_name === selectedSubject);
+    }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
@@ -324,7 +358,7 @@ export default function FacultyPage() {
       );
     }
     return result;
-  }, [faculty, searchQuery, selectedStatus, inviteStatuses]);
+  }, [faculty, searchQuery, selectedStatus, selectedSubject, inviteStatuses]);
 
   const uniqueStatuses = React.useMemo(() => {
     const statuses = new Set<string>();
@@ -339,6 +373,16 @@ export default function FacultyPage() {
     });
     return Array.from(statuses).sort();
   }, [faculty, inviteStatuses]);
+
+  const uniqueSubjects = React.useMemo(() => {
+    const subjs = new Set<string>();
+    faculty.forEach((f) => {
+      if (f.subject_name) {
+        subjs.add(f.subject_name);
+      }
+    });
+    return Array.from(subjs).sort();
+  }, [faculty]);
 
   const statusVariant = (status: string): "active" | "rejected" | "inactive" | "pending" | "outline" => {
     switch (status) {
@@ -357,6 +401,14 @@ export default function FacultyPage() {
     }
   };
 
+  const totalPages = Math.ceil(filtered.length / 10) || 1;
+
+  const displayedFaculty = React.useMemo(() => {
+    if (!isMobile) return filtered;
+    const start = (currentPage - 1) * 10;
+    return filtered.slice(start, start + 10);
+  }, [filtered, isMobile, currentPage]);
+
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
@@ -364,13 +416,61 @@ export default function FacultyPage() {
       <>
         <Card className="border-none shadow-sm overflow-hidden">
           <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-6 border-b">
-            <div className="space-y-1">
+            <div className="space-y-1 hidden md:block">
               <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight">Faculty</CardTitle>
               <CardDescription className="text-sm">Manage faculty members and their system access</CardDescription>
             </div>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+            {/* Mobile View Filter & Action Controls (< sm) */}
+            <div className="flex sm:hidden flex-col gap-2.5 w-full mt-2">
+              <div className="grid grid-cols-2 gap-2.5 w-full">
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <SelectTrigger className="w-full h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    {uniqueStatuses.map((st) => (
+                      <SelectItem key={st} value={st}>
+                        {st}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                  <SelectTrigger className="w-full h-11 text-xs font-semibold rounded-xl bg-white border-slate-200 shadow-sm">
+                    <SelectValue placeholder="Subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Subjects</SelectItem>
+                    {uniqueSubjects.map((sub) => (
+                      <SelectItem key={sub} value={sub}>
+                        {sub}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {canManage && (
+                <Button
+                  loading={addLoading}
+                  className="w-full h-11 font-bold rounded-xl shadow-sm"
+                  onClick={() => {
+                    setMode("add");
+                    setSelectedFaculty(null);
+                    setOpen(true);
+                  }}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add Faculty
+                </Button>
+              )}
+            </div>
+
+            {/* Desktop View Filter & Action Controls (>= sm) */}
+            <div className="hidden sm:flex flex-row items-center gap-3 w-auto">
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-full sm:w-[140px] h-9">
+                <SelectTrigger className="w-[140px] h-9 text-sm font-semibold rounded-xl bg-white border-slate-200">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -382,10 +482,25 @@ export default function FacultyPage() {
                   ))}
                 </SelectContent>
               </Select>
+
+              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                <SelectTrigger className="w-[140px] h-9 text-sm font-semibold rounded-xl bg-white border-slate-200">
+                  <SelectValue placeholder="Subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Subjects</SelectItem>
+                  {uniqueSubjects.map((sub) => (
+                    <SelectItem key={sub} value={sub}>
+                      {sub}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
               {canManage && (
                 <Button
                   loading={addLoading}
-                  className="w-full sm:w-auto"
+                  className="h-9 font-bold rounded-xl"
                   onClick={() => {
                     setMode("add");
                     setSelectedFaculty(null);
@@ -400,216 +515,410 @@ export default function FacultyPage() {
           </CardHeader>
 
           <CardContent className="p-0">
-            <div className="w-full overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="pl-4 sm:pl-6 min-w-[200px]">Name</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="hidden md:table-cell">Department</TableHead>
-                    <TableHead className="hidden md:table-cell">Subject</TableHead>
-                    {canManage && <TableHead className="hidden lg:table-cell">Account</TableHead>}
-                    <TableHead className="text-right pr-4 sm:pr-6" />
-                  </TableRow>
-                </TableHeader>
-
-              <TableBody>
+            {isMobile ? (
+              <div className="p-3">
                 {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={canManage ? 6 : 5} className="p-0">
-                      <PageSkeleton rows={4} />
-                    </TableCell>
-                  </TableRow>
-                ) : filtered.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={canManage ? 6 : 5} className="text-center py-12 text-muted-foreground">
-                      No faculty members found
-                    </TableCell>
-                  </TableRow>
-                ) : filtered.map((f) => {
-                  const inviteInfo = inviteStatuses[f.email?.toLowerCase()];
-                  const isPending = inviteInfo?.status === "pending";
-                  const isExpired = isPending && inviteInfo?.invite_token_expiry && new Date(inviteInfo.invite_token_expiry) < new Date();
-                  const isDeactivated = inviteInfo?.status === "deactivated" || f.user_status_id === 2;
+                  <div className="flex flex-col gap-2.5">
+                    {[...Array(6)].map((_, i) => (
+                      <div key={i} className="h-16 rounded-2xl bg-slate-100 animate-pulse" />
+                    ))}
+                  </div>
+                ) : displayedFaculty.length === 0 ? (
+                  <div className="py-12 text-center text-muted-foreground text-sm">No faculty members found.</div>
+                ) : (
+                  <div className="flex flex-col gap-2.5">
+                    {displayedFaculty.map((f) => {
+                      const inviteInfo = inviteStatuses[f.email?.toLowerCase()];
+                      const isPending = inviteInfo?.status === "pending";
+                      const isDeactivated = inviteInfo?.status === "deactivated" || f.user_status_id === 2;
 
-                  return (
-                    <TableRow key={f.staff_id} className="table-row-hover">
-                      {/* Name + Avatar */}
-                      <TableCell className="flex gap-3 items-center pl-4 sm:pl-6">
-                        <Avatar className="h-10 w-10 shrink-0">
-                          <AvatarImage src={f.avatar} className="object-cover" />
-                          <AvatarFallback className={`${avatarColor(f.name)} text-white font-semibold text-sm`}>
-                            {f.fallback}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <div className="font-medium truncate">{f.name}</div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            {f.email ? (
-                              <a href={`mailto:${f.email}`} className="hover:underline hover:text-blue-600 transition-colors">
-                                {f.email}
-                              </a>
-                            ) : (
-                              "No email"
-                            )}
+                      return (
+                        <div
+                          key={f.staff_id}
+                          className="bg-white rounded-2xl border border-slate-100 shadow-sm p-3.5 flex items-center justify-between gap-3 hover:border-slate-200 transition-all select-none"
+                        >
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <Avatar className="h-11 w-11 shrink-0 border border-slate-100">
+                              <AvatarImage src={f.avatar} className="object-cover" />
+                              <AvatarFallback className={`${avatarColor(f.name)} text-white font-bold text-xs`}>
+                                {f.fallback}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-slate-900 text-sm truncate" title={f.name}>
+                                  {f.name}
+                                </span>
+                                <Badge
+                                  variant={isDeactivated ? "deactivated" : statusVariant(f.status)}
+                                  className="text-[10px] px-2 py-0.5 font-bold shrink-0"
+                                >
+                                  {isDeactivated ? "Deactivated" : f.status}
+                                </Badge>
+                              </div>
+                              <span className="text-xs text-slate-500 truncate mt-0.5">
+                                {f.email ? (
+                                  <a href={`mailto:${f.email}`} className="hover:underline hover:text-blue-600">
+                                    {f.email}
+                                  </a>
+                                ) : (
+                                  "No email"
+                                )}
+                              </span>
+                              {(f.dept_name || f.subject_name) && (
+                                <span className="text-[11px] font-bold text-slate-400 mt-1 truncate">
+                                  {f.dept_name || "—"}{f.subject_name ? ` • ${f.subject_name}` : ""}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
 
-                      {/* Staff status */}
-                      <TableCell>
-                        <Badge variant={isDeactivated ? "deactivated" : statusVariant(f.status)}>
-                          {isDeactivated ? "Deactivated" : f.status}
-                        </Badge>
-                      </TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-slate-100 shrink-0">
+                                <MoreHorizontal className="h-4 w-4 text-slate-600" />
+                              </Button>
+                            </DropdownMenuTrigger>
 
-                      <TableCell className="hidden md:table-cell">{f.dept_name || "—"}</TableCell>
-                      <TableCell className="hidden md:table-cell">{f.subject_name || "—"}</TableCell>
+                            <DropdownMenuContent align="end" className="rounded-xl shadow-lg border-slate-100">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
 
-                      {/* Account / Invitation status column */}
-                      {canManage && (
-                        <TableCell className="hidden lg:table-cell">
-                          {isPending ? (
-                            <div className="flex flex-col gap-1">
-                              {isExpired ? (
+                              <DropdownMenuItem onClick={() => handleViewDetails(f.staff_id)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+
+                              {canManage && (
                                 <>
-                                  <Badge variant="expired" className="gap-1 px-2.5 py-0.5 w-fit">
-                                    <ShieldAlert className="h-3 w-3" />
-                                    Invitation Expired
-                                  </Badge>
-                                  {formatExpiry(inviteInfo.invite_token_expiry) && (
-                                    <span className="text-[10px] text-muted-foreground pl-0.5">
-                                      Expired on {formatExpiry(inviteInfo.invite_token_expiry)}
-                                    </span>
+                                  <DropdownMenuItem
+                                    onClick={async () => {
+                                      const res = await axios.get(`/api/faculty/${f.staff_id}`);
+                                      setSelectedFaculty(res.data.data);
+                                      setMode("edit");
+                                      setOpen(true);
+                                    }}
+                                  >
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Edit
+                                  </DropdownMenuItem>
+
+                                  {isPending && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onClick={() => handleResend(f.email)}>
+                                        <RefreshCw className="mr-2 h-4 w-4" />
+                                        Resend Invitation
+                                      </DropdownMenuItem>
+                                    </>
                                   )}
-                                </>
-                              ) : (
-                                <>
-                                  <Badge variant="pending" className="gap-1 px-2.5 py-0.5 w-fit">
-                                    <Clock className="h-3 w-3" />
-                                    Invitation Pending
-                                  </Badge>
-                                  {formatExpiry(inviteInfo.invite_token_expiry) && (
-                                    <span className="text-[10px] text-muted-foreground pl-0.5">
-                                      Expires {formatExpiry(inviteInfo.invite_token_expiry)}
-                                    </span>
+
+                                  {f.user_id && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      {isDeactivated ? (
+                                        <DropdownMenuItem
+                                          className="text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50 font-semibold"
+                                          onClick={() => handleReactivate(f.user_id)}
+                                        >
+                                          Reactivate
+                                        </DropdownMenuItem>
+                                      ) : (
+                                        <DropdownMenuItem
+                                          className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                          onClick={() => handleDeactivate(f.user_id)}
+                                        >
+                                          Deactivate
+                                        </DropdownMenuItem>
+                                      )}
+                                    </>
                                   )}
+
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                    onClick={() => {
+                                      showWarning(
+                                        "Delete Faculty?",
+                                        "Are you sure you want to delete this faculty member? This action cannot be undone.",
+                                        async () => {
+                                          try {
+                                            await axios.delete(`/api/faculty/${f.staff_id}`);
+                                            fetchFaculty();
+                                            toast.success("Faculty member deleted successfully");
+                                          } catch {
+                                            toast.error("Failed to delete faculty member");
+                                          }
+                                        },
+                                        "Yes, Delete"
+                                      );
+                                    }}
+                                  >
+                                    🗑️ Delete
+                                  </DropdownMenuItem>
                                 </>
                               )}
-                              <button
-                                onClick={() => handleResend(f.email)}
-                                className="inline-flex items-center gap-1 text-[11px] text-primary hover:text-primary/80 font-semibold w-fit pl-0.5 hover:underline"
-                              >
-                                <RefreshCw className="h-3 w-3" />
-                                Resend invite
-                              </button>
-                            </div>
-                          ) : inviteInfo?.status === "deactivated" ? (
-                            <Badge variant="deactivated" className="gap-1 px-2.5 py-0.5">
-                              <ShieldAlert className="h-3 w-3" />
-                              Deactivated
-                            </Badge>
-                          ) : inviteInfo?.status === "active" ? (
-                            <Badge variant="active" className="gap-1 px-2.5 py-0.5">
-                              <CheckCircle2 className="h-3 w-3" />
-                              Active
-                            </Badge>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="w-full overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="pl-4 sm:pl-6 min-w-[200px]">Name</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="hidden md:table-cell">Department</TableHead>
+                      <TableHead className="hidden md:table-cell">Subject</TableHead>
+                      {canManage && <TableHead className="hidden lg:table-cell">Account</TableHead>}
+                      <TableHead className="text-right pr-4 sm:pr-6" />
+                    </TableRow>
+                  </TableHeader>
+
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={canManage ? 6 : 5} className="p-0">
+                          <PageSkeleton rows={4} />
                         </TableCell>
-                      )}
+                      </TableRow>
+                    ) : filtered.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={canManage ? 6 : 5} className="text-center py-12 text-muted-foreground">
+                          No faculty members found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filtered.map((f) => {
+                        const inviteInfo = inviteStatuses[f.email?.toLowerCase()];
+                        const isPending = inviteInfo?.status === "pending";
+                        const isExpired = isPending && inviteInfo?.invite_token_expiry && new Date(inviteInfo.invite_token_expiry) < new Date();
+                        const isDeactivated = inviteInfo?.status === "deactivated" || f.user_status_id === 2;
 
-                      {/* Actions */}
-                      <TableCell className="text-right pr-4 sm:pr-6">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
+                        return (
+                          <TableRow key={f.staff_id} className="table-row-hover">
+                            {/* Name + Avatar */}
+                            <TableCell className="flex gap-3 items-center pl-4 sm:pl-6">
+                              <Avatar className="h-10 w-10 shrink-0">
+                                <AvatarImage src={f.avatar} className="object-cover" />
+                                <AvatarFallback className={`${avatarColor(f.name)} text-white font-semibold text-sm`}>
+                                  {f.fallback}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="min-w-0">
+                                <div className="font-medium truncate">{f.name}</div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {f.email ? (
+                                    <a href={`mailto:${f.email}`} className="hover:underline hover:text-blue-600 transition-colors">
+                                      {f.email}
+                                    </a>
+                                  ) : (
+                                    "No email"
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
 
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            {/* Staff status */}
+                            <TableCell>
+                              <Badge variant={isDeactivated ? "deactivated" : statusVariant(f.status)}>
+                                {isDeactivated ? "Deactivated" : f.status}
+                              </Badge>
+                            </TableCell>
 
-                            <DropdownMenuItem onClick={() => handleViewDetails(f.staff_id)}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
+                            <TableCell className="hidden md:table-cell">{f.dept_name || "—"}</TableCell>
+                            <TableCell className="hidden md:table-cell">{f.subject_name || "—"}</TableCell>
 
+                            {/* Account / Invitation status column */}
                             {canManage && (
-                              <>
-                                <DropdownMenuItem
-                                  onClick={async () => {
-                                    const res = await axios.get(`/api/faculty/${f.staff_id}`);
-                                    setSelectedFaculty(res.data.data);
-                                    setMode("edit");
-                                    setOpen(true);
-                                  }}
-                                >
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Edit
-                                </DropdownMenuItem>
-
-                                {isPending && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => handleResend(f.email)}>
-                                      <RefreshCw className="mr-2 h-4 w-4" />
-                                      Resend Invitation
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-
-                                {f.user_id && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    {isDeactivated ? (
-                                      <DropdownMenuItem
-                                        className="text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50 font-semibold"
-                                        onClick={() => handleReactivate(f.user_id)}
-                                      >
-                                        Reactivate
-                                      </DropdownMenuItem>
+                              <TableCell className="hidden lg:table-cell">
+                                {isPending ? (
+                                  <div className="flex flex-col gap-1">
+                                    {isExpired ? (
+                                      <>
+                                        <Badge variant="expired" className="gap-1 px-2.5 py-0.5 w-fit">
+                                          <ShieldAlert className="h-3 w-3" />
+                                          Invitation Expired
+                                        </Badge>
+                                        {formatExpiry(inviteInfo.invite_token_expiry) && (
+                                          <span className="text-[10px] text-muted-foreground pl-0.5">
+                                            Expired on {formatExpiry(inviteInfo.invite_token_expiry)}
+                                          </span>
+                                        )}
+                                      </>
                                     ) : (
+                                      <>
+                                        <Badge variant="pending" className="gap-1 px-2.5 py-0.5 w-fit">
+                                          <Clock className="h-3 w-3" />
+                                          Invitation Pending
+                                        </Badge>
+                                        {formatExpiry(inviteInfo.invite_token_expiry) && (
+                                          <span className="text-[10px] text-muted-foreground pl-0.5">
+                                            Expires {formatExpiry(inviteInfo.invite_token_expiry)}
+                                          </span>
+                                        )}
+                                      </>
+                                    )}
+                                    <button
+                                      onClick={() => handleResend(f.email)}
+                                      className="inline-flex items-center gap-1 text-[11px] text-primary hover:text-primary/80 font-semibold w-fit pl-0.5 hover:underline"
+                                    >
+                                      <RefreshCw className="h-3 w-3" />
+                                      Resend invite
+                                    </button>
+                                  </div>
+                                ) : inviteInfo?.status === "deactivated" ? (
+                                  <Badge variant="deactivated" className="gap-1 px-2.5 py-0.5">
+                                    <ShieldAlert className="h-3 w-3" />
+                                    Deactivated
+                                  </Badge>
+                                ) : inviteInfo?.status === "active" ? (
+                                  <Badge variant="active" className="gap-1 px-2.5 py-0.5">
+                                    <CheckCircle2 className="h-3 w-3" />
+                                    Active
+                                  </Badge>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
+                            )}
+
+                            {/* Actions */}
+                            <TableCell className="text-right pr-4 sm:pr-6">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+
+                                  <DropdownMenuItem onClick={() => handleViewDetails(f.staff_id)}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    View Details
+                                  </DropdownMenuItem>
+
+                                  {canManage && (
+                                    <>
+                                      <DropdownMenuItem
+                                        onClick={async () => {
+                                          const res = await axios.get(`/api/faculty/${f.staff_id}`);
+                                          setSelectedFaculty(res.data.data);
+                                          setMode("edit");
+                                          setOpen(true);
+                                        }}
+                                      >
+                                        <Pencil className="mr-2 h-4 w-4" />
+                                        Edit
+                                      </DropdownMenuItem>
+
+                                      {isPending && (
+                                        <>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem onClick={() => handleResend(f.email)}>
+                                            <RefreshCw className="mr-2 h-4 w-4" />
+                                            Resend Invitation
+                                          </DropdownMenuItem>
+                                        </>
+                                      )}
+
+                                      {f.user_id && (
+                                        <>
+                                          <DropdownMenuSeparator />
+                                          {isDeactivated ? (
+                                            <DropdownMenuItem
+                                              className="text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50 font-semibold"
+                                              onClick={() => handleReactivate(f.user_id)}
+                                            >
+                                              Reactivate
+                                            </DropdownMenuItem>
+                                          ) : (
+                                            <DropdownMenuItem
+                                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                              onClick={() => handleDeactivate(f.user_id)}
+                                            >
+                                              Deactivate
+                                            </DropdownMenuItem>
+                                          )}
+                                        </>
+                                      )}
+
+                                      <DropdownMenuSeparator />
                                       <DropdownMenuItem
                                         className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                                        onClick={() => handleDeactivate(f.user_id)}
+                                        onClick={() => {
+                                          showWarning(
+                                            "Delete Faculty?",
+                                            "Are you sure you want to delete this faculty member? This action cannot be undone.",
+                                            async () => {
+                                              try {
+                                                await axios.delete(`/api/faculty/${f.staff_id}`);
+                                                fetchFaculty();
+                                                toast.success("Faculty member deleted successfully");
+                                              } catch {
+                                                toast.error("Failed to delete faculty member");
+                                              }
+                                            },
+                                            "Yes, Delete"
+                                          );
+                                        }}
                                       >
-                                        Deactivate
+                                        🗑️ Delete
                                       </DropdownMenuItem>
-                                    )}
-                                  </>
-                                )}
+                                    </>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
 
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                                  onClick={async () => {
-                                    if (!confirm("Are you sure you want to delete this faculty?")) return;
-                                    await axios.delete(`/api/faculty/${f.staff_id}`);
-                                    fetchFaculty();
-                                  }}
-                                >
-                                  🗑️ Delete
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
+          {/* Mobile Pagination Controls */}
+          {isMobile && filtered.length > 0 && (
+            <div className="flex items-center justify-between px-4 py-3 bg-slate-50/50 border-t border-slate-200/80 select-none">
+              <span className="text-[11px] sm:text-xs font-bold text-slate-500 shrink-0 leading-tight">
+                Page {currentPage} of {totalPages} ({filtered.length} faculty)
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className="h-9 px-3.5 text-xs font-bold rounded-xl border-slate-200 min-w-[40px]"
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  className="h-9 px-3.5 text-xs font-bold rounded-xl border-slate-200 min-w-[40px]"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
       </Card>
 
         {/* ── ADD / EDIT FACULTY ───────────────────────────────────────── */}
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+          <DialogContent className="w-[95vw] sm:max-w-[600px] max-h-[85vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl sm:rounded-lg">
             <DialogHeader>
               <DialogTitle>{mode === "add" ? "Add Faculty" : "Edit Faculty"}</DialogTitle>
             </DialogHeader>
@@ -625,7 +934,7 @@ export default function FacultyPage() {
 
         {/* ── VIEW DETAILS ─────────────────────────────────────────────── */}
         <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-          <DialogContent className="w-[95vw] sm:max-w-5xl max-h-[95vh] overflow-y-auto p-4 sm:p-6">
+          <DialogContent className="w-[95vw] sm:max-w-5xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl sm:rounded-lg">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold text-slate-900 border-b pb-4 mb-2">
                 Faculty Details
@@ -637,7 +946,7 @@ export default function FacultyPage() {
 
         {/* ── SCHEDULE ─────────────────────────────────────────────────── */}
         <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
-          <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+          <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl sm:rounded-lg">
             <DialogHeader>
               <DialogTitle>Weekly Schedule</DialogTitle>
               <DialogDescription>

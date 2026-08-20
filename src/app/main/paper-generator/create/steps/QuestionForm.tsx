@@ -233,21 +233,14 @@ export function QuestionForm({
                 className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all max-w-md ${
                   uploading
                     ? "border-slate-300 bg-slate-50"
-                    : "border-slate-300 hover:border-[#3335e3] hover:bg-[#3335e3]/5"
+                    : "border-slate-300 hover:border-primary hover:bg-primary/5"
                 }`}
               >
-                {uploading ? (
-                  <div className="flex flex-col items-center justify-center space-y-2">
-                    <Loader2 className="h-6 w-6 animate-spin text-[#3335e3]" />
-                    <span className="text-xs font-bold text-slate-500">Uploading diagram...</span>
-                  </div>
-                ) : (
                   <div className="flex flex-col items-center justify-center space-y-1">
                     <Upload className="h-5 w-5 text-slate-400 mb-1 mx-auto" />
                     <span className="text-xs font-bold text-slate-700 block">Click to upload diagram</span>
                     <span className="text-[10px] text-slate-400 font-medium block">Supports JPG, PNG, WEBP (Max 5MB)</span>
                   </div>
-                )}
               </div>
             )}
           </div>

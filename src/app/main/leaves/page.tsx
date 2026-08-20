@@ -291,14 +291,7 @@ export default function TeacherLeavePage() {
 
   // ── Loading / redirecting state ───────────────────────────────────────────
   if (resolving) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <Loader2 className="w-6 h-6 animate-spin" />
-          <span>Loading your profile…</span>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (!staffId) {
@@ -718,7 +711,6 @@ export default function TeacherLeavePage() {
               onClick={handleApply}
               disabled={submitting}
             >
-              {submitting && <RefreshCw className="w-4 h-4 animate-spin mr-2" />}
               Submit Application
             </Button>
           </DialogFooter>
@@ -801,7 +793,6 @@ export default function TeacherLeavePage() {
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setCancelOpen(false)}>Keep It</Button>
             <Button variant="destructive" onClick={handleCancel} disabled={submitting}>
-              {submitting && <RefreshCw className="w-4 h-4 animate-spin mr-2" />}
               Yes, Cancel
             </Button>
           </DialogFooter>
